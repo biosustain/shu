@@ -1,6 +1,6 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
-use crate::geom::{GeomArrow, GeomMetabolite};
+use crate::data::{MetaboliteData, ReactionData};
 use bevy::{
     asset::{AssetLoader, LoadContext, LoadedAsset},
     prelude::*,
@@ -17,7 +17,13 @@ pub struct EscherPlugin;
 impl Plugin for EscherPlugin {
     fn build(&self, app: &mut App) {
         app.add_asset::<EscherMap>()
-            .init_asset_loader::<CustomAssetLoader>()
+            .add_asset_loader(CustomAssetLoader::<EscherMap>::new(vec!["json"]))
+            .add_asset_loader(CustomAssetLoader::<ReactionData>::new(vec![
+                "reaction.json",
+            ]))
+            .add_asset_loader(CustomAssetLoader::<MetaboliteData>::new(vec![
+                "metabolite.json",
+            ]))
             .add_system(load_map);
     }
 }
@@ -28,7 +34,7 @@ pub struct MapState {
     pub loaded: bool,
 }
 
-#[derive(Deserialize, TypeUuid)]
+#[derive(Deserialize, TypeUuid, Default)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
 pub struct EscherMap {
     #[allow(dead_code)]
@@ -37,23 +43,38 @@ pub struct EscherMap {
 }
 
 #[derive(Default)]
-pub struct CustomAssetLoader;
+pub struct CustomAssetLoader<A> {
+    extensions: Vec<&'static str>,
+    _mark: std::marker::PhantomData<A>,
+}
 
-impl AssetLoader for CustomAssetLoader {
+impl<A> AssetLoader for CustomAssetLoader<A>
+where
+    for<'de> A: serde::Deserialize<'de> + bevy::asset::Asset,
+{
     fn load<'a>(
         &'a self,
         bytes: &'a [u8],
         load_context: &'a mut LoadContext,
     ) -> BoxedFuture<'a, Result<(), bevy::asset::Error>> {
         Box::pin(async move {
-            let custom_asset = serde_json::from_slice::<EscherMap>(bytes)?;
+            let custom_asset = serde_json::from_slice::<A>(bytes)?;
             load_context.set_default_asset(LoadedAsset::new(custom_asset));
             Ok(())
         })
     }
 
     fn extensions(&self) -> &[&str] {
-        &["json"]
+        &self.extensions
+    }
+}
+
+impl<A> CustomAssetLoader<A> {
+    fn new(extensions: Vec<&'static str>) -> Self {
+        Self {
+            extensions,
+            _mark: std::marker::PhantomData::<A>,
+        }
     }
 }
 
@@ -84,7 +105,7 @@ impl EscherMap {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct EscherInfo {
     map_name: String,
     map_id: String,
@@ -93,7 +114,7 @@ struct EscherInfo {
     schema: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 struct Metabolism {
     reactions: HashMap<u64, Reaction>,
     nodes: HashMap<u64, Node>,

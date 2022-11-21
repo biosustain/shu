@@ -4,8 +4,10 @@ use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_prototype_lyon::prelude::*;
 
 mod aesthetics;
+mod data;
 mod escher;
 mod geom;
+mod gui;
 
 use escher::{EscherMap, EscherPlugin, MapState};
 
@@ -16,8 +18,10 @@ fn main() {
         .add_plugin(PanCamPlugin::default())
         .add_plugin(ShapePlugin)
         .add_plugin(EscherPlugin)
+        .add_plugin(gui::GuiPlugin)
+        .add_plugin(data::DataPlugin)
         .add_startup_system(setup_system)
-        .add_startup_system(setup_demo_arrow_size)
+        // .add_startup_system(setup_demo_arrow_size)
         .add_plugin(aesthetics::AesPlugin)
         .run();
 }
@@ -27,6 +31,12 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(MapState {
         escher_map: escher_handle,
         loaded: false,
+    });
+    commands.insert_resource(data::ReactionState {
+        reaction_data: None,
+        metabolite_data: None,
+        reac_loaded: false,
+        met_loaded: false,
     });
 
     commands
@@ -39,7 +49,8 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(PanCam::default());
 }
 
-fn setup_demo_arrow_size(mut commands: Commands) {
+/// System for testing.
+fn _setup_demo_arrow_size(mut commands: Commands) {
     commands.spawn((
         aesthetics::Aesthetics {
             plotted: false,
