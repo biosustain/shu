@@ -11,5 +11,5 @@ pub struct GeomArrow {
 /// the circles in the map.
 #[derive(Component)]
 pub struct GeomMetabolite {
-    plotted: bool,
+    pub plotted: bool,
 }
