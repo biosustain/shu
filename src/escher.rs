@@ -1,4 +1,6 @@
-use crate::geom::{GeomMetabolite, GeomReaction};
+//! Data model of escher JSON maps
+//! TODO: borrow strings
+use crate::geom::{GeomArrow, GeomMetabolite};
 use bevy::{
     asset::{AssetLoader, LoadContext, LoadedAsset},
     prelude::*,
@@ -6,8 +8,6 @@ use bevy::{
     utils::BoxedFuture,
 };
 use bevy_prototype_lyon::prelude::*;
-/// Data model of escher JSON maps
-/// TODO: borrow strings
 use serde::Deserialize;
 use serde_json;
 use std::collections::HashMap;
@@ -31,6 +31,7 @@ pub struct MapState {
 #[derive(Deserialize, TypeUuid)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
 pub struct EscherMap {
+    #[allow(dead_code)]
     info: EscherInfo,
     metabolism: Metabolism,
 }
@@ -154,6 +155,17 @@ pub struct Metabolite {
     pub node_is_primary: bool,
 }
 
+/// Component to differentiate circles via identifier (bigg_id in [`Metabolite`]).
+#[derive(Component, Deserialize, Clone)]
+pub struct CircleTag {
+    pub id: String,
+}
+/// Component to differentiate arrows via identifier (bigg_id in [`Reaction`]).
+#[derive(Component, Deserialize, Clone)]
+pub struct ArrowTag {
+    pub id: String,
+}
+
 /// Load escher map once the asset is available.
 /// The colors correspond to the default escher colors.
 fn load_map(
@@ -198,7 +210,7 @@ fn load_map(
                 },
                 Transform::from_xyz(met.x - center_x, -met.y + center_y, 1.),
             ))
-            .insert(GeomMetabolite { id: met.bigg_id });
+            .insert(CircleTag { id: met.bigg_id });
     }
     for reac in reactions {
         for (_, segment) in reac.segments {
@@ -228,18 +240,19 @@ fn load_map(
                     }
                 }
                 let line = path_builder.build();
-                commands
-                    .spawn(GeometryBuilder::build_as(
+                commands.spawn((
+                    GeometryBuilder::build_as(
                         &line,
                         DrawMode::Stroke(StrokeMode::new(
                             Color::rgb(51. / 255., 78. / 255., 101. / 255.),
                             10.0,
                         )),
                         Transform::from_xyz(from.x - center_x, -from.y + center_y, 0.),
-                    ))
-                    .insert(GeomReaction {
+                    ),
+                    ArrowTag {
                         id: reac.bigg_id.clone(),
-                    });
+                    },
+                ));
             }
         }
     }
