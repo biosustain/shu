@@ -29,6 +29,8 @@ pub struct ReactionData {
     sizes: Option<Vec<f32>>,
     /// Numeric values to plot as KDE.
     y: Option<Vec<Vec<f32>>>,
+    /// Numeric values to plot as KDE.
+    left_y: Option<Vec<Vec<f32>>>,
 }
 
 #[derive(Deserialize, TypeUuid, Default)]
@@ -95,6 +97,20 @@ fn load_reaction_data(
             .insert(aesthetics::Gy {})
             .insert(aesthetics::Distribution(std::mem::take(dist_data)))
             .insert(geom::GeomHist::right());
+    }
+    if let Some(dist_data) = &mut reacs.left_y {
+        // remove existing sizes geoms
+        for e in current_sizes.iter() {
+            commands.entity(e).despawn_recursive();
+        }
+        commands
+            .spawn(aesthetics::Aesthetics {
+                plotted: false,
+                identifiers: reacs.reactions.clone(),
+            })
+            .insert(aesthetics::Gy {})
+            .insert(aesthetics::Distribution(std::mem::take(dist_data)))
+            .insert(geom::GeomHist::left());
     }
     if let Some(size_data) = &mut reacs.sizes {
         // remove existing sizes geoms
