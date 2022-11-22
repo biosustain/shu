@@ -1,6 +1,6 @@
 use crate::escher::{ArrowTag, CircleTag};
 use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde};
-use crate::geom::{GeomArrow, GeomHist, GeomMetabolite};
+use crate::geom::{GeomArrow, GeomHist, GeomMetabolite, Side};
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
     shapes, DrawMode, FillMode, GeometryBuilder, Path, ShapePath, StrokeMode,
@@ -205,16 +205,23 @@ pub fn plot_metabolite_color(
 fn plot_side_hist(
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
-    mut aes_query: Query<(&Distribution<f32>, &Aesthetics), (With<GeomHist>, With<Gy>)>,
+    mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &GeomHist), With<Gy>>,
 ) {
-    for (dist, aes) in aes_query.iter_mut() {
+    for (dist, aes, geom) in aes_query.iter_mut() {
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 // info!("Plotting {}", arrow.id);
                 let line = plot_hist(&dist.0[index], 6);
                 let mut transform =
-                    Transform::from_xyz(trans.translation.x, trans.translation.y, 3.)
-                        .with_rotation(Quat::from_rotation_z(std::f32::consts::PI / 2.));
+                    Transform::from_xyz(trans.translation.x, trans.translation.y, 3.);
+                match geom.side {
+                    Side::Left => {
+                        transform.rotate(Quat::from_rotation_z(-std::f32::consts::PI / 2.))
+                    }
+                    Side::Right => {
+                        transform.rotate(Quat::from_rotation_z(std::f32::consts::PI / 2.))
+                    }
+                };
                 let scale = geom_scale(path, &line);
                 info!("Scale {scale} for {}", arrow.id);
                 transform.scale.x *= scale;
@@ -230,7 +237,7 @@ fn plot_side_hist(
                         transform,
                     ))
                     // this will remove them the next time side reaction is loaded
-                    .insert(GeomHist::right());
+                    .insert((*geom).clone());
             }
         }
     }

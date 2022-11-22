@@ -7,6 +7,7 @@ pub struct GeomArrow {
     pub plotted: bool,
 }
 
+#[derive(Clone)]
 pub enum Side {
     Left,
     Right,
@@ -29,7 +30,7 @@ impl GeomKde {
 
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
 /// the a KDE on the side of the arrows in the map..
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct GeomHist {
     pub side: Side,
 }
