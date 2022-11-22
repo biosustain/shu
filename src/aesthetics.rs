@@ -212,15 +212,17 @@ fn plot_side_hist(
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let line = plot_hist(&dist.0[index], 6);
-                let rotation_90 = match geom.side {
-                    Side::Right => -Vec2::Y.angle_between(arrow.direction.perp()),
-                    Side::Left => -Vec2::NEG_Y.angle_between(arrow.direction.perp()),
+                let (rotation_90, away) = match geom.side {
+                    Side::Right => (-Vec2::Y.angle_between(arrow.direction.perp()), -30.),
+                    Side::Left => (-Vec2::NEG_Y.angle_between(arrow.direction.perp()), 30.),
                 };
                 let mut transform =
                     Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
                         .with_rotation(Quat::from_rotation_z(rotation_90));
                 let scale = geom_scale(&path, &line);
                 transform.scale.x *= scale;
+                transform.translation.x += arrow.direction.perp().x * away;
+                transform.translation.y += arrow.direction.perp().y * away;
 
                 commands
                     .spawn(GeometryBuilder::build_as(
