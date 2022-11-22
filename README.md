@@ -1,6 +1,4 @@
-# ggmap
-
-> TODO: I have to change the name of the package since ggmap is taken and it should be more bio-specific.
+# shu
 
 ## What?
 
@@ -11,7 +9,7 @@ as nodes and reactions as edges.
 
 [Escher](https://escher.github.io/#/) is great. In fact, the default look of the map and the format
 of the map are exactly the same as escher's. However, escher only allows for plotting 2 (+2 with tooltips)
-kinds of data: reaction data and metabolite data. **GGmap** attempts to provide ways of plotting at least
+kinds of data: reaction data and metabolite data. **Shu** attempts to provide ways of plotting at least
 6:
 
 - [x] Reaction sizes.
@@ -35,7 +33,7 @@ This is how the python API (not implemented) should look:
 
 ```r
 # reaction and metabolite aes correspond to their identifiers
-ggmap(df, map_file, aes(metabolite=metabolite, reaction=reaction, size=flux, x=kcat)) +
+ggshu(df, map_file, aes(metabolite=metabolite, reaction=reaction, size=flux, x=kcat)) +
   geom_arrow() +  # will use size and reaction
   geom_metabolite(aes(size=concentration)) +  # will use size and metabolite
   geom_box() +  # will use reaction and kcat, boxplot at one right of reactions
