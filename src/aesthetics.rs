@@ -1,7 +1,10 @@
 use crate::escher::{ArrowTag, CircleTag};
-use crate::geom::{GeomArrow, GeomMetabolite};
+use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde};
+use crate::geom::{GeomArrow, GeomHist, GeomMetabolite};
 use bevy::prelude::*;
-use bevy_prototype_lyon::prelude::{shapes, DrawMode, FillMode, Path, ShapePath, StrokeMode};
+use bevy_prototype_lyon::prelude::{
+    shapes, DrawMode, FillMode, GeometryBuilder, Path, ShapePath, StrokeMode,
+};
 
 pub struct AesPlugin;
 
@@ -11,6 +14,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_arrow_color)
             .add_system(plot_arrow_size_dist)
             .add_system(plot_metabolite_color)
+            .add_system(plot_side_hist)
             .add_system(plot_metabolite_size);
     }
 }
@@ -29,7 +33,7 @@ pub struct Aesthetics {
 pub struct Gx {}
 
 #[derive(Component)]
-struct Gy {}
+pub struct Gy {}
 
 /// Data from the variables is allocated here.
 #[derive(Component)]
@@ -86,17 +90,6 @@ pub fn plot_arrow_size_dist(
             }
         }
     }
-}
-
-fn max_f32(slice: &[f32]) -> f32 {
-    slice
-        .iter()
-        .fold(0f32, |acc, x| if x - acc > 1e-5 { *x } else { acc })
-}
-fn min_f32(slice: &[f32]) -> f32 {
-    slice
-        .iter()
-        .fold(0f32, |acc, x| if x - acc <= 1e-5 { *x } else { acc })
 }
 
 struct ColorHsl {
@@ -203,6 +196,41 @@ pub fn plot_metabolite_color(
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
                 }
+            }
+        }
+    }
+}
+
+/// Plot histogram as numerical variable next to arrows.
+fn plot_side_hist(
+    mut commands: Commands,
+    mut query: Query<(&Transform, &ArrowTag, &Path)>,
+    mut aes_query: Query<(&Distribution<f32>, &Aesthetics), (With<GeomHist>, With<Gy>)>,
+) {
+    for (dist, aes) in aes_query.iter_mut() {
+        for (trans, arrow, path) in query.iter_mut() {
+            if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
+                // info!("Plotting {}", arrow.id);
+                let line = plot_hist(&dist.0[index], 6);
+                let mut transform =
+                    Transform::from_xyz(trans.translation.x, trans.translation.y, 3.)
+                        .with_rotation(Quat::from_rotation_z(std::f32::consts::PI / 2.));
+                let scale = geom_scale(path, &line);
+                info!("Scale {scale} for {}", arrow.id);
+                transform.scale.x *= scale;
+
+                commands
+                    .spawn(GeometryBuilder::build_as(
+                        &line,
+                        DrawMode::Fill(FillMode::color(Color::rgb(
+                            51. / 255.,
+                            101. / 255.,
+                            78. / 255.,
+                        ))),
+                        transform,
+                    ))
+                    // this will remove them the next time side reaction is loaded
+                    .insert(GeomHist::right());
             }
         }
     }

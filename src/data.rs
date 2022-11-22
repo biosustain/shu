@@ -27,6 +27,8 @@ pub struct ReactionData {
     colors: Option<Vec<f32>>,
     /// Numeric values to plot as reaction arrow sizes.
     sizes: Option<Vec<f32>>,
+    /// Numeric values to plot as KDE.
+    y: Option<Vec<Vec<f32>>>,
 }
 
 #[derive(Deserialize, TypeUuid, Default)]
@@ -79,6 +81,20 @@ fn load_reaction_data(
             .insert(aesthetics::Gcolor {})
             .insert(aesthetics::Point(std::mem::take(color_data)))
             .insert(geom::GeomArrow { plotted: false });
+    }
+    if let Some(dist_data) = &mut reacs.y {
+        // remove existing sizes geoms
+        for e in current_sizes.iter() {
+            commands.entity(e).despawn_recursive();
+        }
+        commands
+            .spawn(aesthetics::Aesthetics {
+                plotted: false,
+                identifiers: reacs.reactions.clone(),
+            })
+            .insert(aesthetics::Gy {})
+            .insert(aesthetics::Distribution(std::mem::take(dist_data)))
+            .insert(geom::GeomHist::right());
     }
     if let Some(size_data) = &mut reacs.sizes {
         // remove existing sizes geoms
