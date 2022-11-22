@@ -234,47 +234,55 @@ fn load_map(
             .insert(CircleTag { id: met.bigg_id });
     }
     for reac in reactions {
+        let mut path_builder = PathBuilder::new();
+        // origin of the figure
+        let mut from_figure = None;
         for (_, segment) in reac.segments {
             if let (Some(from), Some(to)) = (
                 my_map.met_coords(&segment.from_node_id),
                 my_map.met_coords(&segment.to_node_id),
             ) {
-                let mut path_builder = PathBuilder::new();
-                path_builder.move_to(Vec2::ZERO);
+                if from_figure.is_none() {
+                    from_figure = Some(from);
+                }
+                let ori = from_figure.unwrap();
+                path_builder.move_to(Vec2::new(from.x - ori.x, -from.y + ori.y));
                 match (segment.b1, segment.b2) {
                     (Some(BezierHandle { x, y }), None) | (None, Some(BezierHandle { x, y })) => {
                         path_builder.quadratic_bezier_to(
-                            Vec2::new(x - from.x, -y + from.y),
-                            Vec2::new(to.x - from.x, -to.y + from.y),
+                            Vec2::new(x - ori.x, -y + ori.y),
+                            Vec2::new(to.x - ori.x, -to.y + ori.y),
                         );
                     }
                     (Some(BezierHandle { x: x1, y: y1 }), Some(BezierHandle { x: x2, y: y2 })) => {
                         path_builder.cubic_bezier_to(
-                            Vec2::new(x1 - from.x, -y1 + from.y),
-                            Vec2::new(x2 - from.x, -y2 + from.y),
-                            Vec2::new(to.x - from.x, -to.y + from.y),
+                            Vec2::new(x1 - ori.x, -y1 + ori.y),
+                            Vec2::new(x2 - ori.x, -y2 + ori.y),
+                            Vec2::new(to.x - ori.x, -to.y + ori.y),
                         );
                     }
                     (None, None) => {
-                        let v = Vec2::new(to.x - from.x, -to.y + from.y);
+                        let v = Vec2::new(to.x - ori.x, -to.y + ori.y);
                         path_builder.line_to(v);
                     }
                 }
-                let line = path_builder.build();
-                commands.spawn((
-                    GeometryBuilder::build_as(
-                        &line,
-                        DrawMode::Stroke(StrokeMode::new(
-                            Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                            10.0,
-                        )),
-                        Transform::from_xyz(from.x - center_x, -from.y + center_y, 0.),
-                    ),
-                    ArrowTag {
-                        id: reac.bigg_id.clone(),
-                    },
-                ));
             }
+        }
+        if let Some(from) = from_figure {
+            let line = path_builder.build();
+            commands.spawn((
+                GeometryBuilder::build_as(
+                    &line,
+                    DrawMode::Stroke(StrokeMode::new(
+                        Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+                        10.0,
+                    )),
+                    Transform::from_xyz(from.x - center_x, -from.y + center_y, 0.),
+                ),
+                ArrowTag {
+                    id: reac.bigg_id.clone(),
+                },
+            ));
         }
     }
     info!("Map loaded!");
