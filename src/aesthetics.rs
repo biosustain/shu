@@ -1,5 +1,5 @@
 use crate::escher::{ArrowTag, CircleTag};
-use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde};
+use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_of_path};
 use crate::geom::{GeomArrow, GeomHist, GeomMetabolite, Side};
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
@@ -212,17 +212,14 @@ fn plot_side_hist(
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let line = plot_hist(&dist.0[index], 6);
-                let mut transform =
-                    Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5);
-                match geom.side {
-                    Side::Left => {
-                        transform.rotate(Quat::from_rotation_z(-std::f32::consts::PI / 2.))
-                    }
-                    Side::Right => {
-                        transform.rotate(Quat::from_rotation_z(std::f32::consts::PI / 2.))
-                    }
+                let rotation_90 = match geom.side {
+                    Side::Right => -Vec2::Y.angle_between(arrow.direction.perp()),
+                    Side::Left => -Vec2::NEG_Y.angle_between(arrow.direction.perp()),
                 };
-                let scale = geom_scale(path, &line);
+                let mut transform =
+                    Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
+                        .with_rotation(Quat::from_rotation_z(rotation_90));
+                let scale = geom_scale(&path, &line);
                 transform.scale.x *= scale;
 
                 commands
@@ -239,6 +236,7 @@ fn plot_side_hist(
 }
 
 /// Normalize the height of histograms to be comparable with each other.
+/// It treats the two sides independently.
 fn normalize_histogram_height(mut query: Query<(&mut Transform, &Path, &GeomHist)>) {
     let max = max_f32(
         &query

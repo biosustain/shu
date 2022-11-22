@@ -94,7 +94,7 @@ fn load_reaction_data(
             })
             .insert(aesthetics::Gy {})
             .insert(aesthetics::Distribution(std::mem::take(dist_data)))
-            .insert(geom::GeomHist::left());
+            .insert(geom::GeomHist::right());
     }
     if let Some(size_data) = &mut reacs.sizes {
         // remove existing sizes geoms

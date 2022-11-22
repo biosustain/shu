@@ -85,7 +85,7 @@ fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
     }
 }
 
-pub fn geom_scale(path: &Path, path_to_scale: &Path) -> f32 {
+fn path_to_vec(path: &Path) -> Vec2 {
     let first_point = Vec2::new(
         get_extreme(path, false, true),
         get_extreme(path, false, false),
@@ -94,13 +94,17 @@ pub fn geom_scale(path: &Path, path_to_scale: &Path) -> f32 {
         get_extreme(path, true, true),
         get_extreme(path, true, false),
     );
-    let first_local = Vec2::new(
-        get_extreme(path_to_scale, false, true),
-        get_extreme(path_to_scale, false, false),
-    );
-    let last_local = Vec2::new(
-        get_extreme(path_to_scale, true, true),
-        get_extreme(path_to_scale, true, false),
-    );
-    (last_point - first_point).length() / (last_local - first_local).length()
+    last_point - first_point
+}
+
+pub fn geom_scale(ref_path: &Path, path_to_scale: &Path) -> f32 {
+    path_to_vec(ref_path).length() / path_to_vec(path_to_scale).length()
+}
+
+pub fn right_of_path(path: &Path) -> Vec2 {
+    let reference_vec = path_to_vec(path);
+    info!("reference: {}", reference_vec.normalize());
+    let reference_vec = reference_vec.perp();
+    info!("reference 90: {}", reference_vec.normalize());
+    reference_vec
 }

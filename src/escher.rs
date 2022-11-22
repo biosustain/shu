@@ -8,9 +8,10 @@ use bevy::{
     utils::BoxedFuture,
 };
 use bevy_prototype_lyon::prelude::*;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde_json;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 pub struct EscherPlugin;
 
@@ -103,6 +104,76 @@ impl EscherMap {
             | Node::Midmarker { x, y } => Some(Vec2::new(*x, *y)),
         }
     }
+
+    /// Reaction direction as defined by the vector that follows the longest segment.
+    /// This is needed to calculate rotation angles for elements at the side of the
+    /// reactions.
+    pub fn main_direction(&self, reac: &Reaction) -> Vec2 {
+        reac.segments
+            .values()
+            .filter_map(|seg| {
+                match self
+                    .metabolism
+                    .nodes
+                    .get(&seg.from_node_id.parse().unwrap())
+                {
+                    Some(node) => Some(node),
+                    _ => None,
+                }
+            })
+            .chain(reac.segments.values().filter_map(|seg| {
+                match self.metabolism.nodes.get(&seg.to_node_id.parse().unwrap()) {
+                    Some(node) => Some(node),
+                    _ => None,
+                }
+            }))
+            .filter_map(|node| match node {
+                Node::Metabolite(Metabolite {
+                    x,
+                    y,
+                    node_is_primary,
+                    ..
+                }) if *node_is_primary => Some(Vec2::new(*x, *y)),
+                _ => None,
+            })
+            .combinations(2)
+            .map(|vec| vec[1] - vec[0])
+            // avoid zero vectors
+            .filter(|vec| vec.max_element() > 1e-5)
+            // .inspect(|vec| info!("{vec}"))
+            .max_by(|x, y| {
+                if x.length() - y.length() > 1e-5 {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            })
+            .unwrap_or(Vec2::Y)
+            .normalize()
+    }
+    pub fn _main_direction(&self, reac: &Reaction) -> Vec2 {
+        reac.segments
+            .values()
+            .filter_map(|seg| {
+                match (
+                    self.met_coords(&seg.from_node_id),
+                    self.met_coords(&seg.to_node_id),
+                ) {
+                    (Some(node), Some(node2)) => Some((node, node2)),
+                    _ => None,
+                }
+            })
+            .map(|(from, to)| Vec2::new(from.x - to.x, from.y - to.y))
+            .max_by(|from, to| {
+                if from.length() - to.length() > 1e-5 {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                }
+            })
+            .unwrap_or(Vec2::Y)
+            .normalize()
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -185,6 +256,7 @@ pub struct CircleTag {
 #[derive(Component, Deserialize, Clone)]
 pub struct ArrowTag {
     pub id: String,
+    pub direction: Vec2,
 }
 
 /// Load escher map once the asset is available.
@@ -251,6 +323,7 @@ fn load_map(
             })
             .sum::<Vec2>()
             / (2. * reac.segments.len() as f32);
+        let direction = my_map.main_direction(&reac);
         for (_, segment) in reac.segments {
             if let (Some(from), Some(to)) = (
                 my_map.met_coords(&segment.from_node_id),
@@ -290,6 +363,7 @@ fn load_map(
             ),
             ArrowTag {
                 id: reac.bigg_id.clone(),
+                direction,
             },
         ));
     }
