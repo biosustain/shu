@@ -16,10 +16,10 @@ kinds of data: reaction data and metabolite data. **GGmap** attempts to provide 
 
 - [x] Reaction sizes.
 - [x] Reaction colors.
-- [ ] Reaction right sides.
-- [ ] Reaction left sides.
+- [x] Reaction right sides.
+- [x] Reaction left sides.
 - [x] Metabolite sizes.
-- [x] Metabolite sizes.
+- [x] Metabolite colors.
 
 (+2 with hovers):
 - [ ] Hover reactions.

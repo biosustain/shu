@@ -212,9 +212,18 @@ fn plot_side_hist(
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let line = plot_hist(&dist.0[index], 6);
-                let (rotation_90, away) = match geom.side {
-                    Side::Right => (-Vec2::Y.angle_between(arrow.direction.perp()), -30.),
-                    Side::Left => (-Vec2::NEG_Y.angle_between(arrow.direction.perp()), 30.),
+                let (rotation_90, away, hex) = match geom.side {
+                    Side::Right => (
+                        -Vec2::Y.angle_between(arrow.direction.perp()),
+                        -30.,
+                        // TODO: this should be a setting
+                        "7dce96",
+                    ),
+                    Side::Left => (
+                        -Vec2::NEG_Y.angle_between(arrow.direction.perp()),
+                        30.,
+                        "DA9687",
+                    ),
                 };
                 let mut transform =
                     Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
@@ -227,7 +236,7 @@ fn plot_side_hist(
                 commands
                     .spawn(GeometryBuilder::build_as(
                         &line,
-                        DrawMode::Fill(FillMode::color(Color::hex("7dce96").unwrap())),
+                        DrawMode::Fill(FillMode::color(Color::hex(hex).unwrap())),
                         transform,
                     ))
                     // this will remove them the next time side reaction is loaded
@@ -240,38 +249,21 @@ fn plot_side_hist(
 /// Normalize the height of histograms to be comparable with each other.
 /// It treats the two sides independently.
 fn normalize_histogram_height(mut query: Query<(&mut Transform, &Path, &GeomHist)>) {
-    let max = max_f32(
-        &query
-            .iter()
-            .filter_map(|(_, path, geom)| match geom.side {
-                Side::Left => Some(path),
-                Side::Right => None,
-            })
-            .flat_map(|path| path.0.iter().map(|ev| ev.to().y))
-            .collect::<Vec<f32>>(),
-    );
+    /// TODO: should be configurable via settings
+    const RIGHT_SIZE: f32 = 100f32;
+    const LEFT_SIZE: f32 = 100f32;
 
     for (mut trans, path, geom) in query.iter_mut() {
         if let Side::Left = geom.side {
             let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
-            trans.scale.y = max * 30. / height;
+            trans.scale.y = RIGHT_SIZE / height;
         }
     }
-    let max = max_f32(
-        &query
-            .iter()
-            .filter_map(|(_, path, geom)| match geom.side {
-                Side::Right => Some(path),
-                Side::Left => None,
-            })
-            .flat_map(|path| path.0.iter().map(|ev| ev.to().y))
-            .collect::<Vec<f32>>(),
-    );
 
     for (mut trans, path, geom) in query.iter_mut() {
         if let Side::Right = geom.side {
             let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
-            trans.scale.y = max * 30. / height;
+            trans.scale.y = LEFT_SIZE / height;
         }
     }
 }
