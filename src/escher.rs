@@ -235,17 +235,27 @@ fn load_map(
     }
     for reac in reactions {
         let mut path_builder = PathBuilder::new();
-        // origin of the figure
-        let mut from_figure = None;
+        // origin of the figure as the center of mass
+        let ori: Vec2 = reac
+            .segments
+            .iter()
+            .map(|(_, seg)| {
+                (
+                    my_map.met_coords(&seg.from_node_id),
+                    my_map.met_coords(&seg.to_node_id),
+                )
+            })
+            .filter_map(|(from, to)| match (from, to) {
+                (Some(f), Some(t)) => Some(f + t),
+                _ => None,
+            })
+            .sum::<Vec2>()
+            / (2. * reac.segments.len() as f32);
         for (_, segment) in reac.segments {
             if let (Some(from), Some(to)) = (
                 my_map.met_coords(&segment.from_node_id),
                 my_map.met_coords(&segment.to_node_id),
             ) {
-                if from_figure.is_none() {
-                    from_figure = Some(from);
-                }
-                let ori = from_figure.unwrap();
                 path_builder.move_to(Vec2::new(from.x - ori.x, -from.y + ori.y));
                 match (segment.b1, segment.b2) {
                     (Some(BezierHandle { x, y }), None) | (None, Some(BezierHandle { x, y })) => {
@@ -268,22 +278,20 @@ fn load_map(
                 }
             }
         }
-        if let Some(from) = from_figure {
-            let line = path_builder.build();
-            commands.spawn((
-                GeometryBuilder::build_as(
-                    &line,
-                    DrawMode::Stroke(StrokeMode::new(
-                        Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                        10.0,
-                    )),
-                    Transform::from_xyz(from.x - center_x, -from.y + center_y, 0.),
-                ),
-                ArrowTag {
-                    id: reac.bigg_id.clone(),
-                },
-            ));
-        }
+        let line = path_builder.build();
+        commands.spawn((
+            GeometryBuilder::build_as(
+                &line,
+                DrawMode::Stroke(StrokeMode::new(
+                    Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+                    10.0,
+                )),
+                Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 0.),
+            ),
+            ArrowTag {
+                id: reac.bigg_id.clone(),
+            },
+        ));
     }
     info!("Map loaded!");
 
