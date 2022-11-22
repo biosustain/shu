@@ -60,8 +60,8 @@ pub fn plot_hist(samples: &[f32], bins: u32) -> Path {
         let y = samples.iter().filter(|&&x| (x >= *a) & (x < b)).count();
         // draw a rectangle
         path_builder.move_to(Vec2::new(a - center, 0.));
-        path_builder.line_to(Vec2::new(a - center, y as f32 * -10.));
-        path_builder.line_to(Vec2::new(b - center, y as f32 * -10.));
+        path_builder.line_to(Vec2::new(a - center, y as f32));
+        path_builder.line_to(Vec2::new(b - center, y as f32));
         path_builder.line_to(Vec2::new(b - center, 0.));
     }
     path_builder.build()

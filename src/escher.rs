@@ -229,7 +229,7 @@ fn load_map(
                         4.0,
                     ),
                 },
-                Transform::from_xyz(met.x - center_x, -met.y + center_y, 1.),
+                Transform::from_xyz(met.x - center_x, -met.y + center_y, 2.),
             ))
             .insert(CircleTag { id: met.bigg_id });
     }
@@ -286,7 +286,7 @@ fn load_map(
                     Color::rgb(51. / 255., 78. / 255., 101. / 255.),
                     10.0,
                 )),
-                Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 0.),
+                Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 1.),
             ),
             ArrowTag {
                 id: reac.bigg_id.clone(),

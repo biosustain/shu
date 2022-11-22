@@ -15,6 +15,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_arrow_size_dist)
             .add_system(plot_metabolite_color)
             .add_system(plot_side_hist)
+            .add_system(normalize_histogram_height)
             .add_system(plot_metabolite_size);
     }
 }
@@ -210,10 +211,9 @@ fn plot_side_hist(
     for (dist, aes, geom) in aes_query.iter_mut() {
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                // info!("Plotting {}", arrow.id);
                 let line = plot_hist(&dist.0[index], 6);
                 let mut transform =
-                    Transform::from_xyz(trans.translation.x, trans.translation.y, 3.);
+                    Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5);
                 match geom.side {
                     Side::Left => {
                         transform.rotate(Quat::from_rotation_z(-std::f32::consts::PI / 2.))
@@ -223,22 +223,55 @@ fn plot_side_hist(
                     }
                 };
                 let scale = geom_scale(path, &line);
-                info!("Scale {scale} for {}", arrow.id);
                 transform.scale.x *= scale;
 
                 commands
                     .spawn(GeometryBuilder::build_as(
                         &line,
-                        DrawMode::Fill(FillMode::color(Color::rgb(
-                            51. / 255.,
-                            101. / 255.,
-                            78. / 255.,
-                        ))),
+                        DrawMode::Fill(FillMode::color(Color::hex("7dce96").unwrap())),
                         transform,
                     ))
                     // this will remove them the next time side reaction is loaded
                     .insert((*geom).clone());
             }
+        }
+    }
+}
+
+/// Normalize the height of histograms to be comparable with each other.
+fn normalize_histogram_height(mut query: Query<(&mut Transform, &Path, &GeomHist)>) {
+    let max = max_f32(
+        &query
+            .iter()
+            .filter_map(|(_, path, geom)| match geom.side {
+                Side::Left => Some(path),
+                Side::Right => None,
+            })
+            .flat_map(|path| path.0.iter().map(|ev| ev.to().y))
+            .collect::<Vec<f32>>(),
+    );
+
+    for (mut trans, path, geom) in query.iter_mut() {
+        if let Side::Left = geom.side {
+            let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
+            trans.scale.y = max * 30. / height;
+        }
+    }
+    let max = max_f32(
+        &query
+            .iter()
+            .filter_map(|(_, path, geom)| match geom.side {
+                Side::Right => Some(path),
+                Side::Left => None,
+            })
+            .flat_map(|path| path.0.iter().map(|ev| ev.to().y))
+            .collect::<Vec<f32>>(),
+    );
+
+    for (mut trans, path, geom) in query.iter_mut() {
+        if let Side::Right = geom.side {
+            let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
+            trans.scale.y = max * 30. / height;
         }
     }
 }
