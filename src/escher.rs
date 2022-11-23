@@ -208,11 +208,60 @@ pub struct ArrowTag {
     pub direction: Vec2,
 }
 
+pub trait Labelled {
+    fn label_position(&self) -> Vec2;
+    fn id(&mut self) -> String;
+}
+
+fn build_text_tag(
+    node: &mut impl Labelled,
+    font: Handle<Font>,
+    center_x: f32,
+    center_y: f32,
+    font_size: f32,
+) -> Text2dBundle {
+    let pos = node.label_position();
+    let text = Text::from_section(
+        node.id(),
+        TextStyle {
+            font,
+            font_size,
+            color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+        },
+    );
+    Text2dBundle {
+        text,
+        transform: Transform::from_xyz(pos.x - center_x, -pos.y + center_y, 4.0),
+        ..default()
+    }
+}
+
+impl Labelled for Metabolite {
+    fn label_position(&self) -> Vec2 {
+        Vec2::new(self.label_x, self.label_y)
+    }
+
+    fn id(&mut self) -> String {
+        std::mem::take(&mut self.bigg_id)
+    }
+}
+
+impl Labelled for Reaction {
+    fn label_position(&self) -> Vec2 {
+        Vec2::new(self.label_x, self.label_y)
+    }
+
+    fn id(&mut self) -> String {
+        std::mem::take(&mut self.bigg_id)
+    }
+}
+
 /// Load escher map once the asset is available.
 /// The colors correspond to the default escher colors.
 fn load_map(
     mut commands: Commands,
     mut state: ResMut<MapState>,
+    asset_server: Res<AssetServer>,
     mut custom_assets: ResMut<Assets<EscherMap>>,
     existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>)>>,
 ) {
@@ -226,6 +275,7 @@ fn load_map(
     }
 
     let my_map = custom_asset.unwrap();
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     let (reactions, metabolites) = my_map.get_components();
     // center all metabolites positions
     let (total_x, total_y) = metabolites
@@ -236,7 +286,7 @@ fn load_map(
         total_x / metabolites.len() as f32,
         total_y / metabolites.len() as f32,
     );
-    for met in metabolites {
+    for mut met in metabolites {
         let shape = shapes::RegularPolygon {
             sides: 6,
             feature: shapes::RegularPolygonFeature::Radius(if met.node_is_primary {
@@ -245,6 +295,9 @@ fn load_map(
                 10.0
             }),
             ..shapes::RegularPolygon::default()
+        };
+        let circle = CircleTag {
+            id: met.bigg_id.clone(),
         };
         commands
             .spawn(GeometryBuilder::build_as(
@@ -258,9 +311,18 @@ fn load_map(
                 },
                 Transform::from_xyz(met.x - center_x, -met.y + center_y, 2.),
             ))
-            .insert(CircleTag { id: met.bigg_id });
+            .insert(circle.clone());
+        commands
+            .spawn(build_text_tag(
+                &mut met,
+                font.clone(),
+                center_x,
+                center_y,
+                25.,
+            ))
+            .insert(circle);
     }
-    for reac in reactions {
+    for mut reac in reactions {
         let mut path_builder = PathBuilder::new();
         // origin of the figure as the center of mass
         let ori: Vec2 = reac
@@ -279,13 +341,16 @@ fn load_map(
             .sum::<Vec2>()
             / (2. * reac.segments.len() as f32);
         let direction = my_map.main_direction(&reac);
-        for (_, segment) in reac.segments {
+        for (_, segment) in reac.segments.iter_mut() {
             if let (Some(from), Some(to)) = (
                 my_map.met_coords(&segment.from_node_id),
                 my_map.met_coords(&segment.to_node_id),
             ) {
                 path_builder.move_to(Vec2::new(from.x - ori.x, -from.y + ori.y));
-                match (segment.b1, segment.b2) {
+                match (
+                    std::mem::take(&mut segment.b1),
+                    std::mem::take(&mut segment.b2),
+                ) {
                     (Some(BezierHandle { x, y }), None) | (None, Some(BezierHandle { x, y })) => {
                         path_builder.quadratic_bezier_to(
                             Vec2::new(x - ori.x, -y + ori.y),
@@ -307,6 +372,10 @@ fn load_map(
             }
         }
         let line = path_builder.build();
+        let arrow = ArrowTag {
+            id: reac.bigg_id.clone(),
+            direction,
+        };
         commands.spawn((
             GeometryBuilder::build_as(
                 &line,
@@ -316,11 +385,17 @@ fn load_map(
                 )),
                 Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 1.),
             ),
-            ArrowTag {
-                id: reac.bigg_id.clone(),
-                direction,
-            },
+            arrow.clone(),
         ));
+        commands
+            .spawn(build_text_tag(
+                &mut reac,
+                font.clone(),
+                center_x,
+                center_y,
+                35.,
+            ))
+            .insert(arrow);
     }
     info!("Map loaded!");
 
