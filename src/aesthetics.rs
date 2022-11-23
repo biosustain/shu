@@ -1,6 +1,9 @@
 use crate::escher::{ArrowTag, CircleTag};
 use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_of_path};
 use crate::geom::{GeomArrow, GeomHist, GeomMetabolite, Side};
+use crate::gui::UiState;
+use bevy_egui::egui::epaint::color::Hsva;
+
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
     shapes, DrawMode, FillMode, GeometryBuilder, Path, ShapePath, StrokeMode,
@@ -59,17 +62,27 @@ struct HistTag {
 
 /// Plot arrow size.
 pub fn plot_arrow_size(
+    ui_state: Res<UiState>,
     mut query: Query<(&mut DrawMode, &ArrowTag)>,
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomArrow>, With<Gsize>)>,
 ) {
     for (sizes, aes) in aes_query.iter_mut() {
+        let min_val = min_f32(&sizes.0);
+        let max_val = max_f32(&sizes.0);
         for (mut draw_mode, arrow) in query.iter_mut() {
             if let DrawMode::Stroke(StrokeMode {
                 ref mut options, ..
             }) = *draw_mode
             {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    options.line_width = sizes.0[index];
+                    let unscaled_width = sizes.0[index];
+                    options.line_width = lerp(
+                        unscaled_width,
+                        min_val,
+                        max_val,
+                        ui_state.min_reaction,
+                        ui_state.max_reaction,
+                    );
                 } else {
                     options.line_width = 10.;
                 }
@@ -80,18 +93,28 @@ pub fn plot_arrow_size(
 
 /// For arrows (reactions) sizes, distributions are summarised as the mean.
 pub fn plot_arrow_size_dist(
+    ui_state: Res<UiState>,
     mut query: Query<(&mut DrawMode, &ArrowTag)>,
     mut aes_query: Query<(&Distribution<f32>, &Aesthetics), (With<GeomArrow>, With<Gsize>)>,
 ) {
     for (sizes, aes) in aes_query.iter_mut() {
         for (mut draw_mode, arrow) in query.iter_mut() {
+            let min_val = min_f32(&sizes.0.iter().flatten().copied().collect::<Vec<f32>>());
+            let max_val = max_f32(&sizes.0.iter().flatten().copied().collect::<Vec<f32>>());
             if let DrawMode::Stroke(StrokeMode {
                 ref mut options, ..
             }) = *draw_mode
             {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    options.line_width =
+                    let unscaled_width =
                         sizes.0[index].iter().sum::<f32>() / sizes.0[index].len() as f32;
+                    options.line_width = lerp(
+                        unscaled_width,
+                        min_val,
+                        max_val,
+                        ui_state.min_reaction,
+                        ui_state.max_reaction,
+                    );
                 } else {
                     options.line_width = 10.;
                 }
@@ -106,17 +129,17 @@ struct ColorHsl {
     v: f32,
 }
 
-fn lerp_hsv(t: f32) -> Color {
+fn lerp_hsv(t: f32, min_color: Hsva, max_color: Hsva) -> Color {
     let mut t = t;
     let mut a = ColorHsl {
-        h: 114.,
-        s: 0.2,
-        v: 0.7,
+        h: min_color.h,
+        s: min_color.s,
+        v: min_color.v,
     };
     let mut b = ColorHsl {
-        h: 114.,
-        s: 0.8,
-        v: 0.7,
+        h: max_color.h,
+        s: max_color.s,
+        v: max_color.v,
     };
 
     // Hue interpolation
@@ -127,10 +150,10 @@ fn lerp_hsv(t: f32) -> Color {
         d = -d;
         t = 1. - t;
     }
-    if d > 180. {
+    if d > 0.5 {
         // 180deg
-        a.h = a.h + 360.; // 360deg
-        h = (a.h + t * (b.h - a.h)) % 360.; // 360deg
+        a.h = a.h + 1.; // 360deg
+        h = (a.h + t * (b.h - a.h)) % 1.; // 360deg
     } else {
         // 180deg
         h = a.h + t * d
@@ -143,8 +166,13 @@ fn lerp_hsv(t: f32) -> Color {
     )
 }
 
+fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
+    (t - min_1) / (max_1 - min_1) * (max_2 - min_2) + min_2
+}
+
 /// Plot Color as numerical variable in arrows.
 pub fn plot_arrow_color(
+    ui_state: Res<UiState>,
     mut query: Query<(&mut DrawMode, &ArrowTag)>,
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomArrow>, With<Gcolor>)>,
 ) {
@@ -154,7 +182,11 @@ pub fn plot_arrow_color(
         for (mut draw_mode, arrow) in query.iter_mut() {
             if let DrawMode::Stroke(StrokeMode { ref mut color, .. }) = *draw_mode {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    *color = lerp_hsv((colors.0[index] - min_val) / (max_val - min_val));
+                    *color = lerp_hsv(
+                        (colors.0[index] - min_val) / (max_val - min_val),
+                        ui_state.min_reaction_color,
+                        ui_state.max_reaction_color,
+                    );
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
                 }
@@ -165,13 +197,22 @@ pub fn plot_arrow_color(
 
 /// Plot size as numerical variable in metabolic circles.
 pub fn plot_metabolite_size(
+    ui_state: Res<UiState>,
     mut query: Query<(&mut Path, &CircleTag)>,
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomMetabolite>, With<Gsize>)>,
 ) {
     for (sizes, aes) in aes_query.iter_mut() {
+        let min_val = min_f32(&sizes.0);
+        let max_val = max_f32(&sizes.0);
         for (mut path, arrow) in query.iter_mut() {
             let radius = if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                sizes.0[index]
+                lerp(
+                    sizes.0[index],
+                    min_val,
+                    max_val,
+                    ui_state.min_metabolite,
+                    ui_state.max_metabolite,
+                )
             } else {
                 20.
             };
@@ -187,6 +228,7 @@ pub fn plot_metabolite_size(
 
 /// Plot Color as numerical variable in metabolic circles.
 pub fn plot_metabolite_color(
+    ui_state: Res<UiState>,
     mut query: Query<(&mut DrawMode, &CircleTag)>,
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomMetabolite>, With<Gcolor>)>,
 ) {
@@ -200,7 +242,11 @@ pub fn plot_metabolite_color(
             } = *draw_mode
             {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    *color = lerp_hsv((colors.0[index] - min_val) / (max_val - min_val));
+                    *color = lerp_hsv(
+                        (colors.0[index] - min_val) / (max_val - min_val),
+                        ui_state.min_reaction_color,
+                        ui_state.max_reaction_color,
+                    );
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
                 }
@@ -262,22 +308,21 @@ fn plot_side_hist(
 
 /// Normalize the height of histograms to be comparable with each other.
 /// It treats the two sides independently.
-fn normalize_histogram_height(mut query: Query<(&mut Transform, &Path, &HistTag)>) {
-    /// TODO: should be configurable via settings
-    const RIGHT_SIZE: f32 = 100f32;
-    const LEFT_SIZE: f32 = 100f32;
-
+fn normalize_histogram_height(
+    ui_state: Res<UiState>,
+    mut query: Query<(&mut Transform, &Path, &HistTag)>,
+) {
     for (mut trans, path, hist) in query.iter_mut() {
         if let Side::Left = hist.side {
             let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
-            trans.scale.y = RIGHT_SIZE / height;
+            trans.scale.y = ui_state.max_right / height;
         }
     }
 
     for (mut trans, path, hist) in query.iter_mut() {
         if let Side::Right = hist.side {
             let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
-            trans.scale.y = LEFT_SIZE / height;
+            trans.scale.y = ui_state.max_left / height;
         }
     }
 }

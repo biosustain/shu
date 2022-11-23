@@ -3,13 +3,68 @@
 use crate::data::{MetaboliteData, ReactionData, ReactionState};
 use crate::escher::{EscherMap, MapState};
 use bevy::prelude::*;
+use bevy_egui::egui::color_picker::{color_edit_button_hsva, Alpha};
+use bevy_egui::egui::epaint::color::Hsva;
+use bevy_egui::{egui, EguiContext, EguiPlugin};
 
 pub struct GuiPlugin;
 
 impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(file_drop);
+        app.add_plugin(EguiPlugin)
+            .insert_resource(UiState::default())
+            .add_system(ui_example)
+            .add_system(file_drop);
     }
+}
+
+#[derive(Resource)]
+pub struct UiState {
+    pub min_reaction: f32,
+    pub max_reaction: f32,
+    pub min_reaction_color: Hsva,
+    pub max_reaction_color: Hsva,
+    pub min_metabolite: f32,
+    pub max_metabolite: f32,
+    pub min_metabolite_color: Hsva,
+    pub max_metabolite_color: Hsva,
+    pub max_left: f32,
+    pub max_right: f32,
+}
+
+impl Default for UiState {
+    fn default() -> Self {
+        Self {
+            min_reaction_color: Hsva::new(0.58, 0.2, 0.5, 1.),
+            max_reaction_color: Hsva::new(0.58, 0.3, 0.85, 1.),
+            min_metabolite_color: Hsva::new(0.28, 0.2, 0.5, 1.),
+            max_metabolite_color: Hsva::new(0.28, 0.3, 0.85, 1.),
+            min_reaction: 20.,
+            max_reaction: 60.,
+            min_metabolite: 20.,
+            max_metabolite: 60.,
+            max_left: 100.,
+            max_right: 100.,
+        }
+    }
+}
+
+fn ui_example(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiState>) {
+    egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
+        ui.label("Reaction scale");
+        color_edit_button_hsva(ui, &mut ui_state.min_reaction_color, Alpha::Opaque);
+        ui.add(egui::Slider::new(&mut ui_state.min_reaction, 5.0..=90.0).text("Min reaction"));
+        color_edit_button_hsva(ui, &mut ui_state.max_reaction_color, Alpha::Opaque);
+        ui.add(egui::Slider::new(&mut ui_state.max_reaction, 5.0..=90.0).text("Max Reaction"));
+        ui.label("Metabolite scale");
+        color_edit_button_hsva(ui, &mut ui_state.min_metabolite_color, Alpha::Opaque);
+        ui.add(egui::Slider::new(&mut ui_state.min_metabolite, 5.0..=90.0).text("Max Metabolite"));
+        color_edit_button_hsva(ui, &mut ui_state.max_metabolite_color, Alpha::Opaque);
+        ui.add(egui::Slider::new(&mut ui_state.max_metabolite, 5.0..=90.0).text("Max Metabolite"));
+        ui.label("Histogram scale");
+        ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("Left Histograms"));
+        ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("Right Histograms"));
+    });
 }
 
 fn file_drop(
