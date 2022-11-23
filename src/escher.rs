@@ -1,5 +1,6 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
+use crate::geom::{GeomHist, HistTag};
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
@@ -256,20 +257,26 @@ impl Labelled for Reaction {
     }
 }
 
+struct RedrawEvent;
+
 /// Load escher map once the asset is available.
 /// The colors correspond to the default escher colors.
-fn load_map(
+pub fn load_map(
     mut commands: Commands,
     mut state: ResMut<MapState>,
     asset_server: Res<AssetServer>,
     mut custom_assets: ResMut<Assets<EscherMap>>,
-    existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>)>>,
+    existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>, With<HistTag>)>>,
+    mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
     let custom_asset = custom_assets.get_mut(&mut state.escher_map);
     if state.loaded || custom_asset.is_none() {
         return;
     }
 
+    // previous arrows and circles are despawned.
+    // HistTags has to be despawned too because they are spawned when painted,
+    // but they will be repainted at the end of loading the amp
     for e in existing_map.iter() {
         commands.entity(e).despawn_recursive();
     }
@@ -397,7 +404,10 @@ fn load_map(
             ))
             .insert(arrow);
     }
+    // Send signal to repaint histograms.
+    for mut geom in existing_geom_hist.iter_mut() {
+        geom.rendered = false;
+    }
     info!("Map loaded!");
-
     state.loaded = true;
 }

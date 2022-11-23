@@ -33,13 +33,20 @@ impl GeomKde {
 #[derive(Component, Clone)]
 pub struct GeomHist {
     pub side: Side,
+    pub rendered: bool,
 }
 impl GeomHist {
     pub fn left() -> Self {
-        Self { side: Side::Left }
+        Self {
+            side: Side::Left,
+            rendered: false,
+        }
     }
     pub fn right() -> Self {
-        Self { side: Side::Right }
+        Self {
+            side: Side::Right,
+            rendered: false,
+        }
     }
 }
 
@@ -48,4 +55,11 @@ impl GeomHist {
 #[derive(Component)]
 pub struct GeomMetabolite {
     pub plotted: bool,
+}
+
+/// Component applied to all Hist-like entities (spawned by a GeomKde, GeomHist, etc. aesthetic)
+/// This allow us to query for systems like normalize or drag.
+#[derive(Component)]
+pub struct HistTag {
+    pub side: Side,
 }

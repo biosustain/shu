@@ -1,6 +1,6 @@
-use crate::escher::{ArrowTag, CircleTag};
+use crate::escher::{load_map, ArrowTag, CircleTag};
 use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_of_path};
-use crate::geom::{GeomArrow, GeomHist, GeomMetabolite, Side};
+use crate::geom::{GeomArrow, GeomHist, GeomMetabolite, HistTag, Side};
 use crate::gui::UiState;
 use bevy_egui::egui::epaint::color::Hsva;
 
@@ -17,7 +17,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_arrow_color)
             .add_system(plot_arrow_size_dist)
             .add_system(plot_metabolite_color)
-            .add_system(plot_side_hist)
+            .add_system(plot_side_hist.before(load_map))
             .add_system(normalize_histogram_height)
             .add_system(plot_metabolite_size);
     }
@@ -52,13 +52,6 @@ pub struct Gsize {}
 
 #[derive(Component)]
 pub struct Gcolor {}
-
-/// Component applied to all Hist-like entities (spawned by a GeomKde, GeomHist, etc. aesthetic)
-/// This allow us to query for systems like normalize or drag.
-#[derive(Component)]
-struct HistTag {
-    side: Side,
-}
 
 /// Plot arrow size.
 pub fn plot_arrow_size(
@@ -259,9 +252,12 @@ pub fn plot_metabolite_color(
 fn plot_side_hist(
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
-    mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &GeomHist), With<Gy>>,
+    mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), With<Gy>>,
 ) {
-    for (dist, aes, geom) in aes_query.iter_mut() {
+    for (dist, aes, mut geom) in aes_query.iter_mut() {
+        if geom.rendered {
+            continue;
+        }
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let this_dist = match dist.0.get(index) {
@@ -299,10 +295,9 @@ fn plot_side_hist(
                     .insert(HistTag {
                         side: geom.side.clone(),
                     });
-                // this will remove them the next time side reaction is loaded
-                // .insert((*geom).clone());
             }
         }
+        geom.rendered = true;
     }
 }
 
