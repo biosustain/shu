@@ -1,31 +1,16 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
-use crate::data::{MetaboliteData, ReactionData};
-use bevy::{
-    asset::{AssetLoader, LoadContext, LoadedAsset},
-    prelude::*,
-    reflect::TypeUuid,
-    utils::BoxedFuture,
-};
+use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
 use serde::Deserialize;
-use serde_json;
 use std::{cmp::Ordering, collections::HashMap};
 
 pub struct EscherPlugin;
 
 impl Plugin for EscherPlugin {
     fn build(&self, app: &mut App) {
-        app.add_asset::<EscherMap>()
-            .add_asset_loader(CustomAssetLoader::<EscherMap>::new(vec!["json"]))
-            .add_asset_loader(CustomAssetLoader::<ReactionData>::new(vec![
-                "reaction.json",
-            ]))
-            .add_asset_loader(CustomAssetLoader::<MetaboliteData>::new(vec![
-                "metabolite.json",
-            ]))
-            .add_system(load_map);
+        app.add_system(load_map);
     }
 }
 
@@ -41,42 +26,6 @@ pub struct EscherMap {
     #[allow(dead_code)]
     info: EscherInfo,
     metabolism: Metabolism,
-}
-
-#[derive(Default)]
-pub struct CustomAssetLoader<A> {
-    extensions: Vec<&'static str>,
-    _mark: std::marker::PhantomData<A>,
-}
-
-impl<A> AssetLoader for CustomAssetLoader<A>
-where
-    for<'de> A: serde::Deserialize<'de> + bevy::asset::Asset,
-{
-    fn load<'a>(
-        &'a self,
-        bytes: &'a [u8],
-        load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<(), bevy::asset::Error>> {
-        Box::pin(async move {
-            let custom_asset = serde_json::from_slice::<A>(bytes)?;
-            load_context.set_default_asset(LoadedAsset::new(custom_asset));
-            Ok(())
-        })
-    }
-
-    fn extensions(&self) -> &[&str] {
-        &self.extensions
-    }
-}
-
-impl<A> CustomAssetLoader<A> {
-    fn new(extensions: Vec<&'static str>) -> Self {
-        Self {
-            extensions,
-            _mark: std::marker::PhantomData::<A>,
-        }
-    }
 }
 
 impl EscherMap {
@@ -265,11 +214,17 @@ fn load_map(
     mut commands: Commands,
     mut state: ResMut<MapState>,
     mut custom_assets: ResMut<Assets<EscherMap>>,
+    existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>)>>,
 ) {
     let custom_asset = custom_assets.get_mut(&mut state.escher_map);
     if state.loaded || custom_asset.is_none() {
         return;
     }
+
+    for e in existing_map.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+
     let my_map = custom_asset.unwrap();
     let (reactions, metabolites) = my_map.get_components();
     // center all metabolites positions

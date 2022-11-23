@@ -1,19 +1,66 @@
 //! Input data logic.
 
 use crate::aesthetics;
+use crate::escher::EscherMap;
 use crate::geom;
+use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
+use bevy::utils::BoxedFuture;
 use serde::Deserialize;
 
 pub struct DataPlugin;
 
 impl Plugin for DataPlugin {
     fn build(&self, app: &mut App) {
-        app.add_asset::<ReactionData>()
+        app.add_asset::<EscherMap>()
+            .add_asset::<ReactionData>()
             .add_asset::<MetaboliteData>()
+            .add_asset_loader(CustomAssetLoader::<EscherMap>::new(vec!["json"]))
+            .add_asset_loader(CustomAssetLoader::<ReactionData>::new(vec![
+                "reaction.json",
+            ]))
+            .add_asset_loader(CustomAssetLoader::<MetaboliteData>::new(vec![
+                "metabolite.json",
+            ]))
             .add_system(load_reaction_data)
             .add_system(load_metabolite_data);
+    }
+}
+
+#[derive(Default)]
+pub struct CustomAssetLoader<A> {
+    extensions: Vec<&'static str>,
+    _mark: std::marker::PhantomData<A>,
+}
+
+impl<A> AssetLoader for CustomAssetLoader<A>
+where
+    for<'de> A: serde::Deserialize<'de> + bevy::asset::Asset,
+{
+    fn load<'a>(
+        &'a self,
+        bytes: &'a [u8],
+        load_context: &'a mut LoadContext,
+    ) -> BoxedFuture<'a, Result<(), bevy::asset::Error>> {
+        Box::pin(async move {
+            let custom_asset = serde_json::from_slice::<A>(bytes)?;
+            load_context.set_default_asset(LoadedAsset::new(custom_asset));
+            Ok(())
+        })
+    }
+
+    fn extensions(&self) -> &[&str] {
+        &self.extensions
+    }
+}
+
+impl<A> CustomAssetLoader<A> {
+    fn new(extensions: Vec<&'static str>) -> Self {
+        Self {
+            extensions,
+            _mark: std::marker::PhantomData::<A>,
+        }
     }
 }
 
@@ -86,6 +133,7 @@ fn load_reaction_data(
     }
     if let Some(dist_data) = &mut reacs.y {
         // remove existing sizes geoms
+        // TODO: this is wrong, also for the left
         for e in current_sizes.iter() {
             commands.entity(e).despawn_recursive();
         }

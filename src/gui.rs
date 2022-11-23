@@ -1,6 +1,7 @@
 //! Gui (windows and panels) to upload data and hover.
 
 use crate::data::{MetaboliteData, ReactionData, ReactionState};
+use crate::escher::{EscherMap, MapState};
 use bevy::prelude::*;
 
 pub struct GuiPlugin;
@@ -93,6 +94,7 @@ fn file_drop(
     mut dnd_evr: EventReader<FileDragAndDrop>,
     asset_server: Res<AssetServer>,
     mut reaction_resource: ResMut<ReactionState>,
+    mut escher_resource: ResMut<MapState>,
     query_ui_droptarget: Query<&Interaction, With<MyDropTarget>>,
 ) {
     for ev in dnd_evr.iter() {
@@ -112,12 +114,18 @@ fn file_drop(
                 reaction_resource.reaction_data = Some(reaction_handle);
                 reaction_resource.reac_loaded = false;
                 info! {"Reactions dropped!"};
-            } else {
+            } else if path_buf.to_str().unwrap().ends_with("metabolite.json") {
                 let metabolite_handle: Handle<MetaboliteData> =
                     asset_server.load(path_buf.to_str().unwrap());
                 reaction_resource.metabolite_data = Some(metabolite_handle);
                 reaction_resource.met_loaded = false;
                 info! {"Metabolites dropped!"};
+            } else {
+                //an escher map
+                let escher_handle: Handle<EscherMap> =
+                    asset_server.load(path_buf.to_str().unwrap());
+                escher_resource.escher_map = escher_handle;
+                escher_resource.loaded = false;
             }
         }
     }
