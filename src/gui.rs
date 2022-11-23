@@ -52,18 +52,26 @@ impl Default for UiState {
 fn ui_example(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiState>) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         ui.label("Reaction scale");
-        color_edit_button_hsva(ui, &mut ui_state.min_reaction_color, Alpha::Opaque);
-        ui.add(egui::Slider::new(&mut ui_state.min_reaction, 5.0..=90.0).text("Min reaction"));
-        color_edit_button_hsva(ui, &mut ui_state.max_reaction_color, Alpha::Opaque);
-        ui.add(egui::Slider::new(&mut ui_state.max_reaction, 5.0..=90.0).text("Max Reaction"));
+        ui.horizontal(|ui| {
+            color_edit_button_hsva(ui, &mut ui_state.min_reaction_color, Alpha::Opaque);
+            ui.add(egui::Slider::new(&mut ui_state.min_reaction, 5.0..=90.0).text("min"));
+        });
+        ui.horizontal(|ui| {
+            color_edit_button_hsva(ui, &mut ui_state.max_reaction_color, Alpha::Opaque);
+            ui.add(egui::Slider::new(&mut ui_state.max_reaction, 5.0..=90.0).text("max"));
+        });
         ui.label("Metabolite scale");
-        color_edit_button_hsva(ui, &mut ui_state.min_metabolite_color, Alpha::Opaque);
-        ui.add(egui::Slider::new(&mut ui_state.min_metabolite, 5.0..=90.0).text("Max Metabolite"));
-        color_edit_button_hsva(ui, &mut ui_state.max_metabolite_color, Alpha::Opaque);
-        ui.add(egui::Slider::new(&mut ui_state.max_metabolite, 5.0..=90.0).text("Max Metabolite"));
+        ui.horizontal(|ui| {
+            color_edit_button_hsva(ui, &mut ui_state.min_metabolite_color, Alpha::Opaque);
+            ui.add(egui::Slider::new(&mut ui_state.min_metabolite, 5.0..=90.0).text("min"));
+        });
+        ui.horizontal(|ui| {
+            color_edit_button_hsva(ui, &mut ui_state.max_metabolite_color, Alpha::Opaque);
+            ui.add(egui::Slider::new(&mut ui_state.max_metabolite, 5.0..=90.0).text("max"));
+        });
         ui.label("Histogram scale");
-        ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("Left Histograms"));
-        ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("Right Histograms"));
+        ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
+        ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
     });
 }
 
