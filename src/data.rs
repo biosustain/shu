@@ -106,6 +106,7 @@ fn load_reaction_data(
     mut custom_assets: ResMut<Assets<ReactionData>>,
     current_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomArrow>)>,
     current_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomArrow>)>,
+    current_hist: Query<Entity, With<geom::GeomHist>>,
 ) {
     let custom_asset = if let Some(reac_handle) = &mut state.reaction_data {
         custom_assets.get_mut(reac_handle)
@@ -133,8 +134,7 @@ fn load_reaction_data(
     }
     if let Some(dist_data) = &mut reacs.y {
         // remove existing sizes geoms
-        // TODO: this is wrong, also for the left
-        for e in current_sizes.iter() {
+        for e in current_hist.iter() {
             commands.entity(e).despawn_recursive();
         }
         commands
@@ -148,7 +148,7 @@ fn load_reaction_data(
     }
     if let Some(dist_data) = &mut reacs.left_y {
         // remove existing sizes geoms
-        for e in current_sizes.iter() {
+        for e in current_hist.iter() {
             commands.entity(e).despawn_recursive();
         }
         commands
