@@ -330,6 +330,8 @@ fn plot_side_hist(
                     .insert(HistTag {
                         side: geom.side.clone(),
                         condition: aes.condition.clone(),
+                        dragged: false,
+                        rotating: false,
                     });
             }
         }
@@ -382,6 +384,8 @@ fn plot_hover_hist(
                     .insert(HistTag {
                         side: geom.side.clone(),
                         condition: aes.condition.clone(),
+                        dragged: false,
+                        rotating: false,
                     })
                     .insert(AnyTag { id: hover.node_id })
                     .with_children(|p| {

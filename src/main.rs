@@ -22,7 +22,6 @@ fn main() {
         .add_plugin(gui::GuiPlugin)
         .add_plugin(data::DataPlugin)
         .add_startup_system(setup_system)
-        // .add_startup_system(setup_demo_arrow_size)
         .add_plugin(aesthetics::AesPlugin)
         .run();
 }
@@ -47,37 +46,12 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..Default::default()
         })
-        .insert(PanCam::default());
+        .insert(PanCam {
+            grab_buttons: vec![MouseButton::Left], // which buttons should drag the camera
+            enabled: true, // when false, controls are disabled. See toggle example.
+            zoom_to_cursor: true, // whether to zoom towards the mouse or the center of the screen
+            min_scale: 1., // prevent the camera from zooming too far in
+            max_scale: Some(40.), // prevent the camera from zooming too far out
+            ..Default::default()
+        });
 }
-
-// System for testing.
-// fn _setup_demo_arrow_size(mut commands: Commands) {
-//     commands.spawn((
-//         aesthetics::Aesthetics {
-//             plotted: false,
-//             identifiers: vec![String::from("PFK"), String::from("GAPD")],
-//         },
-//         aesthetics::Gsize {},
-//         aesthetics::Point(vec![40f32, 20f32]),
-//         geom::GeomArrow { plotted: false },
-//     ));
-//     commands.spawn((
-//         aesthetics::Aesthetics {
-//             plotted: false,
-//             identifiers: vec![String::from("FUM")],
-//         },
-//         aesthetics::Gsize {},
-//         aesthetics::Distribution(vec![vec![20f32, 40f32]]),
-//         geom::GeomArrow { plotted: false },
-//     ));
-//     commands.spawn((
-//         aesthetics::Aesthetics {
-//             plotted: false,
-//             identifiers: vec![String::from("PFK"), String::from("GAPD")],
-//         },
-//         aesthetics::Gcolor {},
-//         aesthetics::Point(vec![180f32, 30f32]),
-//         geom::GeomArrow { plotted: false },
-//     ));
-//     warn!("Some Aes loaded! Remove this setup system when not debugging");
-// }

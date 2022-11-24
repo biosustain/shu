@@ -14,8 +14,11 @@ impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(EguiPlugin)
             .insert_resource(UiState::default())
-            .add_system(ui_example)
+            .add_system(ui_settings)
             .add_system(show_hover)
+            .add_system(follow_mouse_on_drag)
+            .add_system(follow_mouse_on_rotate)
+            .add_system(mouse_click_system)
             .add_system(file_drop);
     }
 }
@@ -58,7 +61,7 @@ impl Default for UiState {
     }
 }
 
-fn ui_example(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiState>) {
+fn ui_settings(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiState>) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         ui.label("Reaction scale");
         ui.horizontal(|ui| {
@@ -138,6 +141,24 @@ fn file_drop(
     }
 }
 
+/// Cursor to mouse position. Stolen from bevy cheatbook.
+fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) -> Option<Vec2> {
+    // get the size of the window
+    let window_size = Vec2::new(win.width() as f32, win.height() as f32);
+    if let Some(screen_pos) = win.cursor_position() {
+        // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+        // matrix for undoing the projection and camera transform
+        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+        // use it to convert ndc to world-space coordinates
+        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+        // reduce it to a 2D value
+        Some(world_pos.truncate())
+    } else {
+        None
+    }
+}
+
 /// Show hovered data on cursor enter.
 fn show_hover(
     windows: Res<Windows>,
@@ -147,20 +168,8 @@ fn show_hover(
 ) {
     let (camera, camera_transform) = q_camera.single();
     let win = windows.get_primary().expect("no primary window");
-    if let Some(screen_pos) = win.cursor_position() {
-        // get the size of the window
-        let window_size = Vec2::new(win.width() as f32, win.height() as f32);
-        // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
-        // matrix for undoing the projection and camera transform
-        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-        // use it to convert ndc to world-space coordinates
-        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-        // reduce it to a 2D value
-        let world_pos: Vec2 = world_pos.truncate();
-
+    if let Some(world_pos) = get_pos(win, camera, camera_transform) {
         for (trans, hover) in hover_query.iter() {
-            // info!("{} - {world_pos}", trans.translation);
             if (world_pos - Vec2::new(trans.translation.x, trans.translation.y)).length_squared()
                 < 5000.
             {
@@ -175,6 +184,87 @@ fn show_hover(
                         *vis = Visibility::INVISIBLE;
                     }
                 }
+            }
+        }
+    }
+}
+
+/// Register an histogram as being dragged by center or right button.
+fn mouse_click_system(
+    windows: Res<Windows>,
+    mouse_button_input: Res<Input<MouseButton>>,
+    mut drag_query: Query<(&Transform, &mut HistTag), Without<AnyTag>>,
+    q_camera: Query<(&Camera, &GlobalTransform)>,
+) {
+    if mouse_button_input.just_pressed(MouseButton::Middle) {
+        for (trans, mut hist) in drag_query.iter_mut() {
+            let (camera, camera_transform) = q_camera.single();
+            let win = windows.get_primary().expect("no primary window");
+            if let Some(world_pos) = get_pos(win, camera, camera_transform) {
+                if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
+                    .length_squared()
+                    < 5000.
+                {
+                    hist.dragged = true;
+                }
+            }
+        }
+    }
+
+    if mouse_button_input.just_released(MouseButton::Middle) {
+        for (_, mut hist) in drag_query.iter_mut() {
+            hist.dragged = false;
+        }
+    }
+    if mouse_button_input.just_pressed(MouseButton::Right) {
+        for (trans, mut hist) in drag_query.iter_mut() {
+            let (camera, camera_transform) = q_camera.single();
+            let win = windows.get_primary().expect("no primary window");
+            if let Some(world_pos) = get_pos(win, camera, camera_transform) {
+                if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
+                    .length_squared()
+                    < 5000.
+                {
+                    hist.rotating = true;
+                }
+            }
+        }
+    }
+
+    if mouse_button_input.just_released(MouseButton::Right) {
+        for (_, mut hist) in drag_query.iter_mut() {
+            hist.rotating = false;
+        }
+    }
+}
+
+/// Move the center-dragged histograms.
+fn follow_mouse_on_drag(
+    windows: Res<Windows>,
+    mut drag_query: Query<(&mut Transform, &HistTag)>,
+    q_camera: Query<(&Camera, &GlobalTransform)>,
+) {
+    for (mut trans, hist) in drag_query.iter_mut() {
+        if hist.dragged {
+            let (camera, camera_transform) = q_camera.single();
+            let win = windows.get_primary().expect("no primary window");
+            if let Some(world_pos) = get_pos(win, camera, camera_transform) {
+                trans.translation = Vec3::new(world_pos.x, world_pos.y, trans.translation.z);
+            }
+        }
+    }
+}
+
+/// Rotate the right-dragged histograms.
+fn follow_mouse_on_rotate(
+    mut drag_query: Query<(&mut Transform, &HistTag)>,
+    mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
+) {
+    for ev in mouse_motion_events.iter() {
+        for (mut trans, hist) in drag_query.iter_mut() {
+            let pos = trans.translation;
+            if hist.rotating {
+                trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
             }
         }
     }

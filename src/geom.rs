@@ -82,6 +82,8 @@ pub struct GeomMetabolite {
 pub struct HistTag {
     pub side: Side,
     pub condition: Option<String>,
+    pub dragged: bool,
+    pub rotating: bool,
 }
 
 /// Component of all popups.
