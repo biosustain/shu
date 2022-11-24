@@ -30,30 +30,41 @@ impl GeomKde {
     }
 }
 
+#[derive(Clone)]
+pub enum HistPlot {
+    Hist,
+    Kde,
+}
+
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
 /// the a KDE on the side of the arrows in the map..
 #[derive(Component, Clone)]
 pub struct GeomHist {
     pub side: Side,
     pub rendered: bool,
+    pub plot: HistPlot,
 }
+
 impl GeomHist {
-    pub fn left() -> Self {
+    pub fn left(plot: HistPlot) -> Self {
         Self {
             side: Side::Left,
             rendered: false,
+            plot,
         }
     }
-    pub fn right() -> Self {
+    pub fn right(plot: HistPlot) -> Self {
         Self {
             side: Side::Right,
             rendered: false,
+            plot,
         }
     }
-    pub fn up() -> Self {
+    pub fn up(plot: HistPlot) -> Self {
         Self {
             side: Side::Up,
             rendered: false,
+            plot,
         }
     }
 }

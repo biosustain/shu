@@ -83,6 +83,12 @@ pub struct ReactionData {
     left_y: Option<Vec<Vec<f32>>>,
     /// Numeric values to plot on a hovered popup.
     hover_y: Option<Vec<Vec<f32>>>,
+    /// Numeric values to plot as KDE.
+    kde_y: Option<Vec<Vec<f32>>>,
+    /// Numeric values to plot as KDE.
+    kde_left_y: Option<Vec<Vec<f32>>>,
+    /// Numeric values to plot on a hovered popup.
+    kde_hover_y: Option<Vec<Vec<f32>>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
 }
@@ -146,7 +152,6 @@ fn load_reaction_data(
                 .collect()
         };
         let identifiers = indices.iter().map(|i| &reacs.reactions[*i]);
-        info!("{indices:?}");
         if let Some(color_data) = &mut reacs.colors {
             let mut color_data = indices.iter().map(|i| color_data[*i]).collect::<Vec<f32>>();
             // remove existing color geoms
@@ -161,6 +166,22 @@ fn load_reaction_data(
                 })
                 .insert(aesthetics::Gcolor {})
                 .insert(aesthetics::Point(std::mem::take(&mut color_data)))
+                .insert(geom::GeomArrow { plotted: false });
+        }
+        if let Some(size_data) = &mut reacs.sizes {
+            let mut size_data = indices.iter().map(|i| size_data[*i]).collect::<Vec<f32>>();
+            // remove existing sizes geoms
+            for e in current_sizes.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.clone().cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gsize {})
+                .insert(aesthetics::Point(std::mem::take(&mut size_data)))
                 .insert(geom::GeomArrow { plotted: false });
         }
         if let Some(dist_data) = &mut reacs.y {
@@ -180,7 +201,7 @@ fn load_reaction_data(
                 })
                 .insert(aesthetics::Gy {})
                 .insert(aesthetics::Distribution(dist_data))
-                .insert(geom::GeomHist::right());
+                .insert(geom::GeomHist::right(geom::HistPlot::Hist));
         }
         if let Some(dist_data) = &mut reacs.left_y {
             let dist_data = indices
@@ -199,10 +220,13 @@ fn load_reaction_data(
                 })
                 .insert(aesthetics::Gy {})
                 .insert(aesthetics::Distribution(dist_data))
-                .insert(geom::GeomHist::left());
+                .insert(geom::GeomHist::left(geom::HistPlot::Hist));
         }
-        if let Some(size_data) = &mut reacs.sizes {
-            let mut size_data = indices.iter().map(|i| size_data[*i]).collect::<Vec<f32>>();
+        if let Some(hover_data) = &mut reacs.hover_y {
+            let hover_data = indices
+                .iter()
+                .map(|i| std::mem::take(&mut hover_data[*i]))
+                .collect::<Vec<Vec<f32>>>();
             // remove existing sizes geoms
             for e in current_sizes.iter() {
                 commands.entity(e).despawn_recursive();
@@ -213,11 +237,50 @@ fn load_reaction_data(
                     identifiers: identifiers.clone().cloned().collect(),
                     condition: if cond == "" { None } else { Some(cond.clone()) },
                 })
-                .insert(aesthetics::Gsize {})
-                .insert(aesthetics::Point(std::mem::take(&mut size_data)))
-                .insert(geom::GeomArrow { plotted: false });
+                .insert(aesthetics::Gy {})
+                .insert(aesthetics::Distribution(hover_data))
+                .insert(geom::PopUp {})
+                .insert(geom::GeomHist::up(geom::HistPlot::Hist));
         }
-        if let Some(hover_data) = &mut reacs.hover_y {
+        if let Some(dist_data) = &mut reacs.kde_y {
+            let dist_data = indices
+                .iter()
+                .map(|i| std::mem::take(&mut dist_data[*i]))
+                .collect::<Vec<Vec<f32>>>();
+            // remove existing sizes geoms
+            for e in current_hist.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.clone().cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gy {})
+                .insert(aesthetics::Distribution(dist_data))
+                .insert(geom::GeomHist::right(geom::HistPlot::Kde));
+        }
+        if let Some(dist_data) = &mut reacs.kde_left_y {
+            let dist_data = indices
+                .iter()
+                .map(|i| std::mem::take(&mut dist_data[*i]))
+                .collect::<Vec<Vec<f32>>>();
+            // remove existing sizes geoms
+            for e in current_hist.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.clone().cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gy {})
+                .insert(aesthetics::Distribution(dist_data))
+                .insert(geom::GeomHist::left(geom::HistPlot::Kde));
+        }
+        if let Some(hover_data) = &mut reacs.kde_hover_y {
             info!("{hover_data:?}");
             let hover_data = indices
                 .iter()
@@ -236,7 +299,7 @@ fn load_reaction_data(
                 .insert(aesthetics::Gy {})
                 .insert(aesthetics::Distribution(hover_data))
                 .insert(geom::PopUp {})
-                .insert(geom::GeomHist::up());
+                .insert(geom::GeomHist::up(geom::HistPlot::Kde));
         }
     }
     state.reac_loaded = true;
@@ -303,7 +366,7 @@ fn load_metabolite_data(
             .insert(aesthetics::Gy {})
             .insert(aesthetics::Distribution(std::mem::take(hover_data)))
             .insert(geom::PopUp {})
-            .insert(geom::GeomHist::up());
+            .insert(geom::GeomHist::up(geom::HistPlot::Hist));
     }
     state.met_loaded = true;
 }

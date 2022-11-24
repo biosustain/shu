@@ -31,24 +31,33 @@ fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
 }
 
 /// A dirty way of plotting Kdes with Paths as an histogram
-pub fn plot_kde(samples: &[f32], n: u32) -> Path {
+pub fn plot_kde(samples: &[f32], n: u32) -> Option<Path> {
     let mut path_builder = PathBuilder::new();
     let center = samples.iter().sum::<f32>() / samples.len() as f32;
+    let min_value = min_f32(samples);
+    let max_value = max_f32(samples);
+    if center.is_nan() {
+        return None;
+    }
+    path_builder.move_to(Vec2::new(min_value - center, 0.));
 
-    for x in linspace(min_f32(samples), max_f32(samples), n) {
+    for x in linspace(min_value, max_value, 50) {
         let y = kde(x, samples, 1.06);
-        info!("Path on {}", y);
-        path_builder.move_to(Vec2::new(x - center, 0.));
         path_builder.line_to(Vec2::new(x - center, y));
     }
-    path_builder.build()
+    path_builder.line_to(Vec2::new(max_value - center, 0.));
+    path_builder.line_to(Vec2::new(min_value - center, 0.));
+    Some(path_builder.build())
 }
 
 /// Histogram plotting with n bins
-pub fn plot_hist(samples: &[f32], bins: u32) -> Path {
+pub fn plot_hist(samples: &[f32], bins: u32) -> Option<Path> {
     let mut path_builder = PathBuilder::new();
     let center = samples.iter().sum::<f32>() / samples.len() as f32;
     let anchors = linspace(min_f32(samples), max_f32(samples), bins);
+    if center.is_nan() {
+        return None;
+    }
 
     for (a, b) in [0.]
         .iter()
@@ -58,13 +67,12 @@ pub fn plot_hist(samples: &[f32], bins: u32) -> Path {
     {
         // TODO: sort first this and operate over indices
         let y = samples.iter().filter(|&&x| (x >= *a) & (x < b)).count();
-        // draw a rectangle
         path_builder.move_to(Vec2::new(a - center, 0.));
         path_builder.line_to(Vec2::new(a - center, y as f32));
         path_builder.line_to(Vec2::new(b - center, y as f32));
         path_builder.line_to(Vec2::new(b - center, 0.));
     }
-    path_builder.build()
+    Some(path_builder.build())
 }
 
 fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {

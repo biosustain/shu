@@ -1,6 +1,6 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
 use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_of_path};
-use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistTag, PopUp, Side};
+use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side};
 use crate::gui::UiState;
 use bevy_egui::egui::epaint::color::Hsva;
 use itertools::Itertools;
@@ -278,7 +278,7 @@ fn plot_side_hist(
         (With<Gy>, Without<PopUp>),
     >,
 ) {
-    for (dist, aes, mut geom) in aes_query.iter_mut() {
+    'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
@@ -288,7 +288,14 @@ fn plot_side_hist(
                     Some(d) => d,
                     None => continue,
                 };
-                let line = plot_hist(this_dist, 6);
+                let line = match geom.plot {
+                    HistPlot::Hist => plot_hist(this_dist, 6),
+                    HistPlot::Kde => plot_kde(this_dist, 6),
+                };
+                if line.is_none() {
+                    continue 'outer;
+                }
+                let line = line.unwrap();
                 let (rotation_90, away, hex) = match geom.side {
                     Side::Right => (
                         -Vec2::Y.angle_between(arrow.direction.perp()),
@@ -337,7 +344,7 @@ fn plot_hover_hist(
     mut query: Query<(&Transform, &Hover)>,
     mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
 ) {
-    for (dist, aes, mut geom) in aes_query.iter_mut() {
+    'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
@@ -347,7 +354,14 @@ fn plot_hover_hist(
                     Some(d) => d,
                     None => continue,
                 };
-                let line = plot_hist(this_dist, 6); // a bit to the rigth top of the tag
+                let line = match geom.plot {
+                    HistPlot::Hist => plot_hist(this_dist, 6),
+                    HistPlot::Kde => plot_kde(this_dist, 6),
+                };
+                if line.is_none() {
+                    continue 'outer;
+                }
+                let line = line.unwrap();
                 let mut transform =
                     Transform::from_xyz(trans.translation.x + 100., trans.translation.y + 100., 5.);
                 transform.scale.x *= 80.;
