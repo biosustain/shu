@@ -70,6 +70,7 @@ pub struct GeomMetabolite {
 #[derive(Component)]
 pub struct HistTag {
     pub side: Side,
+    pub condition: Option<String>,
 }
 
 /// Component of all popups.
@@ -77,7 +78,7 @@ pub struct HistTag {
 pub struct PopUp;
 
 /// Component of all popups.
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct AnyTag {
     pub id: u64,
 }

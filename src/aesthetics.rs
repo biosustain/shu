@@ -22,6 +22,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_hover_hist.before(load_map))
             .add_system(normalize_histogram_height)
             .add_system(fill_conditions)
+            .add_system(filter_histograms)
             .add_system(plot_metabolite_size);
     }
 }
@@ -270,7 +271,6 @@ pub fn plot_metabolite_color(
 
 /// Plot histogram as numerical variable next to arrows.
 fn plot_side_hist(
-    ui_state: Res<UiState>,
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
     mut aes_query: Query<
@@ -279,11 +279,6 @@ fn plot_side_hist(
     >,
 ) {
     for (dist, aes, mut geom) in aes_query.iter_mut() {
-        if let Some(condition) = &aes.condition {
-            if condition != &ui_state.condition {
-                continue;
-            }
-        }
         if geom.rendered {
             continue;
         }
@@ -327,6 +322,7 @@ fn plot_side_hist(
                     ))
                     .insert(HistTag {
                         side: geom.side.clone(),
+                        condition: aes.condition.clone(),
                     });
             }
         }
@@ -342,11 +338,6 @@ fn plot_hover_hist(
     mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
 ) {
     for (dist, aes, mut geom) in aes_query.iter_mut() {
-        if let Some(condition) = &aes.condition {
-            if condition != &ui_state.condition {
-                continue;
-            }
-        }
         if geom.rendered {
             continue;
         }
@@ -376,6 +367,7 @@ fn plot_hover_hist(
                     .spawn(geometry)
                     .insert(HistTag {
                         side: geom.side.clone(),
+                        condition: aes.condition.clone(),
                     })
                     .insert(AnyTag { id: hover.node_id })
                     .with_children(|p| {
@@ -428,5 +420,18 @@ fn fill_conditions(mut ui_state: ResMut<UiState>, aesthetics: Query<&Aesthetics>
     }
     if ui_state.condition.is_empty() {
         ui_state.condition = ui_state.conditions[0].clone();
+    }
+}
+
+/// Hide histograms that are not in the conditions.
+pub fn filter_histograms(ui_state: Res<UiState>, mut query: Query<(&mut Visibility, &HistTag)>) {
+    for (mut vis, hist) in query.iter_mut() {
+        if let Some(condition) = &hist.condition {
+            if condition != &ui_state.condition {
+                *vis = Visibility::INVISIBLE;
+            } else {
+                *vis = Visibility::VISIBLE;
+            }
+        }
     }
 }
