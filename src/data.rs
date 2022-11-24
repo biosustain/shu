@@ -92,6 +92,8 @@ pub struct MetaboliteData {
     colors: Option<Vec<f32>>,
     /// Numeric values to plot as metabolite circle sizes.
     sizes: Option<Vec<f32>>,
+    /// Numeric values to plot as histogram on hover.
+    y: Option<Vec<Vec<f32>>>,
 }
 
 #[derive(Resource)]
@@ -238,6 +240,21 @@ fn load_metabolite_data(
             .insert(aesthetics::Gsize {})
             .insert(aesthetics::Point(std::mem::take(size_data)))
             .insert(geom::GeomMetabolite { plotted: false });
+    }
+    if let Some(hover_data) = &mut reacs.y {
+        // remove existing sizes geoms
+        for e in current_sizes.iter() {
+            commands.entity(e).despawn_recursive();
+        }
+        commands
+            .spawn(aesthetics::Aesthetics {
+                plotted: false,
+                identifiers: reacs.metabolites.clone(),
+            })
+            .insert(aesthetics::Gy {})
+            .insert(aesthetics::Distribution(std::mem::take(hover_data)))
+            .insert(geom::PopUp {})
+            .insert(geom::GeomHist::up());
     }
     state.met_loaded = true;
 }

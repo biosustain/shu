@@ -310,6 +310,9 @@ pub fn load_map(
         let circle = CircleTag {
             id: met.bigg_id.clone(),
         };
+        let hover = Hover {
+            id: met.bigg_id.clone(),
+        };
         commands
             .spawn(GeometryBuilder::build_as(
                 &shape,
@@ -331,6 +334,7 @@ pub fn load_map(
                 center_y,
                 25.,
             ))
+            .insert(hover)
             .insert(circle);
     }
     for mut reac in reactions {
