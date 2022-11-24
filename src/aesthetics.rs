@@ -308,16 +308,10 @@ fn normalize_histogram_height(
     mut query: Query<(&mut Transform, &Path, &HistTag)>,
 ) {
     for (mut trans, path, hist) in query.iter_mut() {
-        if let Side::Left = hist.side {
-            let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
-            trans.scale.y = ui_state.max_right / height;
-        }
-    }
-
-    for (mut trans, path, hist) in query.iter_mut() {
-        if let Side::Right = hist.side {
-            let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
-            trans.scale.y = ui_state.max_left / height;
+        let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
+        trans.scale.y = match hist.side {
+            Side::Left => ui_state.max_left / height,
+            Side::Right => ui_state.max_right / height,
         }
     }
 }

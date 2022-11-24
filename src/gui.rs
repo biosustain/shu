@@ -18,6 +18,7 @@ impl Plugin for GuiPlugin {
     }
 }
 
+/// Global appeareance settings.
 #[derive(Resource)]
 pub struct UiState {
     pub min_reaction: f32,
