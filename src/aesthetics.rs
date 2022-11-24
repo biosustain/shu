@@ -3,6 +3,7 @@ use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_o
 use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistTag, PopUp, Side};
 use crate::gui::UiState;
 use bevy_egui::egui::epaint::color::Hsva;
+use itertools::Itertools;
 
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
@@ -20,6 +21,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_side_hist.before(load_map))
             .add_system(plot_hover_hist.before(load_map))
             .add_system(normalize_histogram_height)
+            .add_system(fill_conditions)
             .add_system(plot_metabolite_size);
     }
 }
@@ -32,6 +34,8 @@ pub struct Aesthetics {
     pub plotted: bool,
     /// ordered identifers that each aesthetic will be plotted at
     pub identifiers: Vec<String>,
+    /// ordered condition identifiers
+    pub condition: Option<String>,
 }
 
 #[derive(Component)]
@@ -61,6 +65,11 @@ pub fn plot_arrow_size(
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomArrow>, With<Gsize>)>,
 ) {
     for (sizes, aes) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
         let min_val = min_f32(&sizes.0);
         let max_val = max_f32(&sizes.0);
         for (mut draw_mode, arrow) in query.iter_mut() {
@@ -92,6 +101,11 @@ pub fn plot_arrow_size_dist(
     mut aes_query: Query<(&Distribution<f32>, &Aesthetics), (With<GeomArrow>, With<Gsize>)>,
 ) {
     for (sizes, aes) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
         for (mut draw_mode, arrow) in query.iter_mut() {
             let min_val = min_f32(&sizes.0.iter().flatten().copied().collect::<Vec<f32>>());
             let max_val = max_f32(&sizes.0.iter().flatten().copied().collect::<Vec<f32>>());
@@ -171,6 +185,11 @@ pub fn plot_arrow_color(
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomArrow>, With<Gcolor>)>,
 ) {
     for (colors, aes) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
         let min_val = min_f32(&colors.0);
         let max_val = max_f32(&colors.0);
         for (mut draw_mode, arrow) in query.iter_mut() {
@@ -251,6 +270,7 @@ pub fn plot_metabolite_color(
 
 /// Plot histogram as numerical variable next to arrows.
 fn plot_side_hist(
+    ui_state: Res<UiState>,
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
     mut aes_query: Query<
@@ -259,6 +279,11 @@ fn plot_side_hist(
     >,
 ) {
     for (dist, aes, mut geom) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
         if geom.rendered {
             continue;
         }
@@ -317,6 +342,11 @@ fn plot_hover_hist(
     mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
 ) {
     for (dist, aes, mut geom) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
         if geom.rendered {
             continue;
         }
@@ -381,5 +411,22 @@ fn normalize_histogram_height(
             Side::Right => ui_state.max_right / height,
             Side::Up => ui_state.max_top / height,
         }
+    }
+}
+
+/// Fill conditions menu.
+fn fill_conditions(mut ui_state: ResMut<UiState>, aesthetics: Query<&Aesthetics>) {
+    let conditions = aesthetics
+        .iter()
+        .filter_map(|a| a.condition.clone())
+        .unique()
+        .collect::<Vec<String>>();
+    if !conditions.is_empty() {
+        ui_state.conditions = conditions;
+    } else {
+        ui_state.conditions = vec![String::from("")];
+    }
+    if ui_state.condition.is_empty() {
+        ui_state.condition = ui_state.conditions[0].clone();
     }
 }

@@ -2,7 +2,7 @@
 
 use crate::data::{MetaboliteData, ReactionData, ReactionState};
 use crate::escher::{EscherMap, Hover, MapState};
-use crate::geom::{AnyTag, HistTag, PopUp};
+use crate::geom::{AnyTag, HistTag};
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_hsva, Alpha};
 use bevy_egui::egui::epaint::color::Hsva;
@@ -34,6 +34,8 @@ pub struct UiState {
     pub max_left: f32,
     pub max_right: f32,
     pub max_top: f32,
+    pub condition: String,
+    pub conditions: Vec<String>,
 }
 
 impl Default for UiState {
@@ -50,6 +52,8 @@ impl Default for UiState {
             max_left: 100.,
             max_right: 100.,
             max_top: 100.,
+            condition: String::from(""),
+            conditions: vec![String::from("")],
         }
     }
 }
@@ -78,6 +82,15 @@ fn ui_example(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiStat
         ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
         ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
         ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("hover"));
+        let conditions = ui_state.conditions.clone();
+        let condition = &mut ui_state.condition;
+        egui::ComboBox::from_label("Condition")
+            .selected_text(conditions[0].clone())
+            .show_ui(ui, |ui| {
+                for cond in conditions.iter() {
+                    ui.selectable_value(condition, cond.clone(), cond.clone());
+                }
+            });
     });
 }
 

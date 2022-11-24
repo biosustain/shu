@@ -50,34 +50,34 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(PanCam::default());
 }
 
-/// System for testing.
-fn _setup_demo_arrow_size(mut commands: Commands) {
-    commands.spawn((
-        aesthetics::Aesthetics {
-            plotted: false,
-            identifiers: vec![String::from("PFK"), String::from("GAPD")],
-        },
-        aesthetics::Gsize {},
-        aesthetics::Point(vec![40f32, 20f32]),
-        geom::GeomArrow { plotted: false },
-    ));
-    commands.spawn((
-        aesthetics::Aesthetics {
-            plotted: false,
-            identifiers: vec![String::from("FUM")],
-        },
-        aesthetics::Gsize {},
-        aesthetics::Distribution(vec![vec![20f32, 40f32]]),
-        geom::GeomArrow { plotted: false },
-    ));
-    commands.spawn((
-        aesthetics::Aesthetics {
-            plotted: false,
-            identifiers: vec![String::from("PFK"), String::from("GAPD")],
-        },
-        aesthetics::Gcolor {},
-        aesthetics::Point(vec![180f32, 30f32]),
-        geom::GeomArrow { plotted: false },
-    ));
-    warn!("Some Aes loaded! Remove this setup system when not debugging");
-}
+// System for testing.
+// fn _setup_demo_arrow_size(mut commands: Commands) {
+//     commands.spawn((
+//         aesthetics::Aesthetics {
+//             plotted: false,
+//             identifiers: vec![String::from("PFK"), String::from("GAPD")],
+//         },
+//         aesthetics::Gsize {},
+//         aesthetics::Point(vec![40f32, 20f32]),
+//         geom::GeomArrow { plotted: false },
+//     ));
+//     commands.spawn((
+//         aesthetics::Aesthetics {
+//             plotted: false,
+//             identifiers: vec![String::from("FUM")],
+//         },
+//         aesthetics::Gsize {},
+//         aesthetics::Distribution(vec![vec![20f32, 40f32]]),
+//         geom::GeomArrow { plotted: false },
+//     ));
+//     commands.spawn((
+//         aesthetics::Aesthetics {
+//             plotted: false,
+//             identifiers: vec![String::from("PFK"), String::from("GAPD")],
+//         },
+//         aesthetics::Gcolor {},
+//         aesthetics::Point(vec![180f32, 30f32]),
+//         geom::GeomArrow { plotted: false },
+//     ));
+//     warn!("Some Aes loaded! Remove this setup system when not debugging");
+// }

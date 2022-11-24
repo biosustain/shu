@@ -1,5 +1,7 @@
 //! Input data logic.
 
+use std::collections::HashSet;
+
 use crate::aesthetics;
 use crate::escher::EscherMap;
 use crate::geom;
@@ -7,6 +9,7 @@ use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use bevy::utils::BoxedFuture;
+use itertools::Itertools;
 use serde::Deserialize;
 
 pub struct DataPlugin;
@@ -80,6 +83,8 @@ pub struct ReactionData {
     left_y: Option<Vec<Vec<f32>>>,
     /// Numeric values to plot on a hovered popup.
     hover_y: Option<Vec<Vec<f32>>>,
+    /// Categorical values to be associated with conditions.
+    conditions: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, TypeUuid, Default)]
@@ -122,76 +127,117 @@ fn load_reaction_data(
     }
     info!("Loading Reaction data!");
     let reacs = custom_asset.unwrap();
-    if let Some(color_data) = &mut reacs.colors {
-        // remove existing color geoms
-        for e in current_colors.iter() {
-            commands.entity(e).despawn_recursive();
+    let conditions = reacs.conditions.clone().unwrap_or(vec![String::from("")]);
+    let cond_set = conditions.iter().unique();
+    for cond in cond_set {
+        let indices = if cond == "" {
+            reacs
+                .reactions
+                .iter()
+                .enumerate()
+                .map(|(i, _)| i)
+                .collect::<HashSet<usize>>()
+        } else {
+            conditions
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| c == &cond)
+                .map(|(i, _)| i)
+                .collect()
+        };
+        let identifiers = indices.iter().map(|i| &reacs.reactions[*i]);
+        info!("{indices:?}");
+        if let Some(color_data) = &mut reacs.colors {
+            let mut color_data = indices.iter().map(|i| color_data[*i]).collect::<Vec<f32>>();
+            // remove existing color geoms
+            for e in current_colors.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.clone().cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gcolor {})
+                .insert(aesthetics::Point(std::mem::take(&mut color_data)))
+                .insert(geom::GeomArrow { plotted: false });
         }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.reactions.clone(),
-            })
-            .insert(aesthetics::Gcolor {})
-            .insert(aesthetics::Point(std::mem::take(color_data)))
-            .insert(geom::GeomArrow { plotted: false });
-    }
-    if let Some(dist_data) = &mut reacs.y {
-        // remove existing sizes geoms
-        for e in current_hist.iter() {
-            commands.entity(e).despawn_recursive();
+        if let Some(dist_data) = &mut reacs.y {
+            let dist_data = indices
+                .iter()
+                .map(|i| std::mem::take(&mut dist_data[*i]))
+                .collect::<Vec<Vec<f32>>>();
+            // remove existing sizes geoms
+            for e in current_hist.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.clone().cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gy {})
+                .insert(aesthetics::Distribution(dist_data))
+                .insert(geom::GeomHist::right());
         }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.reactions.clone(),
-            })
-            .insert(aesthetics::Gy {})
-            .insert(aesthetics::Distribution(std::mem::take(dist_data)))
-            .insert(geom::GeomHist::right());
-    }
-    if let Some(dist_data) = &mut reacs.left_y {
-        // remove existing sizes geoms
-        for e in current_hist.iter() {
-            commands.entity(e).despawn_recursive();
+        if let Some(dist_data) = &mut reacs.left_y {
+            let dist_data = indices
+                .iter()
+                .map(|i| std::mem::take(&mut dist_data[*i]))
+                .collect::<Vec<Vec<f32>>>();
+            // remove existing sizes geoms
+            for e in current_hist.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.clone().cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gy {})
+                .insert(aesthetics::Distribution(dist_data))
+                .insert(geom::GeomHist::left());
         }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.reactions.clone(),
-            })
-            .insert(aesthetics::Gy {})
-            .insert(aesthetics::Distribution(std::mem::take(dist_data)))
-            .insert(geom::GeomHist::left());
-    }
-    if let Some(size_data) = &mut reacs.sizes {
-        // remove existing sizes geoms
-        for e in current_sizes.iter() {
-            commands.entity(e).despawn_recursive();
+        if let Some(size_data) = &mut reacs.sizes {
+            let mut size_data = indices.iter().map(|i| size_data[*i]).collect::<Vec<f32>>();
+            // remove existing sizes geoms
+            for e in current_sizes.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.clone().cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gsize {})
+                .insert(aesthetics::Point(std::mem::take(&mut size_data)))
+                .insert(geom::GeomArrow { plotted: false });
         }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.reactions.clone(),
-            })
-            .insert(aesthetics::Gsize {})
-            .insert(aesthetics::Point(std::mem::take(size_data)))
-            .insert(geom::GeomArrow { plotted: false });
-    }
-    if let Some(hover_data) = &mut reacs.hover_y {
-        // remove existing sizes geoms
-        for e in current_sizes.iter() {
-            commands.entity(e).despawn_recursive();
+        if let Some(hover_data) = &mut reacs.hover_y {
+            info!("{hover_data:?}");
+            let hover_data = indices
+                .iter()
+                .map(|i| std::mem::take(&mut hover_data[*i]))
+                .collect::<Vec<Vec<f32>>>();
+            // remove existing sizes geoms
+            for e in current_sizes.iter() {
+                commands.entity(e).despawn_recursive();
+            }
+            commands
+                .spawn(aesthetics::Aesthetics {
+                    plotted: false,
+                    identifiers: identifiers.cloned().collect(),
+                    condition: if cond == "" { None } else { Some(cond.clone()) },
+                })
+                .insert(aesthetics::Gy {})
+                .insert(aesthetics::Distribution(hover_data))
+                .insert(geom::PopUp {})
+                .insert(geom::GeomHist::up());
         }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.reactions.clone(),
-            })
-            .insert(aesthetics::Gy {})
-            .insert(aesthetics::Distribution(std::mem::take(hover_data)))
-            .insert(geom::PopUp {})
-            .insert(geom::GeomHist::up());
     }
     state.reac_loaded = true;
 }
@@ -222,6 +268,7 @@ fn load_metabolite_data(
             .spawn(aesthetics::Aesthetics {
                 plotted: false,
                 identifiers: reacs.metabolites.clone(),
+                condition: None,
             })
             .insert(aesthetics::Gcolor {})
             .insert(aesthetics::Point(std::mem::take(color_data)))
@@ -236,6 +283,7 @@ fn load_metabolite_data(
             .spawn(aesthetics::Aesthetics {
                 plotted: false,
                 identifiers: reacs.metabolites.clone(),
+                condition: None,
             })
             .insert(aesthetics::Gsize {})
             .insert(aesthetics::Point(std::mem::take(size_data)))
@@ -250,6 +298,7 @@ fn load_metabolite_data(
             .spawn(aesthetics::Aesthetics {
                 plotted: false,
                 identifiers: reacs.metabolites.clone(),
+                condition: None,
             })
             .insert(aesthetics::Gy {})
             .insert(aesthetics::Distribution(std::mem::take(hover_data)))
