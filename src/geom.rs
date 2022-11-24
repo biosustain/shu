@@ -79,5 +79,5 @@ pub struct PopUp;
 /// Component of all popups.
 #[derive(Component)]
 pub struct AnyTag {
-    pub id: String,
+    pub id: u64,
 }

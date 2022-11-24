@@ -152,13 +152,13 @@ fn show_hover(
                 < 5000.
             {
                 for (mut vis, tag) in popup_query.iter_mut() {
-                    if hover.id == tag.id {
+                    if hover.node_id == tag.id {
                         *vis = Visibility::VISIBLE;
                     }
                 }
             } else {
                 for (mut vis, tag) in popup_query.iter_mut() {
-                    if hover.id == tag.id {
+                    if hover.node_id == tag.id {
                         *vis = Visibility::INVISIBLE;
                     }
                 }

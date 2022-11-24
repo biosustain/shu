@@ -20,8 +20,8 @@ kinds of data: reaction data and metabolite data. **Shu** attempts to provide wa
 - [x] Metabolite colors.
 
 (+2 with hovers):
-- [ ] Hover reactions.
-- [ ] Hover metabolites.
+- [x] Hover reactions.
+- [x] Hover metabolites.
 
 with special focus on being able to plot **distributions** (not just points) and **n-conditions**. Escher also has the
 distinction between color and size, it is simply that they are not independently accessible from the GUI.

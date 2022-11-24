@@ -347,9 +347,7 @@ fn plot_hover_hist(
                     .insert(HistTag {
                         side: geom.side.clone(),
                     })
-                    .insert(AnyTag {
-                        id: hover.id.clone(),
-                    })
+                    .insert(AnyTag { id: hover.node_id })
                     .with_children(|p| {
                         p.spawn(GeometryBuilder::build_as(
                             &polygon,

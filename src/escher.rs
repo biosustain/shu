@@ -30,15 +30,15 @@ pub struct EscherMap {
 }
 
 impl EscherMap {
-    pub fn get_components(&self) -> (Vec<Reaction>, Vec<Metabolite>) {
+    pub fn get_components(&self) -> (HashMap<u64, Reaction>, HashMap<u64, Metabolite>) {
         (
-            self.metabolism.reactions.clone().into_values().collect(),
+            self.metabolism.reactions.clone(),
             self.metabolism
                 .nodes
                 .clone()
                 .into_iter()
-                .filter_map(|(_, met)| match met {
-                    Node::Metabolite(met) => Some(met),
+                .filter_map(|(id, met)| match met {
+                    Node::Metabolite(met) => Some((id, met)),
                     _ => None,
                 })
                 .collect(),
@@ -261,6 +261,7 @@ impl Labelled for Reaction {
 #[derive(Component)]
 pub struct Hover {
     pub id: String,
+    pub node_id: u64,
 }
 
 /// Load escher map once the asset is available.
@@ -290,14 +291,14 @@ pub fn load_map(
     let (reactions, metabolites) = my_map.get_components();
     // center all metabolites positions
     let (total_x, total_y) = metabolites
-        .iter()
+        .values()
         .map(|met| (met.x, met.y))
         .fold((0., 0.), |(acc_x, acc_y), (x, y)| (acc_x + x, acc_y + y));
     let (center_x, center_y) = (
         total_x / metabolites.len() as f32,
         total_y / metabolites.len() as f32,
     );
-    for mut met in metabolites {
+    for (node_id, mut met) in metabolites {
         let shape = shapes::RegularPolygon {
             sides: 6,
             feature: shapes::RegularPolygonFeature::Radius(if met.node_is_primary {
@@ -312,6 +313,7 @@ pub fn load_map(
         };
         let hover = Hover {
             id: met.bigg_id.clone(),
+            node_id,
         };
         commands
             .spawn(GeometryBuilder::build_as(
@@ -337,7 +339,7 @@ pub fn load_map(
             .insert(hover)
             .insert(circle);
     }
-    for mut reac in reactions {
+    for (node_id, mut reac) in reactions {
         let mut path_builder = PathBuilder::new();
         // origin of the figure as the center of mass
         let ori: Vec2 = reac
@@ -393,6 +395,7 @@ pub fn load_map(
         };
         let hover = Hover {
             id: reac.bigg_id.clone(),
+            node_id,
         };
         commands.spawn((
             GeometryBuilder::build_as(
