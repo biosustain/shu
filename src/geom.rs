@@ -11,6 +11,8 @@ pub struct GeomArrow {
 pub enum Side {
     Left,
     Right,
+    // for hovering instances
+    Up,
 }
 
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
@@ -48,6 +50,12 @@ impl GeomHist {
             rendered: false,
         }
     }
+    pub fn up() -> Self {
+        Self {
+            side: Side::Up,
+            rendered: false,
+        }
+    }
 }
 
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
@@ -62,4 +70,14 @@ pub struct GeomMetabolite {
 #[derive(Component)]
 pub struct HistTag {
     pub side: Side,
+}
+
+/// Component of all popups.
+#[derive(Component)]
+pub struct PopUp;
+
+/// Component of all popups.
+#[derive(Component)]
+pub struct AnyTag {
+    pub id: String,
 }

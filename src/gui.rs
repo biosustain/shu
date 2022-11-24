@@ -1,7 +1,8 @@
 //! Gui (windows and panels) to upload data and hover.
 
 use crate::data::{MetaboliteData, ReactionData, ReactionState};
-use crate::escher::{EscherMap, MapState};
+use crate::escher::{EscherMap, Hover, MapState};
+use crate::geom::{AnyTag, HistTag, PopUp};
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_hsva, Alpha};
 use bevy_egui::egui::epaint::color::Hsva;
@@ -14,6 +15,7 @@ impl Plugin for GuiPlugin {
         app.add_plugin(EguiPlugin)
             .insert_resource(UiState::default())
             .add_system(ui_example)
+            .add_system(show_hover)
             .add_system(file_drop);
     }
 }
@@ -31,6 +33,7 @@ pub struct UiState {
     pub max_metabolite_color: Hsva,
     pub max_left: f32,
     pub max_right: f32,
+    pub max_top: f32,
 }
 
 impl Default for UiState {
@@ -46,6 +49,7 @@ impl Default for UiState {
             max_metabolite: 60.,
             max_left: 100.,
             max_right: 100.,
+            max_top: 100.,
         }
     }
 }
@@ -73,6 +77,7 @@ fn ui_example(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiStat
         ui.label("Histogram scale");
         ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
         ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
+        ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("hover"));
     });
 }
 
@@ -111,6 +116,52 @@ fn file_drop(
                     asset_server.load(path_buf.to_str().unwrap());
                 escher_resource.escher_map = escher_handle;
                 escher_resource.loaded = false;
+            }
+        }
+    }
+}
+
+/// Show hovered data on cursor enter.
+fn show_hover(
+    windows: Res<Windows>,
+    hover_query: Query<(&Transform, &Hover)>,
+    mut popup_query: Query<(&mut Visibility, &AnyTag), With<HistTag>>,
+    q_camera: Query<(&Camera, &GlobalTransform)>,
+) {
+    let (camera, camera_transform) = q_camera.single();
+    let win = windows.get_primary().expect("no primary window");
+    if let Some(screen_pos) = win.cursor_position() {
+        // get the size of the window
+        let window_size = Vec2::new(win.width() as f32, win.height() as f32);
+
+        // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+
+        // matrix for undoing the projection and camera transform
+        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
+
+        // use it to convert ndc to world-space coordinates
+        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
+
+        // reduce it to a 2D value
+        let world_pos: Vec2 = world_pos.truncate();
+
+        for (trans, hover) in hover_query.iter() {
+            // info!("{} - {world_pos}", trans.translation);
+            if (world_pos - Vec2::new(trans.translation.x, trans.translation.y)).length_squared()
+                < 5000.
+            {
+                for (mut vis, tag) in popup_query.iter_mut() {
+                    if hover.id == tag.id {
+                        *vis = Visibility::VISIBLE;
+                    }
+                }
+            } else {
+                for (mut vis, tag) in popup_query.iter_mut() {
+                    if hover.id == tag.id {
+                        *vis = Visibility::INVISIBLE;
+                    }
+                }
             }
         }
     }

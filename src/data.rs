@@ -78,6 +78,8 @@ pub struct ReactionData {
     y: Option<Vec<Vec<f32>>>,
     /// Numeric values to plot as KDE.
     left_y: Option<Vec<Vec<f32>>>,
+    /// Numeric values to plot on a hovered popup.
+    hover_y: Option<Vec<Vec<f32>>>,
 }
 
 #[derive(Deserialize, TypeUuid, Default)]
@@ -173,6 +175,21 @@ fn load_reaction_data(
             .insert(aesthetics::Gsize {})
             .insert(aesthetics::Point(std::mem::take(size_data)))
             .insert(geom::GeomArrow { plotted: false });
+    }
+    if let Some(hover_data) = &mut reacs.hover_y {
+        // remove existing sizes geoms
+        for e in current_sizes.iter() {
+            commands.entity(e).despawn_recursive();
+        }
+        commands
+            .spawn(aesthetics::Aesthetics {
+                plotted: false,
+                identifiers: reacs.reactions.clone(),
+            })
+            .insert(aesthetics::Gy {})
+            .insert(aesthetics::Distribution(std::mem::take(hover_data)))
+            .insert(geom::PopUp {})
+            .insert(geom::GeomHist::up());
     }
     state.reac_loaded = true;
 }

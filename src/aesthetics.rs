@@ -1,6 +1,6 @@
-use crate::escher::{load_map, ArrowTag, CircleTag};
+use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
 use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_of_path};
-use crate::geom::{GeomArrow, GeomHist, GeomMetabolite, HistTag, Side};
+use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistTag, PopUp, Side};
 use crate::gui::UiState;
 use bevy_egui::egui::epaint::color::Hsva;
 
@@ -18,6 +18,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_arrow_size_dist)
             .add_system(plot_metabolite_color)
             .add_system(plot_side_hist.before(load_map))
+            .add_system(plot_hover_hist.before(load_map))
             .add_system(normalize_histogram_height)
             .add_system(plot_metabolite_size);
     }
@@ -252,7 +253,10 @@ pub fn plot_metabolite_color(
 fn plot_side_hist(
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
-    mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), With<Gy>>,
+    mut aes_query: Query<
+        (&Distribution<f32>, &Aesthetics, &mut GeomHist),
+        (With<Gy>, Without<PopUp>),
+    >,
 ) {
     for (dist, aes, mut geom) in aes_query.iter_mut() {
         if geom.rendered {
@@ -277,6 +281,10 @@ fn plot_side_hist(
                         30.,
                         "DA9687",
                     ),
+                    _ => {
+                        warn!("Tried to plot Up direction for non-popup '{}'", arrow.id);
+                        continue;
+                    }
                 };
                 let mut transform =
                     Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
@@ -301,6 +309,46 @@ fn plot_side_hist(
     }
 }
 
+/// Plot hovered histograms of both metabolites and reactions
+fn plot_hover_hist(
+    mut commands: Commands,
+    mut query: Query<(&Transform, &Hover)>,
+    mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
+) {
+    for (dist, aes, mut geom) in aes_query.iter_mut() {
+        if geom.rendered {
+            continue;
+        }
+        for (trans, hover) in query.iter_mut() {
+            if let Some(index) = aes.identifiers.iter().position(|r| r == &hover.id) {
+                let this_dist = match dist.0.get(index) {
+                    Some(d) => d,
+                    None => continue,
+                };
+                let line = plot_hist(this_dist, 6); // a bit to the rigth top of the tag
+                let mut transform =
+                    Transform::from_xyz(trans.translation.x + 100., trans.translation.y + 100., 5.);
+                transform.scale.x *= 80.;
+                let mut geometry = GeometryBuilder::build_as(
+                    &line,
+                    DrawMode::Fill(FillMode::color(Color::hex("FF00FF").unwrap())),
+                    transform,
+                );
+                geometry.visibility = Visibility::INVISIBLE;
+                commands
+                    .spawn(geometry)
+                    .insert(HistTag {
+                        side: geom.side.clone(),
+                    })
+                    .insert(AnyTag {
+                        id: hover.id.clone(),
+                    });
+            }
+        }
+        geom.rendered = true;
+    }
+}
+
 /// Normalize the height of histograms to be comparable with each other.
 /// It treats the two sides independently.
 fn normalize_histogram_height(
@@ -312,6 +360,7 @@ fn normalize_histogram_height(
         trans.scale.y = match hist.side {
             Side::Left => ui_state.max_left / height,
             Side::Right => ui_state.max_right / height,
+            Side::Up => ui_state.max_top / height,
         }
     }
 }

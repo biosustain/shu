@@ -257,7 +257,11 @@ impl Labelled for Reaction {
     }
 }
 
-struct RedrawEvent;
+/// Mark an entity as hoverable.
+#[derive(Component)]
+pub struct Hover {
+    pub id: String,
+}
 
 /// Load escher map once the asset is available.
 /// The colors correspond to the default escher colors.
@@ -383,6 +387,9 @@ pub fn load_map(
             id: reac.bigg_id.clone(),
             direction,
         };
+        let hover = Hover {
+            id: reac.bigg_id.clone(),
+        };
         commands.spawn((
             GeometryBuilder::build_as(
                 &line,
@@ -402,7 +409,8 @@ pub fn load_map(
                 center_y,
                 35.,
             ))
-            .insert(arrow);
+            .insert(arrow)
+            .insert(hover);
     }
     // Send signal to repaint histograms.
     for mut geom in existing_geom_hist.iter_mut() {
