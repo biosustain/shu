@@ -417,6 +417,7 @@ fn fill_conditions(mut ui_state: ResMut<UiState>, aesthetics: Query<&Aesthetics>
         ui_state.conditions = conditions;
     } else {
         ui_state.conditions = vec![String::from("")];
+        ui_state.condition = String::from("");
     }
     if ui_state.condition.is_empty() {
         ui_state.condition = ui_state.conditions[0].clone();

@@ -82,15 +82,19 @@ fn ui_example(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiStat
         ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
         ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
         ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("hover"));
-        let conditions = ui_state.conditions.clone();
-        let condition = &mut ui_state.condition;
-        egui::ComboBox::from_label("Condition")
-            .selected_text(conditions[0].clone())
-            .show_ui(ui, |ui| {
-                for cond in conditions.iter() {
-                    ui.selectable_value(condition, cond.clone(), cond.clone());
-                }
-            });
+        if let Some(first_cond) = ui_state.conditions.get(0) {
+            if !((first_cond == "") & (ui_state.conditions.len() == 1)) {
+                let conditions = ui_state.conditions.clone();
+                let condition = &mut ui_state.condition;
+                egui::ComboBox::from_label("Condition")
+                    .selected_text(conditions[0].clone())
+                    .show_ui(ui, |ui| {
+                        for cond in conditions.iter() {
+                            ui.selectable_value(condition, cond.clone(), cond.clone());
+                        }
+                    });
+            }
+        }
     });
 }
 

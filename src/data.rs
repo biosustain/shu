@@ -115,7 +115,7 @@ fn load_reaction_data(
     mut custom_assets: ResMut<Assets<ReactionData>>,
     current_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomArrow>)>,
     current_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomArrow>)>,
-    current_hist: Query<Entity, With<geom::GeomHist>>,
+    current_hist: Query<Entity, Or<(With<geom::GeomHist>, With<geom::HistTag>)>>,
 ) {
     let custom_asset = if let Some(reac_handle) = &mut state.reaction_data {
         custom_assets.get_mut(reac_handle)
