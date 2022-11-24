@@ -311,6 +311,7 @@ fn plot_side_hist(
 
 /// Plot hovered histograms of both metabolites and reactions
 fn plot_hover_hist(
+    ui_state: Res<UiState>,
     mut commands: Commands,
     mut query: Query<(&Transform, &Hover)>,
     mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
@@ -335,6 +336,12 @@ fn plot_hover_hist(
                     transform,
                 );
                 geometry.visibility = Visibility::INVISIBLE;
+                let polygon = shapes::RegularPolygon {
+                    sides: 4,
+                    feature: shapes::RegularPolygonFeature::Radius(900.0),
+                    ..shapes::RegularPolygon::default()
+                };
+
                 commands
                     .spawn(geometry)
                     .insert(HistTag {
@@ -342,6 +349,20 @@ fn plot_hover_hist(
                     })
                     .insert(AnyTag {
                         id: hover.id.clone(),
+                    })
+                    .with_children(|p| {
+                        p.spawn(GeometryBuilder::build_as(
+                            &polygon,
+                            DrawMode::Outlined {
+                                fill_mode: FillMode::color(Color::WHITE),
+                                outline_mode: StrokeMode::new(Color::BLACK, 10.0),
+                            },
+                            Transform::from_xyz(0., 3., -0.5).with_scale(Vec3::new(
+                                1. / 240.,
+                                1. / ui_state.max_top,
+                                1.,
+                            )),
+                        ));
                     });
             }
         }
