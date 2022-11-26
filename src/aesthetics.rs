@@ -1,5 +1,5 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
-use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_of_path};
+use crate::funcplot::{geom_scale, max_f32, min_f32, path_to_vec, plot_hist, plot_kde};
 use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side};
 use crate::gui::UiState;
 use bevy_egui::egui::epaint::color::Hsva;
@@ -289,8 +289,8 @@ fn plot_side_hist(
                     None => continue,
                 };
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 6),
-                    HistPlot::Kde => plot_kde(this_dist, 6),
+                    HistPlot::Hist => plot_hist(this_dist, 200),
+                    HistPlot::Kde => plot_kde(this_dist, 200),
                 };
                 if line.is_none() {
                     continue 'outer;
@@ -316,7 +316,11 @@ fn plot_side_hist(
                 let mut transform =
                     Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
                         .with_rotation(Quat::from_rotation_z(rotation_90));
-                let scale = geom_scale(&path, &line);
+                let mut scale = geom_scale(path, &line);
+                info!("scaling to {scale}");
+                if f32::is_infinite(scale) {
+                    scale = 80.;
+                };
                 transform.scale.x *= scale;
                 transform.translation.x += arrow.direction.perp().x * away;
                 transform.translation.y += arrow.direction.perp().y * away;
@@ -357,8 +361,8 @@ fn plot_hover_hist(
                     None => continue,
                 };
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 6),
-                    HistPlot::Kde => plot_kde(this_dist, 6),
+                    HistPlot::Hist => plot_hist(this_dist, 50),
+                    HistPlot::Kde => plot_kde(this_dist, 200),
                 };
                 if line.is_none() {
                     continue 'outer;
@@ -366,7 +370,8 @@ fn plot_hover_hist(
                 let line = line.unwrap();
                 let mut transform =
                     Transform::from_xyz(trans.translation.x + 100., trans.translation.y + 100., 5.);
-                transform.scale.x *= 80.;
+                let size = path_to_vec(&line);
+                transform.scale.x *= 600. / size.length();
                 let mut geometry = GeometryBuilder::build_as(
                     &line,
                     DrawMode::Fill(FillMode::color(Color::hex("FF00FF").unwrap())),

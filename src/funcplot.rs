@@ -41,7 +41,7 @@ pub fn plot_kde(samples: &[f32], n: u32) -> Option<Path> {
     }
     path_builder.move_to(Vec2::new(min_value - center, 0.));
 
-    for x in linspace(min_value, max_value, 50) {
+    for x in linspace(min_value, max_value, n) {
         let y = kde(x, samples, 1.06);
         path_builder.line_to(Vec2::new(x - center, y));
     }
@@ -93,7 +93,7 @@ fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
     }
 }
 
-fn path_to_vec(path: &Path) -> Vec2 {
+pub fn path_to_vec(path: &Path) -> Vec2 {
     let first_point = Vec2::new(
         get_extreme(path, false, true),
         get_extreme(path, false, false),

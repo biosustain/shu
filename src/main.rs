@@ -1,3 +1,4 @@
+#[allow(type_complexity)]
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 use bevy_pancam::{PanCam, PanCamPlugin};

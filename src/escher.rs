@@ -151,7 +151,7 @@ pub struct Reaction {
     label_x: f32,
     label_y: f32,
     gene_reaction_rule: String,
-    genes: Vec<HashMap<String, String>>,
+    // genes: Vec<HashMap<String, String>>,
     metabolites: Vec<MetRef>,
     pub segments: HashMap<u32, Segment>,
 }
