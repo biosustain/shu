@@ -133,46 +133,27 @@ pub fn plot_arrow_size_dist(
     }
 }
 
-struct ColorHsl {
-    h: f32,
-    s: f32,
-    v: f32,
+fn hsv_to_hsl(color: Hsva) -> Color {
+    let l = color.v * (1. - color.s / 2.);
+    let s = if l == 0. || l == 1. {
+        0.
+    } else {
+        (color.v - l) / f32::min(l, 1. - l)
+    };
+    Color::hsl(color.h * 360., s, l)
 }
 
+/// Color interpolation from egui Hsva to bevy Color.
 fn lerp_hsv(t: f32, min_color: Hsva, max_color: Hsva) -> Color {
-    let mut t = t;
-    let mut a = ColorHsl {
-        h: min_color.h,
-        s: min_color.s,
-        v: min_color.v,
-    };
-    let mut b = ColorHsl {
-        h: max_color.h,
-        s: max_color.s,
-        v: max_color.v,
-    };
+    let min_color = hsv_to_hsl(min_color);
+    let max_color = hsv_to_hsl(max_color);
+    let [min_h, min_s, min_l, _] = min_color.as_hsla_f32();
+    let [max_h, max_s, max_l, _] = max_color.as_hsla_f32();
 
-    // Hue interpolation
-    let mut d = b.h - a.h;
-    let h: f32;
-    if a.h > b.h {
-        (b.h, a.h) = (b.h, a.h);
-        d = -d;
-        t = 1. - t;
-    }
-    if d > 0.5 {
-        // 180deg
-        a.h = a.h + 1.; // 360deg
-        h = (a.h + t * (b.h - a.h)) % 1.; // 360deg
-    } else {
-        // 180deg
-        h = a.h + t * d
-    }
-    // Interpolates the rest
     Color::hsl(
-        h,                     // H
-        a.s + t * (b.s - a.s), // S
-        a.v + t * (b.v - a.v), // V
+        min_h + t * (max_h - min_h),
+        min_s + t * (max_s - min_s),
+        min_l + t * (max_l - min_l),
     )
 }
 
@@ -259,8 +240,8 @@ pub fn plot_metabolite_color(
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                     *color = lerp_hsv(
                         (colors.0[index] - min_val) / (max_val - min_val),
-                        ui_state.min_reaction_color,
-                        ui_state.max_reaction_color,
+                        ui_state.min_metabolite_color,
+                        ui_state.max_metabolite_color,
                     );
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
