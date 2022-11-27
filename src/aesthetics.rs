@@ -1,5 +1,5 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
-use crate::funcplot::{geom_scale, max_f32, min_f32, plot_hist, plot_kde, right_of_path};
+use crate::funcplot::{geom_scale, max_f32, min_f32, path_to_vec, plot_hist, plot_kde};
 use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side};
 use crate::gui::UiState;
 use bevy_egui::egui::epaint::color::Hsva;
@@ -21,6 +21,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_side_hist.before(load_map))
             .add_system(plot_hover_hist.before(load_map))
             .add_system(normalize_histogram_height)
+            .add_system(unscale_histogram_children)
             .add_system(fill_conditions)
             .add_system(filter_histograms)
             .add_system(plot_metabolite_size);
@@ -288,9 +289,10 @@ fn plot_side_hist(
                     Some(d) => d,
                     None => continue,
                 };
+                let size = path_to_vec(path).length();
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 6),
-                    HistPlot::Kde => plot_kde(this_dist, 6),
+                    HistPlot::Hist => plot_hist(this_dist, 30, size),
+                    HistPlot::Kde => plot_kde(this_dist, 200, size),
                 };
                 if line.is_none() {
                     continue 'outer;
@@ -316,8 +318,7 @@ fn plot_side_hist(
                 let mut transform =
                     Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
                         .with_rotation(Quat::from_rotation_z(rotation_90));
-                let scale = geom_scale(&path, &line);
-                transform.scale.x *= scale;
+                // histogram perpendicular to the direction of the arrow
                 transform.translation.x += arrow.direction.perp().x * away;
                 transform.translation.y += arrow.direction.perp().y * away;
 
@@ -341,8 +342,8 @@ fn plot_side_hist(
 
 /// Plot hovered histograms of both metabolites and reactions
 fn plot_hover_hist(
-    ui_state: Res<UiState>,
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut query: Query<(&Transform, &Hover)>,
     mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
 ) {
@@ -357,28 +358,21 @@ fn plot_hover_hist(
                     None => continue,
                 };
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 6),
-                    HistPlot::Kde => plot_kde(this_dist, 6),
+                    HistPlot::Hist => plot_hist(this_dist, 30, 600.),
+                    HistPlot::Kde => plot_kde(this_dist, 200, 600.),
                 };
                 if line.is_none() {
                     continue 'outer;
                 }
                 let line = line.unwrap();
-                let mut transform =
-                    Transform::from_xyz(trans.translation.x + 100., trans.translation.y + 100., 5.);
-                transform.scale.x *= 80.;
+                let transform =
+                    Transform::from_xyz(trans.translation.x + 150., trans.translation.y + 150., 5.);
                 let mut geometry = GeometryBuilder::build_as(
                     &line,
                     DrawMode::Fill(FillMode::color(Color::hex("FF00FF").unwrap())),
                     transform,
                 );
                 geometry.visibility = Visibility::INVISIBLE;
-                let polygon = shapes::RegularPolygon {
-                    sides: 4,
-                    feature: shapes::RegularPolygonFeature::Radius(900.0),
-                    ..shapes::RegularPolygon::default()
-                };
-
                 commands
                     .spawn(geometry)
                     .insert(HistTag {
@@ -389,18 +383,11 @@ fn plot_hover_hist(
                     })
                     .insert(AnyTag { id: hover.node_id })
                     .with_children(|p| {
-                        p.spawn(GeometryBuilder::build_as(
-                            &polygon,
-                            DrawMode::Outlined {
-                                fill_mode: FillMode::color(Color::WHITE),
-                                outline_mode: StrokeMode::new(Color::BLACK, 10.0),
-                            },
-                            Transform::from_xyz(0., 3., -0.5).with_scale(Vec3::new(
-                                1. / 240.,
-                                1. / ui_state.max_top,
-                                1.,
-                            )),
-                        ));
+                        p.spawn(SpriteBundle {
+                            texture: asset_server.load("hover.png"),
+                            transform: Transform::from_xyz(0., 0., -0.4),
+                            ..default()
+                        });
                     });
             }
         }
@@ -420,6 +407,20 @@ fn normalize_histogram_height(
             Side::Left => ui_state.max_left / height,
             Side::Right => ui_state.max_right / height,
             Side::Up => ui_state.max_top / height,
+        }
+    }
+}
+
+/// Unscale up children of scaled histograms.
+fn unscale_histogram_children(
+    parents: Query<(Entity, &Children), With<HistTag>>,
+    mut query: Query<&mut Transform>,
+) {
+    for (parent, children) in parents.iter() {
+        let Ok(scale) = query.get_mut(parent).map(|trans| trans.scale.y) else {continue;};
+        for child in children {
+            let Ok(mut trans) = query.get_mut(*child) else {continue;};
+            trans.scale.y = 1. / scale;
         }
     }
 }
