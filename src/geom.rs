@@ -1,4 +1,5 @@
 use bevy::prelude::Component;
+use serde::{Deserialize, Serialize};
 
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
 /// the arrows in the map.
@@ -7,7 +8,7 @@ pub struct GeomArrow {
     pub plotted: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Hash, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
 pub enum Side {
     Left,
     Right,
@@ -84,6 +85,8 @@ pub struct HistTag {
     pub condition: Option<String>,
     pub dragged: bool,
     pub rotating: bool,
+    /// for serialization
+    pub node_id: u64,
 }
 
 /// Component of all popups.

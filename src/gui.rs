@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_hsva, Alpha};
 use bevy_egui::egui::epaint::color::Hsva;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use std::collections::HashMap;
 
 pub struct GuiPlugin;
 
@@ -19,7 +20,8 @@ impl Plugin for GuiPlugin {
             .add_system(follow_mouse_on_drag)
             .add_system(follow_mouse_on_rotate)
             .add_system(mouse_click_system)
-            .add_system(file_drop);
+            .add_system(file_drop)
+            .add_system(save_file);
     }
 }
 
@@ -278,5 +280,33 @@ fn follow_mouse_on_rotate(
                 trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
             }
         }
+    }
+}
+
+/// Save map to arbitrary place, including (non-hover) hist transforms.
+fn save_file(
+    mut assets: ResMut<Assets<EscherMap>>,
+    state: ResMut<MapState>,
+    keyboard_input: Res<Input<KeyCode>>,
+    hist_query: Query<(&Transform, &HistTag), Without<AnyTag>>,
+) {
+    if keyboard_input.just_released(KeyCode::S) {
+        let custom_asset = assets.get_mut(&state.escher_map);
+        if custom_asset.is_none() {
+            return;
+        }
+        let escher_map = custom_asset.unwrap();
+        for (trans, hist) in hist_query.iter() {
+            if let Some(reac) = escher_map.metabolism.reactions.get_mut(&hist.node_id) {
+                reac.hist_position
+                    .get_or_insert(HashMap::new())
+                    .insert(hist.side.clone(), (*trans).into());
+            }
+        }
+        std::fs::write(
+            "/tmp/random_shu_map.json",
+            serde_json::to_string(escher_map).expect("Serializing the map failed!"),
+        )
+        .expect("Saving the model failed!");
     }
 }
