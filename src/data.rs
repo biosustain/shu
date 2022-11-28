@@ -67,6 +67,32 @@ impl<A> CustomAssetLoader<A> {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+/// Enum to represent floats that may be NaN or Inf.
+enum Number {
+    Num(f32),
+    Skip(String),
+}
+
+impl From<Number> for Option<f32> {
+    fn from(value: Number) -> Self {
+        match value {
+            Number::Num(num) => Some(num),
+            _ => None,
+        }
+    }
+}
+
+impl Number {
+    fn as_ref(&self) -> Option<&f32> {
+        match self {
+            Number::Num(num) => Some(num),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Deserialize, TypeUuid, Default)]
 #[uuid = "413be529-bfeb-41a3-8db0-4b8b382a2c46"]
 pub struct ReactionData {
@@ -74,21 +100,21 @@ pub struct ReactionData {
     reactions: Vec<String>,
     // TODO: generalize this for any Data Type and use them (from escher.rs)
     /// Numeric values to plot as reaction arrow colors.
-    colors: Option<Vec<f32>>,
+    colors: Option<Vec<Number>>,
     /// Numeric values to plot as reaction arrow sizes.
-    sizes: Option<Vec<f32>>,
+    sizes: Option<Vec<Number>>,
     /// Numeric values to plot as KDE.
-    y: Option<Vec<Vec<f32>>>,
+    y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot as KDE.
-    left_y: Option<Vec<Vec<f32>>>,
+    left_y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot on a hovered popup.
-    hover_y: Option<Vec<Vec<f32>>>,
+    hover_y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot as KDE.
-    kde_y: Option<Vec<Vec<f32>>>,
+    kde_y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot as KDE.
-    kde_left_y: Option<Vec<Vec<f32>>>,
+    kde_left_y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot on a hovered popup.
-    kde_hover_y: Option<Vec<Vec<f32>>>,
+    kde_hover_y: Option<Vec<Vec<Number>>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
 }
@@ -159,11 +185,10 @@ fn load_reaction_data(
             if let Some(point_data) = &var {
                 let (mut data, ids): (Vec<f32>, Vec<String>) = indices
                     .iter()
-                    .map(|i| point_data[*i])
-                    // also filter values that are NaN
+                    .map(|i| &point_data[*i])
                     .zip(identifiers.iter())
-                    .filter(|(col, _id)| !(col.is_nan() || col.is_infinite()))
-                    .map(|(a, b)| (a, b.clone()))
+                    // filter values that are NaN
+                    .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
                     .unzip();
                 if !data.is_empty() {
                     // remove existing color geoms
@@ -210,17 +235,12 @@ fn load_reaction_data(
             if let Some(mut dist_data) = aes.take() {
                 let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
                     .iter()
-                    .map(|i| dist_data[*i].drain(0..).collect::<Vec<f32>>())
+                    .map(|i| dist_data[*i].drain(0..).collect::<Vec<Number>>())
                     // also filter values that are NaN
                     .zip(identifiers.iter())
                     .map(|(col, id)| {
                         (
-                            std::mem::take(
-                                &mut col
-                                    .into_iter()
-                                    .filter(|c| !(c.is_nan() || c.is_infinite()))
-                                    .collect(),
-                            ),
+                            std::mem::take(&mut col.into_iter().filter_map(|c| c.into()).collect()),
                             id.clone(),
                         )
                     })
