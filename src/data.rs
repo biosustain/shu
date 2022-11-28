@@ -136,7 +136,7 @@ fn load_reaction_data(
     let conditions = reacs.conditions.clone().unwrap_or(vec![String::from("")]);
     let cond_set = conditions.iter().unique();
     for cond in cond_set {
-        let indices = if cond == "" {
+        let indices = if cond.is_empty() {
             reacs
                 .reactions
                 .iter()
@@ -151,155 +151,110 @@ fn load_reaction_data(
                 .map(|(i, _)| i)
                 .collect()
         };
-        let identifiers = indices.iter().map(|i| &reacs.reactions[*i]);
-        if let Some(color_data) = &mut reacs.colors {
-            let mut color_data = indices.iter().map(|i| color_data[*i]).collect::<Vec<f32>>();
-            // remove existing color geoms
-            for e in current_colors.iter() {
-                commands.entity(e).despawn_recursive();
+        let identifiers = indices
+            .iter()
+            .map(|i| reacs.reactions[*i].clone())
+            .collect::<Vec<String>>();
+        for (i, var) in [&mut reacs.colors, &mut reacs.sizes].iter().enumerate() {
+            if let Some(point_data) = &var {
+                let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+                    .iter()
+                    .map(|i| point_data[*i])
+                    // also filter values that are NaN
+                    .zip(identifiers.iter())
+                    .filter(|(col, _id)| !(col.is_nan() || col.is_infinite()))
+                    .map(|(a, b)| (a, b.clone()))
+                    .unzip();
+                if !data.is_empty() {
+                    // remove existing color geoms
+                    if i == 0 {
+                        for e in current_colors.iter() {
+                            commands.entity(e).despawn_recursive();
+                        }
+                    } else {
+                        for e in current_sizes.iter() {
+                            commands.entity(e).despawn_recursive();
+                        }
+                    }
+                    let mut build_command = commands.spawn(aesthetics::Aesthetics {
+                        plotted: false,
+                        identifiers: ids,
+                        condition: if cond.is_empty() {
+                            None
+                        } else {
+                            Some(cond.clone())
+                        },
+                    });
+                    build_command
+                        .insert(aesthetics::Point(std::mem::take(&mut data)))
+                        .insert(geom::GeomArrow { plotted: false });
+                    if i == 0 {
+                        build_command.insert(aesthetics::Gcolor {});
+                    } else {
+                        build_command.insert(aesthetics::Gsize {});
+                    }
+                }
             }
-            commands
-                .spawn(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: identifiers.clone().cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gcolor {})
-                .insert(aesthetics::Point(std::mem::take(&mut color_data)))
-                .insert(geom::GeomArrow { plotted: false });
         }
-        if let Some(size_data) = &mut reacs.sizes {
-            let mut size_data = indices.iter().map(|i| size_data[*i]).collect::<Vec<f32>>();
-            // remove existing sizes geoms
-            for e in current_sizes.iter() {
-                commands.entity(e).despawn_recursive();
-            }
-            commands
-                .spawn(aesthetics::Aesthetics {
+        for (i, aes) in [
+            &mut reacs.y,
+            &mut reacs.left_y,
+            &mut reacs.kde_y,
+            &mut reacs.kde_left_y,
+            &mut reacs.hover_y,
+            &mut reacs.kde_hover_y,
+        ]
+        .iter_mut()
+        .enumerate()
+        {
+            if let Some(mut dist_data) = aes.take() {
+                let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
+                    .iter()
+                    .map(|i| dist_data[*i].drain(0..).collect::<Vec<f32>>())
+                    // also filter values that are NaN
+                    .zip(identifiers.iter())
+                    .map(|(col, id)| {
+                        (
+                            std::mem::take(
+                                &mut col
+                                    .into_iter()
+                                    .filter(|c| !(c.is_nan() || c.is_infinite()))
+                                    .collect(),
+                            ),
+                            id.clone(),
+                        )
+                    })
+                    .unzip();
+                // remove existing sizes geoms
+                for e in current_hist.iter() {
+                    commands.entity(e).despawn_recursive();
+                }
+                let geom = match i {
+                    0 => geom::GeomHist::right(geom::HistPlot::Hist),
+                    1 => geom::GeomHist::left(geom::HistPlot::Hist),
+                    2 => geom::GeomHist::right(geom::HistPlot::Kde),
+                    3 => geom::GeomHist::left(geom::HistPlot::Kde),
+                    4 => geom::GeomHist::up(geom::HistPlot::Hist),
+                    _ => geom::GeomHist::up(geom::HistPlot::Kde),
+                };
+                let mut ent_commands = commands.spawn(aesthetics::Gy {});
+                ent_commands
+                    .insert(aesthetics::Distribution(std::mem::take(&mut data)))
+                    .insert(geom);
+                ent_commands.insert(aesthetics::Aesthetics {
                     plotted: false,
-                    identifiers: identifiers.clone().cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gsize {})
-                .insert(aesthetics::Point(std::mem::take(&mut size_data)))
-                .insert(geom::GeomArrow { plotted: false });
-        }
-        if let Some(dist_data) = &mut reacs.y {
-            let dist_data = indices
-                .iter()
-                .map(|i| std::mem::take(&mut dist_data[*i]))
-                .collect::<Vec<Vec<f32>>>();
-            // remove existing sizes geoms
-            for e in current_hist.iter() {
-                commands.entity(e).despawn_recursive();
+                    identifiers: ids,
+                    condition: if cond.is_empty() {
+                        None
+                    } else {
+                        Some(cond.clone())
+                    },
+                });
+                // for hovers
+                if i > 3 {
+                    ent_commands.insert(geom::PopUp {});
+                }
             }
-            commands
-                .spawn(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: identifiers.clone().cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gy {})
-                .insert(aesthetics::Distribution(dist_data))
-                .insert(geom::GeomHist::right(geom::HistPlot::Hist));
-        }
-        if let Some(dist_data) = &mut reacs.left_y {
-            let dist_data = indices
-                .iter()
-                .map(|i| std::mem::take(&mut dist_data[*i]))
-                .collect::<Vec<Vec<f32>>>();
-            // remove existing sizes geoms
-            for e in current_hist.iter() {
-                commands.entity(e).despawn_recursive();
-            }
-            commands
-                .spawn(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: identifiers.clone().cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gy {})
-                .insert(aesthetics::Distribution(dist_data))
-                .insert(geom::GeomHist::left(geom::HistPlot::Hist));
-        }
-        if let Some(hover_data) = &mut reacs.hover_y {
-            let hover_data = indices
-                .iter()
-                .map(|i| std::mem::take(&mut hover_data[*i]))
-                .collect::<Vec<Vec<f32>>>();
-            // remove existing sizes geoms
-            for e in current_sizes.iter() {
-                commands.entity(e).despawn_recursive();
-            }
-            commands
-                .spawn(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: identifiers.clone().cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gy {})
-                .insert(aesthetics::Distribution(hover_data))
-                .insert(geom::PopUp {})
-                .insert(geom::GeomHist::up(geom::HistPlot::Hist));
-        }
-        if let Some(dist_data) = &mut reacs.kde_y {
-            let dist_data = indices
-                .iter()
-                .map(|i| std::mem::take(&mut dist_data[*i]))
-                .collect::<Vec<Vec<f32>>>();
-            // remove existing sizes geoms
-            for e in current_hist.iter() {
-                commands.entity(e).despawn_recursive();
-            }
-            commands
-                .spawn(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: identifiers.clone().cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gy {})
-                .insert(aesthetics::Distribution(dist_data))
-                .insert(geom::GeomHist::right(geom::HistPlot::Kde));
-        }
-        if let Some(dist_data) = &mut reacs.kde_left_y {
-            let dist_data = indices
-                .iter()
-                .map(|i| std::mem::take(&mut dist_data[*i]))
-                .collect::<Vec<Vec<f32>>>();
-            // remove existing sizes geoms
-            for e in current_hist.iter() {
-                commands.entity(e).despawn_recursive();
-            }
-            commands
-                .spawn(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: identifiers.clone().cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gy {})
-                .insert(aesthetics::Distribution(dist_data))
-                .insert(geom::GeomHist::left(geom::HistPlot::Kde));
-        }
-        if let Some(hover_data) = &mut reacs.kde_hover_y {
-            info!("{hover_data:?}");
-            let hover_data = indices
-                .iter()
-                .map(|i| std::mem::take(&mut hover_data[*i]))
-                .collect::<Vec<Vec<f32>>>();
-            // remove existing sizes geoms
-            for e in current_sizes.iter() {
-                commands.entity(e).despawn_recursive();
-            }
-            commands
-                .spawn(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: identifiers.cloned().collect(),
-                    condition: if cond == "" { None } else { Some(cond.clone()) },
-                })
-                .insert(aesthetics::Gy {})
-                .insert(aesthetics::Distribution(hover_data))
-                .insert(geom::PopUp {})
-                .insert(geom::GeomHist::up(geom::HistPlot::Kde));
         }
     }
     state.reac_loaded = true;

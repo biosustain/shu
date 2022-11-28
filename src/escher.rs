@@ -62,21 +62,15 @@ impl EscherMap {
         reac.segments
             .values()
             .filter_map(|seg| {
-                match self
-                    .metabolism
+                self.metabolism
                     .nodes
                     .get(&seg.from_node_id.parse().unwrap())
-                {
-                    Some(node) => Some(node),
-                    _ => None,
-                }
             })
-            .chain(reac.segments.values().filter_map(|seg| {
-                match self.metabolism.nodes.get(&seg.to_node_id.parse().unwrap()) {
-                    Some(node) => Some(node),
-                    _ => None,
-                }
-            }))
+            .chain(
+                reac.segments
+                    .values()
+                    .filter_map(|seg| self.metabolism.nodes.get(&seg.to_node_id.parse().unwrap())),
+            )
             .filter_map(|node| match node {
                 Node::Metabolite(Metabolite {
                     x,
@@ -274,7 +268,7 @@ pub fn load_map(
     existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>, With<HistTag>)>>,
     mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
-    let custom_asset = custom_assets.get_mut(&mut state.escher_map);
+    let custom_asset = custom_assets.get_mut(&state.escher_map);
     if state.loaded || custom_asset.is_none() {
         return;
     }
@@ -344,8 +338,8 @@ pub fn load_map(
         // origin of the figure as the center of mass
         let ori: Vec2 = reac
             .segments
-            .iter()
-            .map(|(_, seg)| {
+            .values()
+            .map(|seg| {
                 (
                     my_map.met_coords(&seg.from_node_id),
                     my_map.met_coords(&seg.to_node_id),

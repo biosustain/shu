@@ -86,7 +86,7 @@ fn ui_settings(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiSta
         ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
         ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("hover"));
         if let Some(first_cond) = ui_state.conditions.get(0) {
-            if !((first_cond == "") & (ui_state.conditions.len() == 1)) {
+            if !((first_cond.is_empty()) & (ui_state.conditions.len() == 1)) {
                 let conditions = ui_state.conditions.clone();
                 let condition = &mut ui_state.condition;
                 egui::ComboBox::from_label("Condition")
@@ -144,7 +144,7 @@ fn file_drop(
 /// Cursor to mouse position. Stolen from bevy cheatbook.
 fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) -> Option<Vec2> {
     // get the size of the window
-    let window_size = Vec2::new(win.width() as f32, win.height() as f32);
+    let window_size = Vec2::new(win.width(), win.height());
     if let Some(screen_pos) = win.cursor_position() {
         // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
         let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;

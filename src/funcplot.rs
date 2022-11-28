@@ -1,4 +1,5 @@
-use bevy::prelude::{info, Vec2};
+use bevy::prelude::{Color, Vec2};
+use bevy_egui::egui::epaint::color::Hsva;
 use bevy_prototype_lyon::prelude::{Path, PathBuilder};
 
 pub fn max_f32(slice: &[f32]) -> f32 {
@@ -27,7 +28,7 @@ fn kde(x: f32, samples: &[f32], h: f32) -> f32 {
 
 fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
     let delta: f32 = (stop - start) / (nstep as f32 - 1.);
-    return (0..(nstep)).map(|i| start + i as f32 * delta).collect();
+    (0..(nstep)).map(|i| start + i as f32 * delta).collect()
 }
 
 /// A dirty way of plotting Kdes with Paths.
@@ -65,12 +66,12 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32) -> Option<Path> {
     }
 
     let mut path_builder = PathBuilder::new();
-    for ((anchor_a, anchor_b), (point_a, point_b)) in anchors.clone()[0..anchors.len() - 1]
+    for ((anchor_a, anchor_b), (point_a, point_b)) in anchors.clone()[0..(anchors.len() - 1)]
         .iter()
         .zip(anchors[1..anchors.len()].iter())
         .zip(
             [0.].iter()
-                .chain(points.clone()[0..points.len() - 1].iter())
+                .chain(points.clone()[0..(points.len() - 1)].iter())
                 .zip(points[1..points.len()].iter()),
         )
     {
@@ -117,14 +118,30 @@ pub fn path_to_vec(path: &Path) -> Vec2 {
     last_point - first_point
 }
 
-pub fn geom_scale(ref_path: &Path, path_to_scale: &Path) -> f32 {
-    path_to_vec(ref_path).length() / path_to_vec(path_to_scale).length()
+fn hsv_to_hsl(color: Hsva) -> Color {
+    let l = color.v * (1. - color.s / 2.);
+    let s = if l == 0. || l == 1. {
+        0.
+    } else {
+        (color.v - l) / f32::min(l, 1. - l)
+    };
+    Color::hsl(color.h * 360., s, l)
 }
 
-pub fn right_of_path(path: &Path) -> Vec2 {
-    let reference_vec = path_to_vec(path);
-    info!("reference: {}", reference_vec.normalize());
-    let reference_vec = reference_vec.perp();
-    info!("reference 90: {}", reference_vec.normalize());
-    reference_vec
+/// Color interpolation from egui Hsva to bevy Color.
+pub fn lerp_hsv(t: f32, min_color: Hsva, max_color: Hsva) -> Color {
+    let min_color = hsv_to_hsl(min_color);
+    let max_color = hsv_to_hsl(max_color);
+    let [min_h, min_s, min_l, _] = min_color.as_hsla_f32();
+    let [max_h, max_s, max_l, _] = max_color.as_hsla_f32();
+
+    Color::hsl(
+        min_h + t * (max_h - min_h),
+        min_s + t * (max_s - min_s),
+        min_l + t * (max_l - min_l),
+    )
+}
+
+pub fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
+    (t - min_1) / (max_1 - min_1) * (max_2 - min_2) + min_2
 }

@@ -1,8 +1,7 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
-use crate::funcplot::{geom_scale, max_f32, min_f32, path_to_vec, plot_hist, plot_kde};
+use crate::funcplot::{lerp, lerp_hsv, max_f32, min_f32, path_to_vec, plot_hist, plot_kde};
 use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side};
 use crate::gui::UiState;
-use bevy_egui::egui::epaint::color::Hsva;
 use itertools::Itertools;
 
 use bevy::prelude::*;
@@ -131,34 +130,6 @@ pub fn plot_arrow_size_dist(
             }
         }
     }
-}
-
-fn hsv_to_hsl(color: Hsva) -> Color {
-    let l = color.v * (1. - color.s / 2.);
-    let s = if l == 0. || l == 1. {
-        0.
-    } else {
-        (color.v - l) / f32::min(l, 1. - l)
-    };
-    Color::hsl(color.h * 360., s, l)
-}
-
-/// Color interpolation from egui Hsva to bevy Color.
-fn lerp_hsv(t: f32, min_color: Hsva, max_color: Hsva) -> Color {
-    let min_color = hsv_to_hsl(min_color);
-    let max_color = hsv_to_hsl(max_color);
-    let [min_h, min_s, min_l, _] = min_color.as_hsla_f32();
-    let [max_h, max_s, max_l, _] = max_color.as_hsla_f32();
-
-    Color::hsl(
-        min_h + t * (max_h - min_h),
-        min_s + t * (max_s - min_s),
-        min_l + t * (max_l - min_l),
-    )
-}
-
-fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
-    (t - min_1) / (max_1 - min_1) * (max_2 - min_2) + min_2
 }
 
 /// Plot Color as numerical variable in arrows.
