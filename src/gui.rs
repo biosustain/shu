@@ -161,9 +161,10 @@ fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) ->
 
 /// Show hovered data on cursor enter.
 fn show_hover(
+    ui_state: Res<UiState>,
     windows: Res<Windows>,
     hover_query: Query<(&Transform, &Hover)>,
-    mut popup_query: Query<(&mut Visibility, &AnyTag), With<HistTag>>,
+    mut popup_query: Query<(&mut Visibility, &AnyTag, &HistTag)>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     let (camera, camera_transform) = q_camera.single();
@@ -173,14 +174,24 @@ fn show_hover(
             if (world_pos - Vec2::new(trans.translation.x, trans.translation.y)).length_squared()
                 < 5000.
             {
-                for (mut vis, tag) in popup_query.iter_mut() {
-                    if hover.node_id == tag.id {
+                for (mut vis, tag, hist) in popup_query.iter_mut() {
+                    let cond_if = hist
+                        .condition
+                        .as_ref()
+                        .map(|c| c == &ui_state.condition)
+                        .unwrap_or(true);
+                    if (hover.node_id == tag.id) & cond_if {
                         *vis = Visibility::VISIBLE;
                     }
                 }
             } else {
-                for (mut vis, tag) in popup_query.iter_mut() {
-                    if hover.node_id == tag.id {
+                for (mut vis, tag, hist) in popup_query.iter_mut() {
+                    let cond_if = hist
+                        .condition
+                        .as_ref()
+                        .map(|c| c != &ui_state.condition)
+                        .unwrap_or(false);
+                    if (hover.node_id == tag.id) || cond_if {
                         *vis = Visibility::INVISIBLE;
                     }
                 }
