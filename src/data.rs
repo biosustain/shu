@@ -160,9 +160,9 @@ fn load_reaction_data(
     info!("Loading Reaction data!");
     let reacs = custom_asset.unwrap();
     let conditions = reacs.conditions.clone().unwrap_or(vec![String::from("")]);
-    let cond_set = conditions.iter().unique();
+    let cond_set = conditions.iter().unique().collect::<HashSet<&String>>();
     for cond in cond_set {
-        let indices = if cond.is_empty() {
+        let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
             reacs
                 .reactions
                 .iter()
@@ -232,10 +232,10 @@ fn load_reaction_data(
         .iter_mut()
         .enumerate()
         {
-            if let Some(mut dist_data) = aes.take() {
+            if let Some(dist_data) = aes.as_mut() {
                 let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
                     .iter()
-                    .map(|i| dist_data[*i].drain(0..).collect::<Vec<Number>>())
+                    .map(|i| std::mem::take(&mut dist_data[*i]))
                     // also filter values that are NaN
                     .zip(identifiers.iter())
                     .map(|(col, id)| {
@@ -245,6 +245,10 @@ fn load_reaction_data(
                         )
                     })
                     .unzip();
+                data.retain(|c| !c.is_empty());
+                if data.is_empty() {
+                    continue;
+                }
                 // remove existing sizes geoms
                 for e in current_hist.iter() {
                     commands.entity(e).despawn_recursive();

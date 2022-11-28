@@ -396,7 +396,10 @@ fn fill_conditions(mut ui_state: ResMut<UiState>, aesthetics: Query<&Aesthetics>
 }
 
 /// Hide histograms that are not in the conditions.
-pub fn filter_histograms(ui_state: Res<UiState>, mut query: Query<(&mut Visibility, &HistTag)>) {
+pub fn filter_histograms(
+    ui_state: Res<UiState>,
+    mut query: Query<(&mut Visibility, &HistTag), Without<AnyTag>>,
+) {
     for (mut vis, hist) in query.iter_mut() {
         if let Some(condition) = &hist.condition {
             if condition != &ui_state.condition {
