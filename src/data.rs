@@ -233,6 +233,7 @@ fn load_reaction_data(
         .enumerate()
         {
             if let Some(dist_data) = aes.as_mut() {
+                info!("took {i} hist data of len {}", dist_data.len());
                 let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
                     .iter()
                     .map(|i| std::mem::take(&mut dist_data[*i]))
