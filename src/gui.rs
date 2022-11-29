@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_hsva, Alpha};
 use bevy_egui::egui::epaint::color::Hsva;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use std::collections::HashMap;
 
 pub struct GuiPlugin;
 
@@ -14,12 +15,14 @@ impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugin(EguiPlugin)
             .insert_resource(UiState::default())
+            .add_event::<SaveEvent>()
             .add_system(ui_settings)
             .add_system(show_hover)
             .add_system(follow_mouse_on_drag)
             .add_system(follow_mouse_on_rotate)
             .add_system(mouse_click_system)
-            .add_system(file_drop);
+            .add_system(file_drop)
+            .add_system(save_file);
     }
 }
 
@@ -39,6 +42,7 @@ pub struct UiState {
     pub max_top: f32,
     pub condition: String,
     pub conditions: Vec<String>,
+    pub save_path: String,
 }
 
 impl Default for UiState {
@@ -57,11 +61,18 @@ impl Default for UiState {
             max_top: 100.,
             condition: String::from(""),
             conditions: vec![String::from("")],
+            save_path: String::from("this_map.json"),
         }
     }
 }
 
-fn ui_settings(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiState>) {
+struct SaveEvent(String);
+
+fn ui_settings(
+    mut egui_context: ResMut<EguiContext>,
+    mut ui_state: ResMut<UiState>,
+    mut save_events: EventWriter<SaveEvent>,
+) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         ui.label("Reaction scale");
         ui.horizontal(|ui| {
@@ -98,6 +109,14 @@ fn ui_settings(mut egui_context: ResMut<EguiContext>, mut ui_state: ResMut<UiSta
                     });
             }
         }
+        ui.collapsing("Export", |ui| {
+            ui.horizontal(|ui| {
+                if ui.button("Save").clicked() {
+                    save_events.send(SaveEvent(ui_state.save_path.clone()))
+                }
+                ui.text_edit_singleline(&mut ui_state.save_path);
+            })
+        })
     });
 }
 
@@ -278,5 +297,33 @@ fn follow_mouse_on_rotate(
                 trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
             }
         }
+    }
+}
+
+/// Save map to arbitrary place, including (non-hover) hist transforms.
+fn save_file(
+    mut assets: ResMut<Assets<EscherMap>>,
+    state: ResMut<MapState>,
+    mut save_events: EventReader<SaveEvent>,
+    hist_query: Query<(&Transform, &HistTag), Without<AnyTag>>,
+) {
+    for save_event in save_events.iter() {
+        let custom_asset = assets.get_mut(&state.escher_map);
+        if custom_asset.is_none() {
+            return;
+        }
+        let escher_map = custom_asset.unwrap();
+        for (trans, hist) in hist_query.iter() {
+            if let Some(reac) = escher_map.metabolism.reactions.get_mut(&hist.node_id) {
+                reac.hist_position
+                    .get_or_insert(HashMap::new())
+                    .insert(hist.side.clone(), (*trans).into());
+            }
+        }
+        std::fs::write(
+            &save_event.0,
+            serde_json::to_string(escher_map).expect("Serializing the map failed!"),
+        )
+        .expect("Saving the model failed!");
     }
 }

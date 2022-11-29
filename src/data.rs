@@ -161,7 +161,6 @@ fn load_reaction_data(
     let reacs = custom_asset.unwrap();
     let conditions = reacs.conditions.clone().unwrap_or(vec![String::from("")]);
     let cond_set = conditions.iter().unique().collect::<HashSet<&String>>();
-    info!("Conditions: {cond_set:?}");
     for cond in cond_set {
         let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
             reacs
@@ -233,9 +232,7 @@ fn load_reaction_data(
         .iter_mut()
         .enumerate()
         {
-            info!("trying {i} hist for cond {cond}");
             if let Some(dist_data) = aes.as_mut() {
-                info!("took {i} hist data of len {}", dist_data.len());
                 let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
                     .iter()
                     .map(|i| std::mem::take(&mut dist_data[*i]))
@@ -249,12 +246,9 @@ fn load_reaction_data(
                     })
                     .unzip();
                 data.retain(|c| !c.is_empty());
-                info!("data is now of len {}", dist_data.len());
                 if data.is_empty() {
-                    info!("data empty for {i}");
                     continue;
                 }
-                info!("hist {i} spawning with: {:?}", &data[0][..2]);
                 // remove existing sizes geoms
                 for e in current_hist.iter() {
                     commands.entity(e).despawn_recursive();

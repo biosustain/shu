@@ -267,12 +267,21 @@ fn plot_side_hist(
                         continue;
                     }
                 };
-                let mut transform =
-                    Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
-                        .with_rotation(Quat::from_rotation_z(rotation_90));
-                // histogram perpendicular to the direction of the arrow
-                transform.translation.x += arrow.direction.perp().x * away;
-                transform.translation.y += arrow.direction.perp().y * away;
+                let transform: Transform = if let Some(Some(ser_transform)) =
+                    arrow.hists.as_ref().map(|x| x.get(&geom.side))
+                {
+                    // there were saved histogram positions
+                    ser_transform.clone().into()
+                } else {
+                    // histogram perpendicular to the direction of the arrow
+                    // the arrow direction is decided by a fallible heuristic!
+                    let mut transform =
+                        Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
+                            .with_rotation(Quat::from_rotation_z(rotation_90));
+                    transform.translation.x += arrow.direction.perp().x * away;
+                    transform.translation.y += arrow.direction.perp().y * away;
+                    transform
+                };
 
                 commands
                     .spawn(GeometryBuilder::build_as(
@@ -285,6 +294,7 @@ fn plot_side_hist(
                         condition: aes.condition.clone(),
                         dragged: false,
                         rotating: false,
+                        node_id: arrow.node_id,
                     });
             }
         }
@@ -332,6 +342,8 @@ fn plot_hover_hist(
                         condition: aes.condition.clone(),
                         dragged: false,
                         rotating: false,
+                        // hover position is not serialized
+                        node_id: 0,
                     })
                     .insert(AnyTag { id: hover.node_id })
                     .with_children(|p| {

@@ -1,10 +1,10 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
-use crate::geom::{GeomHist, HistTag};
+use crate::geom::{GeomHist, HistTag, Side};
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, collections::HashMap};
 
 pub struct EscherPlugin;
@@ -21,12 +21,12 @@ pub struct MapState {
     pub loaded: bool,
 }
 
-#[derive(Deserialize, TypeUuid, Default)]
+#[derive(Deserialize, TypeUuid, Default, Serialize)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
 pub struct EscherMap {
     #[allow(dead_code)]
     info: EscherInfo,
-    metabolism: Metabolism,
+    pub metabolism: Metabolism,
 }
 
 impl EscherMap {
@@ -120,7 +120,7 @@ impl EscherMap {
     }
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 struct EscherInfo {
     map_name: String,
     map_id: String,
@@ -129,15 +129,43 @@ struct EscherInfo {
     schema: String,
 }
 
-#[derive(Deserialize, Default)]
-struct Metabolism {
-    reactions: HashMap<u64, Reaction>,
+#[derive(Deserialize, Serialize, Default)]
+pub struct Metabolism {
+    pub reactions: HashMap<u64, Reaction>,
     nodes: HashMap<u64, Node>,
+}
+
+/// DeSerializable representation of Transform to store histogram positions.
+#[derive(Component, Deserialize, Serialize, Clone)]
+pub struct SerTransform {
+    translation: Vec3,
+    rotation: [f32; 4],
+    scale: Vec3,
+}
+
+impl From<Transform> for SerTransform {
+    fn from(transform: Transform) -> Self {
+        Self {
+            translation: transform.translation,
+            rotation: transform.rotation.to_array(),
+            scale: transform.scale,
+        }
+    }
+}
+
+impl From<SerTransform> for Transform {
+    fn from(transform: SerTransform) -> Self {
+        Self {
+            translation: transform.translation,
+            rotation: Quat::from_vec4(transform.rotation.into()),
+            scale: transform.scale,
+        }
+    }
 }
 
 /// Component for Bevy that will be rendered on screen.
 /// Rendered as arrow.
-#[derive(Component, Deserialize, Clone)]
+#[derive(Component, Deserialize, Serialize, Clone)]
 pub struct Reaction {
     name: String,
     pub bigg_id: String,
@@ -145,18 +173,19 @@ pub struct Reaction {
     label_x: f32,
     label_y: f32,
     gene_reaction_rule: String,
+    pub hist_position: Option<HashMap<Side, SerTransform>>,
     // genes: Vec<HashMap<String, String>>,
     metabolites: Vec<MetRef>,
     pub segments: HashMap<u32, Segment>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 struct MetRef {
     coefficient: f32,
     bigg_id: String,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Segment {
     pub from_node_id: String,
     pub to_node_id: String,
@@ -164,13 +193,13 @@ pub struct Segment {
     pub b2: Option<BezierHandle>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct BezierHandle {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Serialize)]
 #[serde(tag = "node_type", rename_all = "lowercase")]
 enum Node {
     Metabolite(Metabolite),
@@ -180,7 +209,7 @@ enum Node {
 
 /// Component for Bevy that will be rendered on screen.
 /// Rendered as circles.
-#[derive(Component, Deserialize, Clone)]
+#[derive(Component, Deserialize, Clone, Serialize)]
 pub struct Metabolite {
     pub x: f32,
     pub y: f32,
@@ -201,6 +230,8 @@ pub struct CircleTag {
 pub struct ArrowTag {
     pub id: String,
     pub direction: Vec2,
+    pub node_id: u64,
+    pub hists: Option<HashMap<Side, SerTransform>>,
 }
 
 pub trait Labelled {
@@ -385,6 +416,8 @@ pub fn load_map(
         let line = path_builder.build();
         let arrow = ArrowTag {
             id: reac.bigg_id.clone(),
+            hists: reac.hist_position.clone(),
+            node_id,
             direction,
         };
         let hover = Hover {
