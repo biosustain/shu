@@ -1,5 +1,7 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
-use crate::funcplot::{lerp, lerp_hsv, max_f32, min_f32, path_to_vec, plot_hist, plot_kde};
+use crate::funcplot::{
+    lerp, lerp_hsv, max_f32, min_f32, path_to_vec, plot_hist, plot_kde, plot_scales,
+};
 use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side};
 use crate::gui::UiState;
 use itertools::Itertools;
@@ -225,6 +227,7 @@ pub fn plot_metabolite_color(
 /// Plot histogram as numerical variable next to arrows.
 fn plot_side_hist(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
     mut aes_query: Query<
         (&Distribution<f32>, &Aesthetics, &mut GeomHist),
@@ -235,6 +238,7 @@ fn plot_side_hist(
         if geom.rendered {
             continue;
         }
+        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let this_dist = match dist.0.get(index) {
@@ -282,6 +286,16 @@ fn plot_side_hist(
                     transform.translation.y += arrow.direction.perp().y * away;
                     transform
                 };
+                let scales = plot_scales(
+                    this_dist,
+                    size,
+                    font.clone(),
+                    12.,
+                    match geom.plot {
+                        HistPlot::Kde => 0.1,
+                        _ => 80.,
+                    },
+                );
 
                 commands
                     .spawn(GeometryBuilder::build_as(
@@ -295,6 +309,15 @@ fn plot_side_hist(
                         dragged: false,
                         rotating: false,
                         node_id: arrow.node_id,
+                    })
+                    .with_children(|parent| {
+                        parent.spawn(scales.x_0);
+                    })
+                    .with_children(|parent| {
+                        parent.spawn(scales.x_n);
+                    })
+                    .with_children(|parent| {
+                        parent.spawn(scales.y);
                     });
             }
         }
@@ -313,6 +336,7 @@ fn plot_hover_hist(
         if geom.rendered {
             continue;
         }
+        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         for (trans, hover) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &hover.id) {
                 let this_dist = match dist.0.get(index) {
@@ -335,6 +359,16 @@ fn plot_hover_hist(
                     transform,
                 );
                 geometry.visibility = Visibility::INVISIBLE;
+                let scales = plot_scales(
+                    this_dist,
+                    600.,
+                    font.clone(),
+                    12.,
+                    match geom.plot {
+                        HistPlot::Kde => 0.15,
+                        _ => 120.,
+                    },
+                );
                 commands
                     .spawn(geometry)
                     .insert(HistTag {
@@ -352,6 +386,15 @@ fn plot_hover_hist(
                             transform: Transform::from_xyz(0., 0., -0.4),
                             ..default()
                         });
+                    })
+                    .with_children(|parent| {
+                        parent.spawn(scales.x_0);
+                    })
+                    .with_children(|parent| {
+                        parent.spawn(scales.x_n);
+                    })
+                    .with_children(|parent| {
+                        parent.spawn(scales.y);
                     });
             }
         }

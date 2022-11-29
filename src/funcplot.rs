@@ -1,4 +1,6 @@
-use bevy::prelude::{Color, Vec2};
+//! Functions for plotting data.
+
+use bevy::prelude::{Color, Font, Handle, Text, Text2dBundle, TextStyle, Transform, Vec2};
 use bevy_egui::egui::epaint::color::Hsva;
 use bevy_prototype_lyon::prelude::{Path, PathBuilder};
 
@@ -86,6 +88,66 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32) -> Option<Path> {
         path_builder.line_to(Vec2::new(*anchor_b, 0.));
     }
     Some(path_builder.build())
+}
+
+/// Bundle for text that goes into plot scales.
+pub struct ScaleBundle {
+    pub x_0: Text2dBundle,
+    pub y: Text2dBundle,
+    pub x_n: Text2dBundle,
+}
+
+/// Build and position text tags to indicate the scale of thethe  x-axis.
+pub fn plot_scales(
+    samples: &[f32],
+    size: f32,
+    font: Handle<Font>,
+    font_size: f32,
+    mean_y: f32,
+) -> ScaleBundle {
+    let mean: f32 = samples.iter().sum::<f32>() / samples.len() as f32;
+    let min = min_f32(samples);
+    let max = max_f32(samples);
+    let mean_pos = lerp(mean, min, max, -size / 2., size / 2.);
+    ScaleBundle {
+        x_0: Text2dBundle {
+            text: Text::from_section(
+                format!("{:+.3e}", min),
+                TextStyle {
+                    font: font.clone(),
+                    font_size,
+                    color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+                },
+            ),
+            transform: Transform::from_xyz(-size / 2., 0., 0.2),
+            ..Default::default()
+        },
+        y: Text2dBundle {
+            text: Text::from_section(
+                format!("{:+.3e}", mean),
+                TextStyle {
+                    font: font.clone(),
+                    font_size,
+                    color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+                },
+            ),
+            // the y axis seems to be OK here
+            transform: Transform::from_xyz(mean_pos, mean_y, 0.2),
+            ..Default::default()
+        },
+        x_n: Text2dBundle {
+            text: Text::from_section(
+                format!("{:+.3e}", max),
+                TextStyle {
+                    font,
+                    font_size,
+                    color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+                },
+            ),
+            transform: Transform::from_xyz(size / 2., 0., 0.2),
+            ..Default::default()
+        },
+    }
 }
 
 fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
