@@ -16,21 +16,6 @@ pub enum Side {
     Up,
 }
 
-/// When in a Entity with `Aesthetics`, it will plot whatever aes to
-/// the a KDE on the side of the arrows in the map..
-#[derive(Component)]
-pub struct GeomKde {
-    pub side: Side,
-}
-impl GeomKde {
-    pub fn left() -> Self {
-        Self { side: Side::Left }
-    }
-    pub fn right() -> Self {
-        Self { side: Side::Right }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum HistPlot {
     Hist,

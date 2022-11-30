@@ -378,6 +378,42 @@ fn load_data(
                         .insert(geom::GeomHist::up(geom::HistPlot::Hist));
                 }
             }
+            if let Some(dist_data) = &mut data.kde_met_y {
+                let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
+                    .iter()
+                    .map(|i| std::mem::take(&mut dist_data[*i]))
+                    // also filter values that are NaN
+                    .zip(identifiers.iter())
+                    .map(|(col, id)| {
+                        (
+                            std::mem::take(
+                                &mut col
+                                    .into_iter()
+                                    .filter_map(|c| c.into())
+                                    .collect::<Vec<f32>>(),
+                            ),
+                            id.clone(),
+                        )
+                    })
+                    .filter(|(c, _)| !c.is_empty())
+                    .unzip();
+                if !data.is_empty() {
+                    // remove existing sizes geoms
+                    for e in current_sizes.iter() {
+                        commands.entity(e).despawn_recursive();
+                    }
+                    commands
+                        .spawn(aesthetics::Aesthetics {
+                            plotted: false,
+                            identifiers: ids,
+                            condition: None,
+                        })
+                        .insert(aesthetics::Gy {})
+                        .insert(aesthetics::Distribution(std::mem::take(&mut data)))
+                        .insert(geom::PopUp {})
+                        .insert(geom::GeomHist::up(geom::HistPlot::Kde));
+                }
+            }
         }
     }
 
