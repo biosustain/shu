@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "ggshu"
+version = "0.1.0"
+description = ""
+authors = ["carrascomj <carrascomurielj@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^1.5.2"
+pytest = "^7.2.0"
+
+[tool.poetry.dev-dependencies]
+python-language-server = "^0.36.2"
+black = "^22.10.0"
+isort = "^5.10.1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
