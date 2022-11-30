@@ -43,7 +43,6 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
     commands.insert_resource(data::ReactionState {
         reaction_data: None,
-        metabolite_data: None,
         reac_loaded: false,
         met_loaded: false,
     });

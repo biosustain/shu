@@ -17,17 +17,10 @@ pub struct DataPlugin;
 impl Plugin for DataPlugin {
     fn build(&self, app: &mut App) {
         app.add_asset::<EscherMap>()
-            .add_asset::<ReactionData>()
-            .add_asset::<MetaboliteData>()
+            .add_asset::<Data>()
             .add_asset_loader(CustomAssetLoader::<EscherMap>::new(vec!["json"]))
-            .add_asset_loader(CustomAssetLoader::<ReactionData>::new(vec![
-                "reaction.json",
-            ]))
-            .add_asset_loader(CustomAssetLoader::<MetaboliteData>::new(vec![
-                "metabolite.json",
-            ]))
-            .add_system(load_reaction_data)
-            .add_system(load_metabolite_data);
+            .add_asset_loader(CustomAssetLoader::<Data>::new(vec!["metabolism.json"]))
+            .add_system(load_data);
     }
 }
 
@@ -95,9 +88,9 @@ impl Number {
 
 #[derive(Deserialize, TypeUuid, Default)]
 #[uuid = "413be529-bfeb-41a3-8db0-4b8b382a2c46"]
-pub struct ReactionData {
+pub struct Data {
     /// Vector of reactions' identifiers
-    reactions: Vec<String>,
+    reactions: Option<Vec<String>>,
     // TODO: generalize this for any Data Type and use them (from escher.rs)
     /// Numeric values to plot as reaction arrow colors.
     colors: Option<Vec<Number>>,
@@ -117,37 +110,36 @@ pub struct ReactionData {
     kde_hover_y: Option<Vec<Vec<Number>>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
-}
-
-#[derive(Deserialize, TypeUuid, Default)]
-#[uuid = "423be529-cfeb-41a3-8db0-4b8b382a2c46"]
-pub struct MetaboliteData {
     /// Vector of metabolites' identifiers
-    metabolites: Vec<String>,
+    metabolites: Option<Vec<String>>,
     // TODO: generalize this for any Data Type and use them (from escher.rs)
     /// Numeric values to plot as metabolite circle colors.
-    colors: Option<Vec<f32>>,
+    met_colors: Option<Vec<Number>>,
     /// Numeric values to plot as metabolite circle sizes.
-    sizes: Option<Vec<f32>>,
+    met_sizes: Option<Vec<Number>>,
     /// Numeric values to plot as histogram on hover.
-    y: Option<Vec<Vec<f32>>>,
+    met_y: Option<Vec<Vec<Number>>>,
+    /// Numeric values to plot as density on hover.
+    kde_met_y: Option<Vec<Vec<Number>>>,
 }
 
 #[derive(Resource)]
 pub struct ReactionState {
-    pub reaction_data: Option<Handle<ReactionData>>,
-    pub metabolite_data: Option<Handle<MetaboliteData>>,
+    pub reaction_data: Option<Handle<Data>>,
     pub reac_loaded: bool,
     pub met_loaded: bool,
 }
 
-fn load_reaction_data(
+#[allow(clippy::too_many_arguments)]
+fn load_data(
     mut commands: Commands,
     mut state: ResMut<ReactionState>,
-    mut custom_assets: ResMut<Assets<ReactionData>>,
+    mut custom_assets: ResMut<Assets<Data>>,
     current_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomArrow>)>,
     current_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomArrow>)>,
     current_hist: Query<Entity, Or<(With<geom::GeomHist>, With<geom::HistTag>)>>,
+    current_met_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomMetabolite>)>,
+    current_met_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomMetabolite>)>,
 ) {
     let custom_asset = if let Some(reac_handle) = &mut state.reaction_data {
         custom_assets.get_mut(reac_handle)
@@ -158,81 +150,199 @@ fn load_reaction_data(
         return;
     }
     info!("Loading Reaction data!");
-    let reacs = custom_asset.unwrap();
-    let conditions = reacs.conditions.clone().unwrap_or(vec![String::from("")]);
+    let data = custom_asset.unwrap();
+    let conditions = data.conditions.clone().unwrap_or(vec![String::from("")]);
     let cond_set = conditions.iter().unique().collect::<HashSet<&String>>();
-    for cond in cond_set {
-        let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
-            reacs
-                .reactions
-                .iter()
-                .enumerate()
-                .map(|(i, _)| i)
-                .collect::<HashSet<usize>>()
-        } else {
-            conditions
-                .iter()
-                .enumerate()
-                .filter(|(_, c)| c == &cond)
-                .map(|(i, _)| i)
-                .collect()
-        };
-        let identifiers = indices
-            .iter()
-            .map(|i| reacs.reactions[*i].clone())
-            .collect::<Vec<String>>();
-        for (i, var) in [&mut reacs.colors, &mut reacs.sizes].iter().enumerate() {
-            if let Some(point_data) = &var {
-                let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+    if let Some(reactions) = data.reactions.as_ref() {
+        for cond in cond_set.iter() {
+            let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
+                data.reactions
                     .iter()
-                    .map(|i| &point_data[*i])
-                    .zip(identifiers.iter())
-                    // filter values that are NaN
-                    .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
-                    .unzip();
-                if !data.is_empty() {
-                    // remove existing color geoms
-                    if i == 0 {
-                        for e in current_colors.iter() {
-                            commands.entity(e).despawn_recursive();
+                    .enumerate()
+                    .map(|(i, _)| i)
+                    .collect::<HashSet<usize>>()
+            } else {
+                conditions
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, c)| (c == cond) & (i < &reactions.len()))
+                    .map(|(i, _)| i)
+                    .collect()
+            };
+            let identifiers = indices
+                .iter()
+                .map(|i| reactions[*i].clone())
+                .collect::<Vec<String>>();
+            for (i, var) in [&mut data.colors, &mut data.sizes].iter().enumerate() {
+                if let Some(point_data) = &var {
+                    let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+                        .iter()
+                        .map(|i| &point_data[*i])
+                        .zip(identifiers.iter())
+                        // filter values that are NaN
+                        .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
+                        .unzip();
+                    if !data.is_empty() {
+                        // remove existing color geoms
+                        if i == 0 {
+                            for e in current_colors.iter() {
+                                commands.entity(e).despawn_recursive();
+                            }
+                        } else {
+                            for e in current_sizes.iter() {
+                                commands.entity(e).despawn_recursive();
+                            }
                         }
-                    } else {
-                        for e in current_sizes.iter() {
-                            commands.entity(e).despawn_recursive();
+                        let mut build_command = commands.spawn(aesthetics::Aesthetics {
+                            plotted: false,
+                            identifiers: ids,
+                            condition: if cond.is_empty() {
+                                None
+                            } else {
+                                Some(cond.to_string())
+                            },
+                        });
+                        build_command
+                            .insert(aesthetics::Point(std::mem::take(&mut data)))
+                            .insert(geom::GeomArrow { plotted: false });
+                        if i == 0 {
+                            build_command.insert(aesthetics::Gcolor {});
+                        } else {
+                            build_command.insert(aesthetics::Gsize {});
                         }
                     }
-                    let mut build_command = commands.spawn(aesthetics::Aesthetics {
+                }
+            }
+            for (i, aes) in [
+                &mut data.y,
+                &mut data.left_y,
+                &mut data.kde_y,
+                &mut data.kde_left_y,
+                &mut data.hover_y,
+                &mut data.kde_hover_y,
+            ]
+            .iter_mut()
+            .enumerate()
+            {
+                if let Some(dist_data) = aes.as_mut() {
+                    let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
+                        .iter()
+                        .map(|i| std::mem::take(&mut dist_data[*i]))
+                        // also filter values that are NaN
+                        .zip(identifiers.iter())
+                        .map(|(col, id)| {
+                            (
+                                std::mem::take(
+                                    &mut col.into_iter().filter_map(|c| c.into()).collect(),
+                                ),
+                                id.clone(),
+                            )
+                        })
+                        .unzip();
+                    data.retain(|c| !c.is_empty());
+                    if data.is_empty() {
+                        continue;
+                    }
+                    // remove existing sizes geoms
+                    for e in current_hist.iter() {
+                        commands.entity(e).despawn_recursive();
+                    }
+                    let geom = match i {
+                        0 => geom::GeomHist::right(geom::HistPlot::Hist),
+                        1 => geom::GeomHist::left(geom::HistPlot::Hist),
+                        2 => geom::GeomHist::right(geom::HistPlot::Kde),
+                        3 => geom::GeomHist::left(geom::HistPlot::Kde),
+                        4 => geom::GeomHist::up(geom::HistPlot::Hist),
+                        _ => geom::GeomHist::up(geom::HistPlot::Kde),
+                    };
+                    let mut ent_commands = commands.spawn(aesthetics::Gy {});
+                    ent_commands
+                        .insert(aesthetics::Distribution(std::mem::take(&mut data)))
+                        .insert(geom);
+                    ent_commands.insert(aesthetics::Aesthetics {
                         plotted: false,
                         identifiers: ids,
                         condition: if cond.is_empty() {
                             None
                         } else {
-                            Some(cond.clone())
+                            Some(cond.to_string())
                         },
                     });
-                    build_command
-                        .insert(aesthetics::Point(std::mem::take(&mut data)))
-                        .insert(geom::GeomArrow { plotted: false });
-                    if i == 0 {
-                        build_command.insert(aesthetics::Gcolor {});
-                    } else {
-                        build_command.insert(aesthetics::Gsize {});
+                    // for hovers
+                    if i > 3 {
+                        ent_commands.insert(geom::PopUp {});
                     }
                 }
             }
         }
-        for (i, aes) in [
-            &mut reacs.y,
-            &mut reacs.left_y,
-            &mut reacs.kde_y,
-            &mut reacs.kde_left_y,
-            &mut reacs.hover_y,
-            &mut reacs.kde_hover_y,
-        ]
-        .iter_mut()
-        .enumerate()
-        {
-            if let Some(dist_data) = aes.as_mut() {
+    }
+
+    info!("Loading Metabolite data!");
+    if let Some(metabolites) = data.metabolites.as_ref() {
+        for cond in cond_set {
+            let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
+                data.reactions
+                    .iter()
+                    .enumerate()
+                    .map(|(i, _)| i)
+                    .collect::<HashSet<usize>>()
+            } else {
+                conditions
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, c)| (c == &cond) & (i < &metabolites.len()))
+                    .map(|(i, _)| i)
+                    .collect()
+            };
+            let identifiers = indices
+                .iter()
+                .map(|i| metabolites[*i].clone())
+                .collect::<Vec<String>>();
+            if let Some(color_data) = &mut data.met_colors {
+                let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+                    .iter()
+                    .map(|i| &color_data[*i])
+                    .zip(identifiers.iter())
+                    // filter values that are NaN
+                    .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
+                    .unzip();
+                for e in current_met_colors.iter() {
+                    commands.entity(e).despawn_recursive();
+                }
+                commands
+                    .spawn(aesthetics::Aesthetics {
+                        plotted: false,
+                        identifiers: ids,
+                        condition: None,
+                    })
+                    .insert(aesthetics::Gcolor {})
+                    .insert(aesthetics::Point(std::mem::take(&mut data)))
+                    .insert(geom::GeomMetabolite { plotted: false });
+            }
+            if let Some(size_data) = &mut data.met_sizes {
+                let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+                    .iter()
+                    .map(|i| &size_data[*i])
+                    .zip(identifiers.iter())
+                    // filter values that are NaN
+                    .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
+                    .unzip();
+
+                // remove existing sizes geoms
+                for e in current_met_sizes.iter() {
+                    commands.entity(e).despawn_recursive();
+                }
+                commands
+                    .spawn(aesthetics::Aesthetics {
+                        plotted: false,
+                        identifiers: ids,
+                        condition: None,
+                    })
+                    .insert(aesthetics::Gsize {})
+                    .insert(aesthetics::Point(std::mem::take(&mut data)))
+                    .insert(geom::GeomMetabolite { plotted: false });
+            }
+            if let Some(dist_data) = &mut data.met_y {
                 let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
                     .iter()
                     .map(|i| std::mem::take(&mut dist_data[*i]))
@@ -240,112 +350,37 @@ fn load_reaction_data(
                     .zip(identifiers.iter())
                     .map(|(col, id)| {
                         (
-                            std::mem::take(&mut col.into_iter().filter_map(|c| c.into()).collect()),
+                            std::mem::take(
+                                &mut col
+                                    .into_iter()
+                                    .filter_map(|c| c.into())
+                                    .collect::<Vec<f32>>(),
+                            ),
                             id.clone(),
                         )
                     })
+                    .filter(|(c, _)| !c.is_empty())
                     .unzip();
-                data.retain(|c| !c.is_empty());
-                if data.is_empty() {
-                    continue;
-                }
-                // remove existing sizes geoms
-                for e in current_hist.iter() {
-                    commands.entity(e).despawn_recursive();
-                }
-                let geom = match i {
-                    0 => geom::GeomHist::right(geom::HistPlot::Hist),
-                    1 => geom::GeomHist::left(geom::HistPlot::Hist),
-                    2 => geom::GeomHist::right(geom::HistPlot::Kde),
-                    3 => geom::GeomHist::left(geom::HistPlot::Kde),
-                    4 => geom::GeomHist::up(geom::HistPlot::Hist),
-                    _ => geom::GeomHist::up(geom::HistPlot::Kde),
-                };
-                let mut ent_commands = commands.spawn(aesthetics::Gy {});
-                ent_commands
-                    .insert(aesthetics::Distribution(std::mem::take(&mut data)))
-                    .insert(geom);
-                ent_commands.insert(aesthetics::Aesthetics {
-                    plotted: false,
-                    identifiers: ids,
-                    condition: if cond.is_empty() {
-                        None
-                    } else {
-                        Some(cond.clone())
-                    },
-                });
-                // for hovers
-                if i > 3 {
-                    ent_commands.insert(geom::PopUp {});
+                if !data.is_empty() {
+                    // remove existing sizes geoms
+                    for e in current_sizes.iter() {
+                        commands.entity(e).despawn_recursive();
+                    }
+                    commands
+                        .spawn(aesthetics::Aesthetics {
+                            plotted: false,
+                            identifiers: ids,
+                            condition: None,
+                        })
+                        .insert(aesthetics::Gy {})
+                        .insert(aesthetics::Distribution(std::mem::take(&mut data)))
+                        .insert(geom::PopUp {})
+                        .insert(geom::GeomHist::up(geom::HistPlot::Hist));
                 }
             }
         }
     }
-    state.reac_loaded = true;
-}
 
-fn load_metabolite_data(
-    mut commands: Commands,
-    mut state: ResMut<ReactionState>,
-    mut custom_assets: ResMut<Assets<MetaboliteData>>,
-    current_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomMetabolite>)>,
-    current_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomMetabolite>)>,
-) {
-    let custom_asset = if let Some(met_handle) = &mut state.metabolite_data {
-        custom_assets.get_mut(met_handle)
-    } else {
-        return;
-    };
-    if state.met_loaded || custom_asset.is_none() {
-        return;
-    }
-    info!("Loading Metabolite data!");
-    let reacs = custom_asset.unwrap();
-    if let Some(color_data) = &mut reacs.colors {
-        // remove existing color geoms
-        for e in current_colors.iter() {
-            commands.entity(e).despawn_recursive();
-        }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.metabolites.clone(),
-                condition: None,
-            })
-            .insert(aesthetics::Gcolor {})
-            .insert(aesthetics::Point(std::mem::take(color_data)))
-            .insert(geom::GeomMetabolite { plotted: false });
-    }
-    if let Some(size_data) = &mut reacs.sizes {
-        // remove existing sizes geoms
-        for e in current_sizes.iter() {
-            commands.entity(e).despawn_recursive();
-        }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.metabolites.clone(),
-                condition: None,
-            })
-            .insert(aesthetics::Gsize {})
-            .insert(aesthetics::Point(std::mem::take(size_data)))
-            .insert(geom::GeomMetabolite { plotted: false });
-    }
-    if let Some(hover_data) = &mut reacs.y {
-        // remove existing sizes geoms
-        for e in current_sizes.iter() {
-            commands.entity(e).despawn_recursive();
-        }
-        commands
-            .spawn(aesthetics::Aesthetics {
-                plotted: false,
-                identifiers: reacs.metabolites.clone(),
-                condition: None,
-            })
-            .insert(aesthetics::Gy {})
-            .insert(aesthetics::Distribution(std::mem::take(hover_data)))
-            .insert(geom::PopUp {})
-            .insert(geom::GeomHist::up(geom::HistPlot::Hist));
-    }
     state.met_loaded = true;
+    state.reac_loaded = true;
 }

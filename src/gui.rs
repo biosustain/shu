@@ -1,6 +1,6 @@
 //! Gui (windows and panels) to upload data and hover.
 
-use crate::data::{MetaboliteData, ReactionData, ReactionState};
+use crate::data::{Data, ReactionState};
 use crate::escher::{EscherMap, Hover, MapState};
 use crate::geom::{AnyTag, HistTag};
 use bevy::prelude::*;
@@ -137,18 +137,11 @@ fn file_drop(
             // it was dropped over our UI element
             // (our UI element is being hovered over)
 
-            if path_buf.to_str().unwrap().ends_with("reaction.json") {
-                let reaction_handle: Handle<ReactionData> =
-                    asset_server.load(path_buf.to_str().unwrap());
+            if path_buf.to_str().unwrap().ends_with("metabolism.json") {
+                let reaction_handle: Handle<Data> = asset_server.load(path_buf.to_str().unwrap());
                 reaction_resource.reaction_data = Some(reaction_handle);
                 reaction_resource.reac_loaded = false;
                 info! {"Reactions dropped!"};
-            } else if path_buf.to_str().unwrap().ends_with("metabolite.json") {
-                let metabolite_handle: Handle<MetaboliteData> =
-                    asset_server.load(path_buf.to_str().unwrap());
-                reaction_resource.metabolite_data = Some(metabolite_handle);
-                reaction_resource.met_loaded = false;
-                info! {"Metabolites dropped!"};
             } else {
                 //an escher map
                 let escher_handle: Handle<EscherMap> =
