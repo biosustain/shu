@@ -258,16 +258,16 @@ fn load_data(
                     let mut ent_commands = commands.spawn(aesthetics::Gy {});
                     ent_commands
                         .insert(aesthetics::Distribution(std::mem::take(&mut data)))
-                        .insert(geom);
-                    ent_commands.insert(aesthetics::Aesthetics {
-                        plotted: false,
-                        identifiers: ids,
-                        condition: if cond.is_empty() {
-                            None
-                        } else {
-                            Some(cond.to_string())
-                        },
-                    });
+                        .insert(geom)
+                        .insert(aesthetics::Aesthetics {
+                            plotted: false,
+                            identifiers: ids,
+                            condition: if cond.is_empty() {
+                                None
+                            } else {
+                                Some(cond.to_string())
+                            },
+                        });
                     // for hovers
                     if i > 3 {
                         ent_commands.insert(geom::PopUp {});

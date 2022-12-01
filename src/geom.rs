@@ -28,6 +28,7 @@ pub enum HistPlot {
 pub struct GeomHist {
     pub side: Side,
     pub rendered: bool,
+    pub in_axis: bool,
     pub plot: HistPlot,
 }
 
@@ -36,6 +37,7 @@ impl GeomHist {
         Self {
             side: Side::Left,
             rendered: false,
+            in_axis: false,
             plot,
         }
     }
@@ -43,6 +45,7 @@ impl GeomHist {
         Self {
             side: Side::Right,
             rendered: false,
+            in_axis: false,
             plot,
         }
     }
@@ -50,6 +53,7 @@ impl GeomHist {
         Self {
             side: Side::Up,
             rendered: false,
+            in_axis: false,
             plot,
         }
     }
@@ -68,10 +72,40 @@ pub struct GeomMetabolite {
 pub struct HistTag {
     pub side: Side,
     pub condition: Option<String>,
+    pub node_id: u64,
+}
+
+/// Component that indicates the plot position and axis.
+#[derive(Debug, Component)]
+pub struct Xaxis {
+    pub id: String,
+    pub arrow_size: f32,
+    pub xlimits: (f32, f32),
+    pub side: Side,
+    pub plot: HistPlot,
+    pub node_id: u64,
     pub dragged: bool,
     pub rotating: bool,
-    /// for serialization
-    pub node_id: u64,
+}
+
+impl std::fmt::Display for Side {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Side::Right => "right",
+                Side::Left => "left",
+                Side::Up => "up",
+            }
+        )
+    }
+}
+
+impl std::fmt::Display for Xaxis {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Xaxis = [ id = {}, side = {} ]", self.id, self.side)
+    }
 }
 
 /// Component of all popups.
