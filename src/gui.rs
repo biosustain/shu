@@ -4,8 +4,8 @@ use crate::data::{Data, ReactionState};
 use crate::escher::{EscherMap, Hover, MapState};
 use crate::geom::{AnyTag, HistTag, Xaxis};
 use bevy::prelude::*;
-use bevy_egui::egui::color_picker::{color_edit_button_hsva, Alpha};
-use bevy_egui::egui::epaint::color::Hsva;
+use bevy_egui::egui::color_picker::{color_edit_button_hsva, color_edit_button_rgba, Alpha};
+use bevy_egui::egui::epaint::color::{Hsva, Rgba};
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use std::collections::HashMap;
 
@@ -40,6 +40,9 @@ pub struct UiState {
     pub max_left: f32,
     pub max_right: f32,
     pub max_top: f32,
+    pub color_left: Rgba,
+    pub color_right: Rgba,
+    pub color_top: Rgba,
     pub condition: String,
     pub conditions: Vec<String>,
     pub save_path: String,
@@ -59,6 +62,9 @@ impl Default for UiState {
             max_left: 100.,
             max_right: 100.,
             max_top: 100.,
+            color_left: Rgba::from_srgba_unmultiplied(218, 150, 135, 124),
+            color_right: Rgba::from_srgba_unmultiplied(125, 206, 96, 124),
+            color_top: Rgba::from_srgba_unmultiplied(161, 134, 216, 124),
             condition: String::from(""),
             conditions: vec![String::from("")],
             save_path: String::from("this_map.json"),
@@ -93,9 +99,18 @@ fn ui_settings(
             ui.add(egui::Slider::new(&mut ui_state.max_metabolite, 5.0..=90.0).text("max"));
         });
         ui.label("Histogram scale");
-        ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
-        ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
-        ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("hover"));
+        ui.horizontal(|ui| {
+            color_edit_button_rgba(ui, &mut ui_state.color_left, Alpha::BlendOrAdditive);
+            ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
+        });
+        ui.horizontal(|ui| {
+            color_edit_button_rgba(ui, &mut ui_state.color_right, Alpha::BlendOrAdditive);
+            ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
+        });
+        ui.horizontal(|ui| {
+            color_edit_button_rgba(ui, &mut ui_state.color_top, Alpha::BlendOrAdditive);
+            ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("top"));
+        });
         if let Some(first_cond) = ui_state.conditions.get(0) {
             if !((first_cond.is_empty()) & (ui_state.conditions.len() == 1)) {
                 let conditions = ui_state.conditions.clone();

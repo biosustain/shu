@@ -512,14 +512,30 @@ fn plot_hover_hist(
 /// It treats the two sides independently.
 fn normalize_histogram_height(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut Transform, &Path, &HistTag)>,
+    mut query: Query<(&mut Transform, &mut Path, &mut DrawMode, &HistTag)>,
 ) {
-    for (mut trans, path, hist) in query.iter_mut() {
+    for (mut trans, path, mut draw_mode, hist) in query.iter_mut() {
         let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
         trans.scale.y = match hist.side {
             Side::Left => ui_state.max_left / height,
             Side::Right => ui_state.max_right / height,
             Side::Up => ui_state.max_top / height,
+        };
+        if let DrawMode::Fill(ref mut fill_mode) = *draw_mode {
+            fill_mode.color = match hist.side {
+                Side::Left => {
+                    let color = ui_state.color_left;
+                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                }
+                Side::Right => {
+                    let color = ui_state.color_right;
+                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                }
+                Side::Up => {
+                    let color = ui_state.color_top;
+                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                }
+            }
         }
     }
 }
