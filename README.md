@@ -28,21 +28,10 @@ distinction between color and size, it is simply that they are not independently
 
 
 ## API design
-
-This is how the python API (not implemented) should look:
-
-```r
-# reaction and metabolite aes correspond to their identifiers
-ggshu(df, map_file, aes(metabolite=metabolite, reaction=reaction, size=flux, x=kcat)) +
-  geom_arrow() +  # will use size and reaction
-  geom_metabolite(aes(size=concentration)) +  # will use size and metabolite
-  geom_box() +  # will use reaction and kcat, boxplot at one right of reactions
-  geom_kde(aes(x=km), side="left") +  # will use reaction and kms, plotted on the other side
-  scale_color_continuous(min="blue", max="red") +
-  scale_circle_size(min=10., max=45.)
-```
-
-It also gives and impression of how the code is written:
+ 
+Shu follows a Grammar of Graphics design like [ggplot](https://ggplot2.tidyverse.org/) or [plotnine](https://plotnine.readthedocs.io/en/stable/index.html).
+See the [python API](ggshu/README.rst) for the full analogy. The particular implementation
+is an Entity Component System in [bevy](https://bevyengine.org/):
 
 * Each aesthetic is a *component* (`Gsize`, `Gcolor`, etc.) containing its data (see [`src/aesthetics.rs`](src/aesthetics.rs)). Identifiers are stored in the `Aesthetic` *component*.
 * *Entities* with `Aesthetic`, other aes components and Geom component (`GeomArrow`, `GeomMetabolite`, etc. in [`src/geom.rs`](src/geom.rs)) are

@@ -1,1 +1,4 @@
 /target
+*json
+__pycache__
+*svg

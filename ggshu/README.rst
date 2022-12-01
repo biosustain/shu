@@ -5,6 +5,9 @@ ggshu
 
 A utility package to transform dataframes into `shu <https://github.com/biosustain/shu/>`_ data.
 
+.. image:: schema.png
+  :alt: Shu grammar graphics schema.
+
 
 Example
 -------
@@ -14,10 +17,12 @@ Example
     (
         ggmap(
             df_cond,
-            aes(reaction="r", color="flux", size="flux", condition="cond"),
+            aes(reaction="r", color="flux", size="flux", condition="cond", y="kcat"),
         )
         # plot flux to color and size of reactions
         + geom_arrow()
+        # plot kcat as histogram shows on left side of reactions
+        + geom_hist(side="left")
         # plot conc to color of metabolites
         + geom_metabolite(aes=aes(color="conc", metabolite="m"))
         # plot km as density plots shows on hover on metabolites
