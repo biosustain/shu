@@ -2,7 +2,7 @@
 
 use crate::data::{Data, ReactionState};
 use crate::escher::{EscherMap, Hover, MapState};
-use crate::geom::{AnyTag, HistTag};
+use crate::geom::{AnyTag, HistTag, Xaxis};
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_hsva, Alpha};
 use bevy_egui::egui::epaint::color::Hsva;
@@ -101,7 +101,7 @@ fn ui_settings(
                 let conditions = ui_state.conditions.clone();
                 let condition = &mut ui_state.condition;
                 egui::ComboBox::from_label("Condition")
-                    .selected_text(conditions[0].clone())
+                    .selected_text(condition.clone())
                     .show_ui(ui, |ui| {
                         for cond in conditions.iter() {
                             ui.selectable_value(condition, cond.clone(), cond.clone());
@@ -190,7 +190,7 @@ fn show_hover(
                     let cond_if = hist
                         .condition
                         .as_ref()
-                        .map(|c| c == &ui_state.condition)
+                        .map(|c| (c == &ui_state.condition) || (ui_state.condition == "ALL"))
                         .unwrap_or(true);
                     if (hover.node_id == tag.id) & cond_if {
                         *vis = Visibility::VISIBLE;
@@ -201,7 +201,7 @@ fn show_hover(
                     let cond_if = hist
                         .condition
                         .as_ref()
-                        .map(|c| c != &ui_state.condition)
+                        .map(|c| (c != &ui_state.condition) & (ui_state.condition != "ALL"))
                         .unwrap_or(false);
                     if (hover.node_id == tag.id) || cond_if {
                         *vis = Visibility::INVISIBLE;
@@ -216,11 +216,11 @@ fn show_hover(
 fn mouse_click_system(
     windows: Res<Windows>,
     mouse_button_input: Res<Input<MouseButton>>,
-    mut drag_query: Query<(&Transform, &mut HistTag), Without<AnyTag>>,
+    mut drag_query: Query<(&Transform, &mut Xaxis), Without<AnyTag>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Middle) {
-        for (trans, mut hist) in drag_query.iter_mut() {
+        for (trans, mut axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -228,19 +228,19 @@ fn mouse_click_system(
                     .length_squared()
                     < 5000.
                 {
-                    hist.dragged = true;
+                    axis.dragged = true;
                 }
             }
         }
     }
 
     if mouse_button_input.just_released(MouseButton::Middle) {
-        for (_, mut hist) in drag_query.iter_mut() {
-            hist.dragged = false;
+        for (_, mut axis) in drag_query.iter_mut() {
+            axis.dragged = false;
         }
     }
     if mouse_button_input.just_pressed(MouseButton::Right) {
-        for (trans, mut hist) in drag_query.iter_mut() {
+        for (trans, mut axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -248,15 +248,15 @@ fn mouse_click_system(
                     .length_squared()
                     < 5000.
                 {
-                    hist.rotating = true;
+                    axis.rotating = true;
                 }
             }
         }
     }
 
     if mouse_button_input.just_released(MouseButton::Right) {
-        for (_, mut hist) in drag_query.iter_mut() {
-            hist.rotating = false;
+        for (_, mut axis) in drag_query.iter_mut() {
+            axis.rotating = false;
         }
     }
 }
@@ -264,11 +264,11 @@ fn mouse_click_system(
 /// Move the center-dragged histograms.
 fn follow_mouse_on_drag(
     windows: Res<Windows>,
-    mut drag_query: Query<(&mut Transform, &HistTag)>,
+    mut drag_query: Query<(&mut Transform, &Xaxis)>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
-    for (mut trans, hist) in drag_query.iter_mut() {
-        if hist.dragged {
+    for (mut trans, axis) in drag_query.iter_mut() {
+        if axis.dragged {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -280,13 +280,13 @@ fn follow_mouse_on_drag(
 
 /// Rotate the right-dragged histograms.
 fn follow_mouse_on_rotate(
-    mut drag_query: Query<(&mut Transform, &HistTag)>,
+    mut drag_query: Query<(&mut Transform, &Xaxis)>,
     mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
 ) {
     for ev in mouse_motion_events.iter() {
-        for (mut trans, hist) in drag_query.iter_mut() {
+        for (mut trans, axis) in drag_query.iter_mut() {
             let pos = trans.translation;
-            if hist.rotating {
+            if axis.rotating {
                 trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
             }
         }
@@ -298,7 +298,7 @@ fn save_file(
     mut assets: ResMut<Assets<EscherMap>>,
     state: ResMut<MapState>,
     mut save_events: EventReader<SaveEvent>,
-    hist_query: Query<(&Transform, &HistTag), Without<AnyTag>>,
+    hist_query: Query<(&Transform, &Xaxis), Without<AnyTag>>,
 ) {
     for save_event in save_events.iter() {
         let custom_asset = assets.get_mut(&state.escher_map);
@@ -306,11 +306,11 @@ fn save_file(
             return;
         }
         let escher_map = custom_asset.unwrap();
-        for (trans, hist) in hist_query.iter() {
-            if let Some(reac) = escher_map.metabolism.reactions.get_mut(&hist.node_id) {
+        for (trans, axis) in hist_query.iter() {
+            if let Some(reac) = escher_map.metabolism.reactions.get_mut(&axis.node_id) {
                 reac.hist_position
                     .get_or_insert(HashMap::new())
-                    .insert(hist.side.clone(), (*trans).into());
+                    .insert(axis.side.clone(), (*trans).into());
             }
         }
         std::fs::write(
