@@ -232,7 +232,6 @@ pub fn plot_metabolite_color(
 
 /// Build axes for histograms, summarising all external information.
 /// Each Side of an arrow is assigned a different axis, shared across conditions.
-/// TODO: build_axes_hover
 fn build_axes(
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
@@ -432,7 +431,6 @@ fn plot_side_hist(
 }
 
 /// Plot hovered histograms of both metabolites and reactions.
-/// TODO: not working sicen the axes are not being generated for this one!
 fn plot_hover_hist(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -481,13 +479,12 @@ fn plot_hover_hist(
                     },
                 );
                 commands
-                    .spawn(geometry)
-                    .insert(HistTag {
+                    .spawn(HistTag {
                         side: geom.side.clone(),
                         condition: aes.condition.clone(),
                         node_id: hover.node_id,
                     })
-                    .insert(AnyTag { id: hover.node_id })
+                    .insert(geometry)
                     .with_children(|p| {
                         p.spawn(SpriteBundle {
                             texture: asset_server.load("hover.png"),
@@ -503,7 +500,8 @@ fn plot_hover_hist(
                     })
                     .with_children(|parent| {
                         parent.spawn(scales.y);
-                    });
+                    })
+                    .insert(AnyTag { id: hover.node_id });
             }
             geom.rendered = true;
         }
