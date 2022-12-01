@@ -34,18 +34,16 @@ fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
 }
 
 /// A dirty way of plotting Kdes with Paths.
-pub fn plot_kde(samples: &[f32], n: u32, size: f32) -> Option<Path> {
+pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
     let center = size / 2.;
     let anchors = linspace(-center, size - center, n);
-    let min_value = min_f32(samples);
-    let max_value = max_f32(samples);
     if center.is_nan() {
         return None;
     }
     let mut path_builder = PathBuilder::new();
     path_builder.move_to(Vec2::new(-center, 0.));
 
-    for (point_x, anchor_x) in linspace(min_value, max_value, n).iter().zip(anchors.iter()) {
+    for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
         let y = kde(*point_x, samples, 1.06);
         path_builder.line_to(Vec2::new(*anchor_x, y));
     }
@@ -55,12 +53,12 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32) -> Option<Path> {
 }
 
 /// Histogram plotting with n bins.
-pub fn plot_hist(samples: &[f32], bins: u32, size: f32) -> Option<Path> {
+pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
     let center = size / 2.;
     // a bin should not be less than a data point
     let bins = u32::min(samples.len() as u32 / 2, bins);
     // actual x points to be mapped to the KDE
-    let points = linspace(min_f32(samples), max_f32(samples), bins);
+    let points = linspace(xlimits.0, xlimits.1, bins);
     // calculated x positions in the graph
     let anchors = linspace(-center, size - center, bins);
     if center.is_nan() {
@@ -82,6 +80,9 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32) -> Option<Path> {
             .iter()
             .filter(|&&x| (x >= *point_a) & (x < *point_b))
             .count();
+        if y == 0 {
+            continue;
+        }
         path_builder.move_to(Vec2::new(*anchor_a, 0.));
         path_builder.line_to(Vec2::new(*anchor_a, y as f32));
         path_builder.line_to(Vec2::new(*anchor_b, y as f32));

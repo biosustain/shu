@@ -2,9 +2,12 @@ use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
 use crate::funcplot::{
     lerp, lerp_hsv, max_f32, min_f32, path_to_vec, plot_hist, plot_kde, plot_scales,
 };
-use crate::geom::{AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side};
+use crate::geom::{
+    AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side, Xaxis,
+};
 use crate::gui::UiState;
 use itertools::Itertools;
+use std::collections::HashMap;
 
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
@@ -19,12 +22,15 @@ impl Plugin for AesPlugin {
             .add_system(plot_arrow_color)
             .add_system(plot_arrow_size_dist)
             .add_system(plot_metabolite_color)
+            .add_system(build_axes.before(load_map))
+            .add_system(build_hover_axes.before(load_map))
             .add_system(plot_side_hist.before(load_map))
             .add_system(plot_hover_hist.before(load_map))
             .add_system(normalize_histogram_height)
             .add_system(unscale_histogram_children)
             .add_system(fill_conditions)
             .add_system(filter_histograms)
+            .add_system(follow_the_axes)
             .add_system(plot_metabolite_size);
     }
 }
@@ -224,21 +230,23 @@ pub fn plot_metabolite_color(
     }
 }
 
-/// Plot histogram as numerical variable next to arrows.
-fn plot_side_hist(
+/// Build axes for histograms, summarising all external information.
+/// Each Side of an arrow is assigned a different axis, shared across conditions.
+/// TODO: build_axes_hover
+fn build_axes(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
     mut aes_query: Query<
         (&Distribution<f32>, &Aesthetics, &mut GeomHist),
         (With<Gy>, Without<PopUp>),
     >,
 ) {
-    'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
-        if geom.rendered {
+    let mut axes: HashMap<String, HashMap<Side, (Xaxis, Transform)>> = HashMap::new();
+    // first gather all x-limits for different conditions and the arrow and side
+    for (dist, aes, mut geom) in aes_query.iter_mut() {
+        if geom.in_axis {
             continue;
         }
-        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let this_dist = match dist.0.get(index) {
@@ -246,26 +254,10 @@ fn plot_side_hist(
                     None => continue,
                 };
                 let size = path_to_vec(path).length();
-                let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 30, size),
-                    HistPlot::Kde => plot_kde(this_dist, 200, size),
-                };
-                if line.is_none() {
-                    continue 'outer;
-                }
-                let line = line.unwrap();
-                let (rotation_90, away, hex) = match geom.side {
-                    Side::Right => (
-                        -Vec2::Y.angle_between(arrow.direction.perp()),
-                        -30.,
-                        // TODO: this should be a setting
-                        "7dce96",
-                    ),
-                    Side::Left => (
-                        -Vec2::NEG_Y.angle_between(arrow.direction.perp()),
-                        30.,
-                        "DA9687",
-                    ),
+                let xlimits = (min_f32(this_dist), max_f32(this_dist));
+                let (rotation_90, away) = match geom.side {
+                    Side::Right => (-Vec2::Y.angle_between(arrow.direction.perp()), -30.),
+                    Side::Left => (-Vec2::NEG_Y.angle_between(arrow.direction.perp()), 30.),
                     _ => {
                         warn!("Tried to plot Up direction for non-popup '{}'", arrow.id);
                         continue;
@@ -286,9 +278,124 @@ fn plot_side_hist(
                     transform.translation.y += arrow.direction.perp().y * away;
                     transform
                 };
+                let mut axis_entry = axes
+                    .entry(arrow.id.clone())
+                    .or_insert(HashMap::new())
+                    .entry(geom.side.clone())
+                    .or_insert((
+                        Xaxis {
+                            id: arrow.id.clone(),
+                            arrow_size: size,
+                            xlimits,
+                            side: geom.side.clone(),
+                            plot: geom.plot.clone(),
+                            node_id: arrow.node_id,
+                            dragged: false,
+                            rotating: false,
+                        },
+                        transform,
+                    ));
+                axis_entry.0.xlimits = (
+                    f32::min(axis_entry.0.xlimits.0, xlimits.0),
+                    f32::max(axis_entry.0.xlimits.1, xlimits.1),
+                );
+                geom.in_axis = true;
+            }
+        }
+    }
+
+    for (axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
+        commands
+            .spawn(axis)
+            .insert(trans)
+            .insert(VisibilityBundle::default());
+    }
+}
+
+fn build_hover_axes(
+    mut query: Query<&mut Hover>,
+    mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
+) {
+    let mut axes: HashMap<u64, (f32, f32)> = HashMap::new();
+    // first gather all x-limits for different conditions and the arrow and side
+    for (dist, aes, mut geom) in aes_query.iter_mut() {
+        if geom.in_axis {
+            continue;
+        }
+        for hover in query.iter() {
+            if hover.xlimits.is_some() {
+                continue;
+            }
+            if let Some(index) = aes.identifiers.iter().position(|r| r == &hover.id) {
+                let this_dist = match dist.0.get(index) {
+                    Some(d) => d,
+                    None => continue,
+                };
+                let xlimits = (min_f32(this_dist), max_f32(this_dist));
+                let axis_entry = axes.entry(hover.node_id).or_insert(xlimits);
+                *axis_entry = (
+                    f32::min(axis_entry.0, xlimits.0),
+                    f32::max(axis_entry.1, xlimits.1),
+                );
+                geom.in_axis = true;
+            }
+        }
+    }
+
+    for (node_id, xlimits) in axes {
+        for mut hover in query.iter_mut().filter(|h| h.node_id == node_id) {
+            hover.xlimits = Some(xlimits)
+        }
+    }
+}
+
+/// Plot histogram as numerical variable next to arrows.
+fn plot_side_hist(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut aes_query: Query<
+        (&Distribution<f32>, &Aesthetics, &mut GeomHist),
+        (With<Gy>, Without<PopUp>),
+    >,
+    mut query: Query<(Entity, &Transform, &Xaxis)>,
+) {
+    'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
+        if geom.rendered {
+            continue;
+        }
+        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+        for (_e, trans, axis) in query.iter_mut() {
+            if let Some(index) = aes
+                .identifiers
+                .iter()
+                .position(|r| (r == &axis.id) & (geom.side == axis.side))
+            {
+                let this_dist = match dist.0.get(index) {
+                    Some(d) => d,
+                    None => continue,
+                };
+                let line = match geom.plot {
+                    HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, axis.xlimits),
+                    HistPlot::Kde => plot_kde(this_dist, 200, axis.arrow_size, axis.xlimits),
+                };
+                if line.is_none() {
+                    println!("line not plotted for geom {}", geom.side);
+                    continue 'outer;
+                }
+                let line = line.unwrap();
+                let hex = match geom.side {
+                    // TODO: this should be a setting
+                    Side::Right => "7dce9688",
+                    Side::Left => "DA968788",
+                    _ => {
+                        warn!("Tried to plot Up direction for non-popup '{}'", axis.id);
+                        continue;
+                    }
+                };
+                // TODO(carrascomj): just y, x should be by axis
                 let scales = plot_scales(
                     this_dist,
-                    size,
+                    axis.arrow_size,
                     font.clone(),
                     12.,
                     match geom.plot {
@@ -298,17 +405,16 @@ fn plot_side_hist(
                 );
 
                 commands
+                    // .entity(e)
                     .spawn(GeometryBuilder::build_as(
                         &line,
                         DrawMode::Fill(FillMode::color(Color::hex(hex).unwrap())),
-                        transform,
+                        *trans,
                     ))
                     .insert(HistTag {
                         side: geom.side.clone(),
                         condition: aes.condition.clone(),
-                        dragged: false,
-                        rotating: false,
-                        node_id: arrow.node_id,
+                        node_id: axis.node_id,
                     })
                     .with_children(|parent| {
                         parent.spawn(scales.x_0);
@@ -320,12 +426,13 @@ fn plot_side_hist(
                         parent.spawn(scales.y);
                     });
             }
+            geom.rendered = true;
         }
-        geom.rendered = true;
     }
 }
 
-/// Plot hovered histograms of both metabolites and reactions
+/// Plot hovered histograms of both metabolites and reactions.
+/// TODO: not working sicen the axes are not being generated for this one!
 fn plot_hover_hist(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -338,14 +445,18 @@ fn plot_hover_hist(
         }
         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         for (trans, hover) in query.iter_mut() {
+            if hover.xlimits.is_none() {
+                continue;
+            }
             if let Some(index) = aes.identifiers.iter().position(|r| r == &hover.id) {
                 let this_dist = match dist.0.get(index) {
                     Some(d) => d,
                     None => continue,
                 };
+                let xlimits = hover.xlimits.as_ref().unwrap();
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 30, 600.),
-                    HistPlot::Kde => plot_kde(this_dist, 200, 600.),
+                    HistPlot::Hist => plot_hist(this_dist, 30, 600., *xlimits),
+                    HistPlot::Kde => plot_kde(this_dist, 200, 600., *xlimits),
                 };
                 if line.is_none() {
                     continue 'outer;
@@ -355,7 +466,7 @@ fn plot_hover_hist(
                     Transform::from_xyz(trans.translation.x + 150., trans.translation.y + 150., 5.);
                 let mut geometry = GeometryBuilder::build_as(
                     &line,
-                    DrawMode::Fill(FillMode::color(Color::hex("FF00FF").unwrap())),
+                    DrawMode::Fill(FillMode::color(Color::hex("ffb73388").unwrap())),
                     transform,
                 );
                 geometry.visibility = Visibility::INVISIBLE;
@@ -374,10 +485,7 @@ fn plot_hover_hist(
                     .insert(HistTag {
                         side: geom.side.clone(),
                         condition: aes.condition.clone(),
-                        dragged: false,
-                        rotating: false,
-                        // hover position is not serialized
-                        node_id: 0,
+                        node_id: hover.node_id,
                     })
                     .insert(AnyTag { id: hover.node_id })
                     .with_children(|p| {
@@ -397,8 +505,8 @@ fn plot_hover_hist(
                         parent.spawn(scales.y);
                     });
             }
+            geom.rendered = true;
         }
-        geom.rendered = true;
     }
 }
 
@@ -439,14 +547,22 @@ fn fill_conditions(mut ui_state: ResMut<UiState>, aesthetics: Query<&Aesthetics>
         .filter_map(|a| a.condition.clone())
         .unique()
         .collect::<Vec<String>>();
-    if !conditions.is_empty() {
-        ui_state.conditions = conditions;
-    } else {
-        ui_state.conditions = vec![String::from("")];
-        ui_state.condition = String::from("");
-    }
-    if ui_state.condition.is_empty() {
-        ui_state.condition = ui_state.conditions[0].clone();
+    if conditions
+        .iter()
+        .any(|cond| !ui_state.conditions.contains(cond))
+    {
+        if !conditions.is_empty() {
+            ui_state.conditions = conditions;
+            if !ui_state.conditions.contains(&String::from("ALL")) {
+                ui_state.conditions.push(String::from("ALL"));
+            }
+        } else {
+            ui_state.conditions = vec![String::from("")];
+            ui_state.condition = String::from("");
+        }
+        if ui_state.condition.is_empty() {
+            ui_state.condition = ui_state.conditions[0].clone();
+        }
     }
 }
 
@@ -457,10 +573,25 @@ pub fn filter_histograms(
 ) {
     for (mut vis, hist) in query.iter_mut() {
         if let Some(condition) = &hist.condition {
-            if condition != &ui_state.condition {
+            if (condition != &ui_state.condition) & (ui_state.condition != "ALL") {
                 *vis = Visibility::INVISIBLE;
             } else {
                 *vis = Visibility::VISIBLE;
+            }
+        }
+    }
+}
+
+/// Coordinate the position of histograms with their hovers.
+fn follow_the_axes(
+    axes: Query<(&Transform, &Xaxis), Changed<Transform>>,
+    mut hists: Query<(&mut Transform, &HistTag), (Without<AnyTag>, Without<Xaxis>)>,
+) {
+    for (axis_trans, axis) in axes.iter() {
+        for (mut trans, hist) in hists.iter_mut() {
+            if (axis.node_id == hist.node_id) & (hist.side == axis.side) {
+                trans.translation = axis_trans.translation;
+                trans.rotation = axis_trans.rotation;
             }
         }
     }

@@ -1,6 +1,6 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
-use crate::geom::{GeomHist, HistTag, Side};
+use crate::geom::{GeomHist, HistTag, Side, Xaxis};
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
@@ -287,6 +287,7 @@ impl Labelled for Reaction {
 pub struct Hover {
     pub id: String,
     pub node_id: u64,
+    pub xlimits: Option<(f32, f32)>,
 }
 
 /// Load escher map once the asset is available.
@@ -296,7 +297,7 @@ pub fn load_map(
     mut state: ResMut<MapState>,
     asset_server: Res<AssetServer>,
     mut custom_assets: ResMut<Assets<EscherMap>>,
-    existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>, With<HistTag>)>>,
+    existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>, With<HistTag>, With<Xaxis>)>>,
     mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
     let custom_asset = custom_assets.get_mut(&state.escher_map);
@@ -339,6 +340,7 @@ pub fn load_map(
         let hover = Hover {
             id: met.bigg_id.clone(),
             node_id,
+            xlimits: None,
         };
         commands
             .spawn(GeometryBuilder::build_as(
@@ -423,6 +425,7 @@ pub fn load_map(
         let hover = Hover {
             id: reac.bigg_id.clone(),
             node_id,
+            xlimits: None,
         };
         commands.spawn((
             GeometryBuilder::build_as(
@@ -449,6 +452,7 @@ pub fn load_map(
     // Send signal to repaint histograms.
     for mut geom in existing_geom_hist.iter_mut() {
         geom.rendered = false;
+        geom.in_axis = false;
     }
     info!("Map loaded!");
     state.loaded = true;
