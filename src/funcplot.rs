@@ -91,6 +91,24 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
     Some(path_builder.build())
 }
 
+/// Plot a box where the color is the mean of the samples.
+pub fn plot_box_point(n_cond: usize, cond_index: usize) -> Path {
+    let box_size = 40.;
+    let box_center = if n_cond == 0 {
+        0.
+    } else {
+        let center = cond_index as f32 * box_size * 1.2;
+        center - n_cond as f32 * box_size * 1.2 / 2.
+    };
+    let mut path_builder = PathBuilder::new();
+    path_builder.move_to(Vec2::new(box_center - box_size / 2., 0.));
+    path_builder.line_to(Vec2::new(box_center + box_size / 2., 0.));
+    path_builder.line_to(Vec2::new(box_center + box_size / 2., box_size));
+    path_builder.line_to(Vec2::new(box_center - box_size / 2., box_size));
+    path_builder.line_to(Vec2::new(box_center - box_size / 2., 0.));
+    path_builder.build()
+}
+
 /// Bundle for text that goes into plot scales.
 pub struct ScaleBundle {
     pub x_0: Text2dBundle,

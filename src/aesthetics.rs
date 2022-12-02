@@ -1,6 +1,6 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
 use crate::funcplot::{
-    lerp, lerp_hsv, max_f32, min_f32, path_to_vec, plot_hist, plot_kde, plot_scales,
+    lerp, lerp_hsv, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist, plot_kde, plot_scales,
 };
 use crate::geom::{
     AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side, Xaxis,
@@ -24,7 +24,9 @@ impl Plugin for AesPlugin {
             .add_system(plot_metabolite_color)
             .add_system(build_axes.before(load_map))
             .add_system(build_hover_axes.before(load_map))
+            .add_system(build_point_axes.before(load_map))
             .add_system(plot_side_hist.before(load_map))
+            .add_system(plot_side_box.before(load_map))
             .add_system(plot_hover_hist.before(load_map))
             .add_system(normalize_histogram_height)
             .add_system(unscale_histogram_children)
@@ -66,6 +68,10 @@ pub struct Gsize {}
 
 #[derive(Component)]
 pub struct Gcolor {}
+
+/// Marker to avoid scaling some Entities with HistTag.
+#[derive(Component)]
+struct Unscale;
 
 /// Plot arrow size.
 pub fn plot_arrow_size(
@@ -291,6 +297,7 @@ fn build_axes(
                             node_id: arrow.node_id,
                             dragged: false,
                             rotating: false,
+                            conditions: Vec::new(),
                         },
                         transform,
                     ));
@@ -298,6 +305,9 @@ fn build_axes(
                     f32::min(axis_entry.0.xlimits.0, xlimits.0),
                     f32::max(axis_entry.0.xlimits.1, xlimits.1),
                 );
+                if let Some(cond) = aes.condition.as_ref() {
+                    axis_entry.0.conditions.push(cond.clone());
+                }
                 geom.in_axis = true;
             }
         }
@@ -307,6 +317,82 @@ fn build_axes(
         commands
             .spawn(axis)
             .insert(trans)
+            .insert(VisibilityBundle::default());
+    }
+}
+
+// Build axis
+fn build_point_axes(
+    mut commands: Commands,
+    mut query: Query<(&Transform, &ArrowTag, &Path)>,
+    mut aes_query: Query<
+        (&Aesthetics, &mut GeomHist),
+        (With<Gy>, Without<PopUp>, With<Point<f32>>),
+    >,
+) {
+    let mut axes: HashMap<String, HashMap<Side, (Xaxis, Transform)>> = HashMap::new();
+    // first gather all x-limits for different conditions and the arrow and side
+    for (aes, mut geom) in aes_query.iter_mut() {
+        if geom.in_axis {
+            continue;
+        }
+        for (trans, arrow, path) in query.iter_mut() {
+            if aes.identifiers.iter().any(|r| r == &arrow.id) {
+                let size = path_to_vec(path).length();
+                let (rotation_90, away) = match geom.side {
+                    Side::Right => (-Vec2::Y.angle_between(arrow.direction.perp()), -30.),
+                    Side::Left => (-Vec2::NEG_Y.angle_between(arrow.direction.perp()), 30.),
+                    _ => {
+                        warn!("Tried to plot Up direction for non-popup '{}'", arrow.id);
+                        continue;
+                    }
+                };
+                let transform: Transform = if let Some(Some(ser_transform)) =
+                    arrow.hists.as_ref().map(|x| x.get(&geom.side))
+                {
+                    // there were saved histogram positions
+                    ser_transform.clone().into()
+                } else {
+                    // histogram perpendicular to the direction of the arrow
+                    // the arrow direction is decided by a fallible heuristic!
+                    let mut transform =
+                        Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
+                            .with_rotation(Quat::from_rotation_z(rotation_90));
+                    transform.translation.x += arrow.direction.perp().x * away;
+                    transform.translation.y += arrow.direction.perp().y * away;
+                    transform
+                };
+                let axis_entry = axes
+                    .entry(arrow.id.clone())
+                    .or_insert(HashMap::new())
+                    .entry(geom.side.clone())
+                    .or_insert((
+                        Xaxis {
+                            id: arrow.id.clone(),
+                            arrow_size: size,
+                            xlimits: (0., 0.),
+                            side: geom.side.clone(),
+                            plot: geom.plot.clone(),
+                            node_id: arrow.node_id,
+                            dragged: false,
+                            rotating: false,
+                            conditions: Vec::new(),
+                        },
+                        transform,
+                    ));
+                if let Some(cond) = aes.condition.as_ref() {
+                    axis_entry.0.conditions.push(cond.clone());
+                }
+                geom.in_axis = true;
+            }
+        }
+    }
+
+    for (axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
+        commands
+            .spawn(axis)
+            .insert(trans)
+            .insert(Unscale {})
             .insert(VisibilityBundle::default());
     }
 }
@@ -376,6 +462,10 @@ fn plot_side_hist(
                 let line = match geom.plot {
                     HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, axis.xlimits),
                     HistPlot::Kde => plot_kde(this_dist, 200, axis.arrow_size, axis.xlimits),
+                    HistPlot::BoxPoint => {
+                        warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
+                        continue 'outer;
+                    }
                 };
                 if line.is_none() {
                     println!("line not plotted for geom {}", geom.side);
@@ -430,6 +520,68 @@ fn plot_side_hist(
     }
 }
 
+fn plot_side_box(
+    mut commands: Commands,
+    ui_state: Res<UiState>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, Without<PopUp>)>,
+    mut query: Query<(&mut Transform, &Xaxis), With<Unscale>>,
+) {
+    for (colors, aes, mut geom) in aes_query.iter_mut() {
+        if geom.rendered {
+            continue;
+        }
+        let min_val = min_f32(&colors.0);
+        let max_val = max_f32(&colors.0);
+
+        for (mut trans, axis) in query.iter_mut() {
+            if let Some(index) = aes
+                .identifiers
+                .iter()
+                .position(|r| (r == &axis.id) & (geom.side == axis.side))
+            {
+                let color = lerp_hsv(
+                    (colors.0[index] - min_val) / (max_val - min_val),
+                    ui_state.min_reaction_color,
+                    ui_state.max_reaction_color,
+                );
+                match geom.plot {
+                    HistPlot::Hist | HistPlot::Kde => {
+                        warn!(
+                            "Tried to plot a distribution from one point. Coercing to a Box Point!"
+                        );
+                    }
+                    _ => (),
+                };
+
+                let line_box = plot_box_point(
+                    axis.conditions.len(),
+                    axis.conditions
+                        .iter()
+                        .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
+                        .unwrap_or(0),
+                );
+                trans.translation.z += 10.;
+                commands
+                    .spawn(GeometryBuilder::build_as(
+                        &line_box,
+                        DrawMode::Outlined {
+                            fill_mode: FillMode::color(color),
+                            outline_mode: StrokeMode::new(Color::BLACK, 2.),
+                        },
+                        *trans,
+                    ))
+                    .insert(HistTag {
+                        side: geom.side.clone(),
+                        condition: aes.condition.clone(),
+                        node_id: axis.node_id,
+                    })
+                    .insert(Unscale {});
+            }
+            geom.rendered = true;
+        }
+    }
+}
+
 /// Plot hovered histograms of both metabolites and reactions.
 fn plot_hover_hist(
     mut commands: Commands,
@@ -455,6 +607,10 @@ fn plot_hover_hist(
                 let line = match geom.plot {
                     HistPlot::Hist => plot_hist(this_dist, 30, 600., *xlimits),
                     HistPlot::Kde => plot_kde(this_dist, 200, 600., *xlimits),
+                    HistPlot::BoxPoint => {
+                        warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
+                        continue 'outer;
+                    }
                 };
                 if line.is_none() {
                     continue 'outer;
@@ -512,7 +668,7 @@ fn plot_hover_hist(
 /// It treats the two sides independently.
 fn normalize_histogram_height(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut Transform, &mut Path, &mut DrawMode, &HistTag)>,
+    mut query: Query<(&mut Transform, &mut Path, &mut DrawMode, &HistTag), Without<Unscale>>,
 ) {
     for (mut trans, path, mut draw_mode, hist) in query.iter_mut() {
         let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());

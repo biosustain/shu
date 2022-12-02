@@ -108,6 +108,10 @@ pub struct Data {
     kde_left_y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot on a hovered popup.
     kde_hover_y: Option<Vec<Vec<Number>>>,
+    /// Numeric values to plot as KDE.
+    box_y: Option<Vec<Number>>,
+    /// Numeric values to plot as KDE.
+    box_left_y: Option<Vec<Number>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
     /// Vector of metabolites' identifiers
@@ -272,6 +276,38 @@ fn load_data(
                     if i > 3 {
                         ent_commands.insert(geom::PopUp {});
                     }
+                }
+            }
+            for (i, var) in [&mut data.box_y, &mut data.box_left_y].iter().enumerate() {
+                if let Some(point_data) = var {
+                    let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+                        .iter()
+                        .map(|i| &point_data[*i])
+                        .zip(identifiers.iter())
+                        // filter values that are NaN
+                        .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
+                        .unzip();
+                    // remove existing sizes geoms
+                    for e in current_hist.iter() {
+                        commands.entity(e).despawn_recursive();
+                    }
+                    let geom = match i {
+                        0 => geom::GeomHist::right(geom::HistPlot::BoxPoint),
+                        _ => geom::GeomHist::left(geom::HistPlot::BoxPoint),
+                    };
+                    commands
+                        .spawn(aesthetics::Gy {})
+                        .insert(aesthetics::Point(std::mem::take(&mut data)))
+                        .insert(geom)
+                        .insert(aesthetics::Aesthetics {
+                            plotted: false,
+                            identifiers: ids,
+                            condition: if cond.is_empty() {
+                                None
+                            } else {
+                                Some(cond.to_string())
+                            },
+                        });
                 }
             }
         }

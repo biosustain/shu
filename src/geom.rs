@@ -20,10 +20,12 @@ pub enum Side {
 pub enum HistPlot {
     Hist,
     Kde,
+    // Point estimate.
+    BoxPoint,
 }
 
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
-/// the a KDE on the side of the arrows in the map..
+/// a histogram/KDE/box on the side of the arrows in the map.
 #[derive(Component, Clone, Debug)]
 pub struct GeomHist {
     pub side: Side,
@@ -86,6 +88,7 @@ pub struct Xaxis {
     pub node_id: u64,
     pub dragged: bool,
     pub rotating: bool,
+    pub conditions: Vec<String>,
 }
 
 impl std::fmt::Display for Side {
