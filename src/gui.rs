@@ -46,6 +46,8 @@ pub struct UiState {
     pub condition: String,
     pub conditions: Vec<String>,
     pub save_path: String,
+    pub map_path: String,
+    pub data_path: String,
 }
 
 impl Default for UiState {
@@ -68,6 +70,8 @@ impl Default for UiState {
             condition: String::from(""),
             conditions: vec![String::from("")],
             save_path: String::from("this_map.json"),
+            map_path: String::from("my_map.json"),
+            data_path: String::from("my_data.metabolism.json"),
         }
     }
 }
@@ -75,9 +79,11 @@ impl Default for UiState {
 struct SaveEvent(String);
 
 fn ui_settings(
+    windows: Res<Windows>,
     mut egui_context: ResMut<EguiContext>,
     mut ui_state: ResMut<UiState>,
     mut save_events: EventWriter<SaveEvent>,
+    mut load_events: EventWriter<FileDragAndDrop>,
 ) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         ui.label("Reaction scale");
@@ -130,6 +136,28 @@ fn ui_settings(
                     save_events.send(SaveEvent(ui_state.save_path.clone()))
                 }
                 ui.text_edit_singleline(&mut ui_state.save_path);
+            })
+        });
+        ui.collapsing("Import", |ui| {
+            // piggyback on file_drop()
+            let win = windows.get_primary().expect("no primary window");
+            ui.horizontal(|ui| {
+                if ui.button("Map").clicked() {
+                    load_events.send(FileDragAndDrop::DroppedFile {
+                        id: win.id(),
+                        path_buf: ui_state.map_path.clone().into(),
+                    });
+                }
+                ui.text_edit_singleline(&mut ui_state.map_path);
+            });
+            ui.horizontal(|ui| {
+                if ui.button("Data").clicked() {
+                    load_events.send(FileDragAndDrop::DroppedFile {
+                        id: win.id(),
+                        path_buf: ui_state.data_path.clone().into(),
+                    })
+                }
+                ui.text_edit_singleline(&mut ui_state.data_path);
             })
         })
     });
