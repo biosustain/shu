@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-from ggshu import aes, geom_arrow, geom_kde, ggmap, geom_metabolite
+from ggshu import aes, geom_arrow, geom_kde, ggmap, geom_metabolite, geom_boxpoint
 
 
 def test_ggmap_can_be_built(df):
@@ -52,7 +52,7 @@ def test_plotting_metabolites_are_correctly_added_from_geoms(df):
         ggmap(df, aes(reaction="r", color="flux", size="flux", y="kcat"))
         + geom_arrow()
         + geom_metabolite(aes=aes(color="conc", metabolite="m"))
-        + geom_kde(side="left")
+        + geom_boxpoint(side="left")
     ).plotting_data
     assert [
         key in plotting_data

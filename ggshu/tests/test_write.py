@@ -14,4 +14,4 @@ def test_writing_does_not_raise(df_cond):
         + geom_kde(aes=aes(y="km"), mets=True)
     ).to_json(file_name)
     assert os.path.exists(file_name + ".metabolism.json")
-    os.remove(file_name + "metabolism.json")
+    os.remove(file_name + ".metabolism.json")

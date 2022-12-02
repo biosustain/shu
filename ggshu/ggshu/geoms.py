@@ -166,3 +166,22 @@ class GeomMetabolite(GeomArrow):
         super().__init__(df=df, aes=aes)
         self.mapping = {"color": "met_colors", "size": "met_sizes"}
         self.post_init()
+
+
+class GeomBoxPoint(GeomArrow):
+    """Geometric mapping from aesthetics to the circles (metabolites) in the metabolic map.
+
+    Parameters
+    ----------
+    aes: Optional[Aesthetics]
+        with accepted aesthetics being `{"metabolite", "color", "size"}`.
+    """
+
+    def __init__(
+        self, *, df: Optional[pd.DataFrame] = None, aes: Optional[Aesthetics] = None, side="right",
+    ):
+        super().__init__(df=df, aes=aes)
+        self.mapping = {
+            "y": "box_y" if side == "right" else "box_left_y"
+        }
+        self.post_init()
