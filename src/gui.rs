@@ -13,16 +13,22 @@ pub struct GuiPlugin;
 
 impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugin(EguiPlugin)
+        let building = app
+            .add_plugin(EguiPlugin)
             .insert_resource(UiState::default())
             .add_event::<SaveEvent>()
             .add_system(ui_settings)
             .add_system(show_hover)
             .add_system(follow_mouse_on_drag)
             .add_system(follow_mouse_on_rotate)
-            .add_system(mouse_click_system)
-            .add_system(file_drop)
-            .add_system(save_file);
+            .add_system(mouse_click_system);
+            
+        // file drop and file system does not work in WASM 
+        #[cfg(not(target_arch = "wasm32"))]
+        building.add_system(file_drop).add_system(save_file);
+
+        #[cfg(target_arch = "wasm32")]
+        building.add_system(listen_js_escher).add_system(listen_js_data);
     }
 }
 
@@ -130,6 +136,9 @@ fn ui_settings(
                     });
             }
         }
+        // direct interactions with the file system are not supported in WASM
+        // for loading, direct wasm bindings are being used.
+        #[cfg(not(target_arch = "wasm32"))]
         ui.collapsing("Export", |ui| {
             ui.horizontal(|ui| {
                 if ui.button("Save").clicked() {
@@ -138,6 +147,7 @@ fn ui_settings(
                 ui.text_edit_singleline(&mut ui_state.save_path);
             })
         });
+        #[cfg(not(target_arch = "wasm32"))]
         ui.collapsing("Import", |ui| {
             // piggyback on file_drop()
             let win = windows.get_primary().expect("no primary window");
@@ -184,6 +194,7 @@ fn file_drop(
                 let reaction_handle: Handle<Data> = asset_server.load(path_buf.to_str().unwrap());
                 reaction_resource.reaction_data = Some(reaction_handle);
                 reaction_resource.reac_loaded = false;
+                reaction_resource.met_loaded = false;
                 info! {"Reactions dropped!"};
             } else {
                 //an escher map
@@ -361,5 +372,37 @@ fn save_file(
             serde_json::to_string(escher_map).expect("Serializing the map failed!"),
         )
         .expect("Saving the model failed!");
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+/// WASM Part.
+#[derive(Resource)]
+pub struct ReceiverResource<T> {
+    pub rx: async_std::channel::Receiver<T>,
+}
+
+#[cfg(target_arch = "wasm32")]
+fn listen_js_escher(
+    receiver: Res<ReceiverResource<EscherMap>>,
+    mut escher_asset: ResMut<Assets<EscherMap>>,
+    mut escher_resource: ResMut<MapState>,
+) {
+    if let Ok(escher_map) = receiver.rx.try_recv() {
+        escher_resource.escher_map = escher_asset.add(escher_map);
+        escher_resource.loaded = false;
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn listen_js_data(
+    receiver: Res<ReceiverResource<Data>>,
+    mut data_asset: ResMut<Assets<Data>>,
+    mut data_resource: ResMut<ReactionState>,
+) {
+    if let Ok(escher_map) = receiver.rx.try_recv() {
+        data_resource.reaction_data = Some(data_asset.add(escher_map));
+        data_resource.reac_loaded = false;
+        data_resource.met_loaded = false;
     }
 }

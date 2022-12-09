@@ -13,6 +13,34 @@ bevy_prototype_lyon = "0.7.1"
 itertools = "0.10.5"
 serde = "1.0.147"
 serde_json = "1.0.88"
+console_error_panic_hook = "0.1"
+
+# dependencies exclusive for wasm32
+# activate the target toggle once developed
+# [target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2.83", features = ["serde", "serde-serialize"] }
+wasm-bindgen-futures = "0.4.33"
+async-std = "1.12.0"
+
+# [target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'CanvasRenderingContext2d',
+  'CssStyleDeclaration',
+  'Document',
+  'Element',
+  'EventTarget',
+	'File',
+	'FileList',
+  'HtmlLabelElement',
+  'HtmlInputElement',
+  'HtmlElement',
+  'MouseEvent',
+  'Node',
+  'Window',
+  'console',
+]
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
@@ -21,4 +49,20 @@ opt-level = 1
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
+
+[profile.wasm-release]
+# Use release profile as default values
+inherits = "release"
+
+# Optimize with size in mind, also try "s", sometimes it is better.
+# This doesn't increase compilation times compared to -O3, great improvements
+opt-level = "z"
+
+# Do a second optimization pass removing duplicate or unused code from dependencies.
+# Slows compile times, marginal improvements
+lto = "fat"
+
+# When building crates, optimize larger chunks at a time
+# Slows compile times, marginal improvements
+codegen-units = 1
 

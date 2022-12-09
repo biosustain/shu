@@ -4,6 +4,7 @@ use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_prototype_lyon::prelude::*;
+use serde::Deserialize;
 
 mod aesthetics;
 mod data;
@@ -14,13 +15,130 @@ mod gui;
 
 use escher::{EscherMap, EscherPlugin, MapState};
 
+/// Data sent from callback through the channel.
+#[derive(Deserialize, Debug, Default, Clone, PartialEq)]
+pub struct Example {
+    pub field1: [f32; 4],
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 fn main() {
     App::new()
         .insert_resource(Msaa { samples: 4 })
+        .add_plugins(DefaultPlugins)
+        .add_plugin(PanCamPlugin::default())
+        .add_plugin(ShapePlugin)
+        .add_plugin(EscherPlugin)
+        .add_plugin(gui::GuiPlugin)
+        .add_plugin(data::DataPlugin)
+        .add_startup_system(setup_system)
+        .add_plugin(aesthetics::AesPlugin)
+        .run();
+}
+
+#[cfg(target_arch = "wasm32")]
+/// Main function with WASM additions.
+/// Three main differences:
+/// - Get WASM modules.
+/// - Create a button that sends data through a channel.
+/// - Insert a Receiver resource so that systems can listen to that.
+fn main() {
+    use async_std::channel::{unbounded, Receiver, Sender};
+    use gui::ReceiverResource;
+    use wasm_bindgen::prelude::*;
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_futures::{spawn_local, JsFuture};
+    use web_sys::console;
+    use web_sys::HtmlInputElement;
+
+    let (map_sender, map_receiver): (Sender<EscherMap>, Receiver<EscherMap>) = unbounded();
+    let (data_sender, data_receiver): (Sender<data::Data>, Receiver<data::Data>) = unbounded();
+
+    // When building for WASM, print panics to the browser console
+    console_error_panic_hook::set_once();
+    let document = web_sys::window().unwrap().document().unwrap();
+    // button for loading maps
+    let target_map = document
+        .create_element("input")
+        .unwrap_throw()
+        .dyn_into::<HtmlInputElement>()
+        .unwrap();
+    target_map.set_type("file");
+    target_map.set_name("fileb");
+    target_map.set_id("fileb");
+    target_map.set_class_name("fileb");
+    // button for loading data
+    let target_data = document
+        .create_element("input")
+        .unwrap_throw()
+        .dyn_into::<HtmlInputElement>()
+        .unwrap();
+    target_data.set_type("file");
+    target_data.set_name("fileData");
+    target_data.set_id("fileData");
+    target_data.set_class_name("fileData");
+
+    let body = document.body().unwrap();
+    body.append_child(&target_map).unwrap();
+    body.append_child(&target_data).unwrap();
+
+    let map_closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
+        let s = map_sender.clone();
+        spawn_local(async move {
+            console::log_1(&"checking closure".into());
+            if let Some(Some(file_list)) = event.target().map(|t| {
+                t.dyn_ref::<HtmlInputElement>()
+                    .expect("target_brows is an <input>")
+                    .files()
+            }) {
+                let text = JsFuture::from(file_list.get(0).unwrap().text())
+                    .await
+                    .unwrap()
+                    .as_string()
+                    .unwrap();
+                if let Ok(escher_map) = serde_json::from_str(&text) {
+                    s.send(escher_map).await.unwrap();
+                } else {
+                    console::warn_1(&"Provided file does not have right shape".into())
+                }
+            }
+        })
+    }) as Box<dyn FnMut(_)>);
+    let data_closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
+        let s = data_sender.clone();
+        spawn_local(async move {
+            console::log_1(&"checking closure".into());
+            if let Some(Some(file_list)) = event.target().map(|t| {
+                t.dyn_ref::<HtmlInputElement>()
+                    .expect("target_brows is an <input>")
+                    .files()
+            }) {
+                let text = JsFuture::from(file_list.get(0).unwrap().text())
+                    .await
+                    .unwrap()
+                    .as_string()
+                    .unwrap();
+                if let Ok(escher_map) = serde_json::from_str(&text) {
+                    s.send(escher_map).await.unwrap();
+                } else {
+                    console::warn_1(&"Provided file does not have right shape".into())
+                }
+            }
+        })
+    }) as Box<dyn FnMut(_)>);
+    console::log_1(&"closure setup done!".into());
+    target_map.set_onchange(Some(map_closure.as_ref().unchecked_ref()));
+    target_data.set_onchange(Some(data_closure.as_ref().unchecked_ref()));
+
+    App::new()
+        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(ReceiverResource { rx: map_receiver })
+        .insert_resource(ReceiverResource { rx: data_receiver })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "shu".to_string(),
                 fit_canvas_to_parent: true,
+                canvas: Some("#bevy".to_string()),
                 ..default()
             },
             ..default()
