@@ -349,7 +349,11 @@ fn load_data(
                     .spawn(aesthetics::Aesthetics {
                         plotted: false,
                         identifiers: ids,
-                        condition: None,
+                        condition: if cond.is_empty() {
+                            None
+                        } else {
+                            Some(cond.to_string())
+                        },
                     })
                     .insert(aesthetics::Gcolor {})
                     .insert(aesthetics::Point(std::mem::take(&mut data)))
@@ -372,7 +376,11 @@ fn load_data(
                     .spawn(aesthetics::Aesthetics {
                         plotted: false,
                         identifiers: ids,
-                        condition: None,
+                        condition: if cond.is_empty() {
+                            None
+                        } else {
+                            Some(cond.to_string())
+                        },
                     })
                     .insert(aesthetics::Gsize {})
                     .insert(aesthetics::Point(std::mem::take(&mut data)))
@@ -406,7 +414,11 @@ fn load_data(
                         .spawn(aesthetics::Aesthetics {
                             plotted: false,
                             identifiers: ids,
-                            condition: None,
+                            condition: if cond.is_empty() {
+                                None
+                            } else {
+                                Some(cond.to_string())
+                            },
                         })
                         .insert(aesthetics::Gy {})
                         .insert(aesthetics::Distribution(std::mem::take(&mut data)))
@@ -442,7 +454,11 @@ fn load_data(
                         .spawn(aesthetics::Aesthetics {
                             plotted: false,
                             identifiers: ids,
-                            condition: None,
+                            condition: if cond.is_empty() {
+                                None
+                            } else {
+                                Some(cond.to_string())
+                            },
                         })
                         .insert(aesthetics::Gy {})
                         .insert(aesthetics::Distribution(std::mem::take(&mut data)))

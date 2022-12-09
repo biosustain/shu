@@ -183,6 +183,11 @@ pub fn plot_metabolite_size(
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomMetabolite>, With<Gsize>)>,
 ) {
     for (sizes, aes) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
         let min_val = min_f32(&sizes.0);
         let max_val = max_f32(&sizes.0);
         for (mut path, arrow) in query.iter_mut() {
@@ -214,6 +219,11 @@ pub fn plot_metabolite_color(
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomMetabolite>, With<Gcolor>)>,
 ) {
     for (colors, aes) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
         let min_val = min_f32(&colors.0);
         let max_val = max_f32(&colors.0);
         for (mut draw_mode, arrow) in query.iter_mut() {
