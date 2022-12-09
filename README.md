@@ -1,5 +1,7 @@
 # shu
 
+<img align="right" width="172" height="228" src="./assets/logo.svg">
+
 ## What?
 
 App to plot multidimensional data to a metabolic map. Metabolic maps are graphs with metabolites
