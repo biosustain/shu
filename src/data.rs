@@ -155,12 +155,15 @@ fn load_data(
     }
     info!("Loading Reaction data!");
     let data = custom_asset.unwrap();
-    let conditions = data.conditions.clone().unwrap_or(vec![String::from("")]);
+    let conditions = data
+        .conditions
+        .clone()
+        .unwrap_or_else(|| vec![String::from("")]);
     let cond_set = conditions.iter().unique().collect::<HashSet<&String>>();
     if let Some(reactions) = data.reactions.as_ref() {
         for cond in cond_set.iter() {
-            let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
-                data.reactions
+            let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() <= 1) {
+                reactions
                     .iter()
                     .enumerate()
                     .map(|(i, _)| i)
@@ -317,7 +320,7 @@ fn load_data(
     if let Some(metabolites) = data.metabolites.as_ref() {
         for cond in cond_set {
             let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
-                data.reactions
+                metabolites
                     .iter()
                     .enumerate()
                     .map(|(i, _)| i)
