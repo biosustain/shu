@@ -169,7 +169,12 @@ fn ui_settings(
                 }
                 ui.text_edit_singleline(&mut ui_state.data_path);
             })
-        })
+        });
+
+        ui.add(egui::Hyperlink::from_label_and_url(
+            "How to use?",
+            "https://shu.readthedocs.io",
+        ));
     });
 }
 
