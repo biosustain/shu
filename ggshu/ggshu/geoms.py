@@ -182,6 +182,6 @@ class GeomBoxPoint(GeomArrow):
     ):
         super().__init__(df=df, aes=aes)
         self.mapping = {
-            "y": "box_y" if side == "right" else "box_left_y"
+            "color": "box_y" if side == "right" else "box_left_y"
         }
         self.post_init()
