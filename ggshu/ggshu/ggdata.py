@@ -48,15 +48,15 @@ class PlotData:
         self.df_met = None
         self.plotting_data = {}
         if "reaction" in aes:
-            self.plotting_data["reactions"] = df[aes["reaction"]]
             self.df_reac: pd.DataFrame = (
                 df.groupby(reac_grouping).agg(list).reset_index()
             )
+            self.plotting_data["reactions"] = self.df_reac[aes["reaction"]]
         if "condition" in aes:
             self.plotting_data["conditions"] = df[aes["condition"]]
         if "metabolite" in aes:
-            self.plotting_data["metabolites"] = df[aes["metabolite"]]
             self.df_met: pd.DataFrame = df.groupby(met_grouping).agg(list).reset_index()
+            self.plotting_data["metabolites"] = self.df_met[aes["metabolite"]]
 
     def __add__(self, other: Geom) -> "PlotData":
         """Add a geom to be plotted."""
@@ -91,7 +91,7 @@ class PlotData:
                     )
                 if "reaction" in other.aes and other.df is None:
                     self.plotting_data["reactions"] = self.df_reac[self.aes["reaction"]]
-                else:
+                elif "reaction" in other.aes:
                     self.plotting_data["reactions"] = other.df[other.aes["reaction"]]
             self.plotting_data.update(other.map(self.df_reac, self.aes))
         return self
