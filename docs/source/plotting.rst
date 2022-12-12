@@ -42,9 +42,9 @@ Now, let's say we want to plot the flux as the size and colors of the arrows.
        ggmap(df, aes(reaction="reactions", size="flux", color="kcat"))
    )
 
-With this we are saying that the column ``reactions`` in the dataframe is the identifies the reactions
-in the map, ``df.flux`` is map to the size and ``df.kcat`` to the color. Now, we only need to specify
-which geometrical mapping; i.e., the size and color of what (histogram, arrow, nodes, etc.).
+With this we are saying that the column ``reactions`` in the dataframe identifies the reactions
+in the map, ``df.flux`` maps to the size and ``df.kcat`` to the color. Now, we only need to specify
+which geometrical mapping to use; i.e., the size and color of what (histogram, arrow, nodes, etc.).
 
 .. code-block:: python
 
@@ -54,7 +54,7 @@ which geometrical mapping; i.e., the size and color of what (histogram, arrow, n
    )
 
 Looking at the image at the top of this page, we can see that the arrow aesthetics take the size and color
-and aesthetics, so we only needed to specificy the ``geom_arrow()``. Finally, we can export the data as file
+as aesthetics, so we only needed to specificy the ``geom_arrow()``. Finally, we can export the data as file
 that can be used by shu.
 
 .. code-block:: python
@@ -81,12 +81,13 @@ The map should look like this:
 Plotting distributions
 ----------------------
 
-For the simple example, it did not really matter since we had one value for each reaction. However, to plot
-more variables to distribution geoms, it is important to understand that ggshu uses a dataframe in `tidy format`_.
+For the simple example, the shape of the dataframe did not really matter since
+we had one value for each reaction. However, to plot more variables to
+distribution geoms, it is important to understand that ggshu uses a dataframe
+in `tidy format`_.
 
 The rows are the observations and the columns are the variables or features. This effectively means that a reaction
-can appear in more than one row. For the size and color of ``geom_arrow()`` this did not matter because distributions get coerced to their mean, but let's try
-now to plot distributions.
+can appear in more than one row. Let's now plot some distributions.
 
 .. code-block:: python
 
@@ -105,6 +106,7 @@ summary statistics per reaction. This loses a lot of information. Luckily, we ca
    (
        # notice the change in the aesthetics!
        ggmap(df, aes(reaction="reactions", y="kcat"))
+       # plot kcats as the y-axis of the histograms
        + geom_hist()
    )
 
@@ -143,7 +145,7 @@ The generated file `flux_kcat_dist.metabolism.json` can be used like before at `
 .. image:: img/geom_dist_screen.png
   :alt: Distributions plotted in shu.
 
-There is not enough data to generate a meaningful histogram.
+Notice how, there is not enough data to generate a meaningful histogram.
 
 .. note::
 
@@ -190,7 +192,7 @@ Using two dataframes
 --------------------
 
 In the previous section, we used a dataframe called ``df_cond``. To make it work like that,
-df_cond conditions has to be aligned with both reactions and metabolites. Usually, this is not easy, so ggshu provides a way to generate the reaction mapping and metabolite mapping separetely and then merge it by using the division `/` operator.
+``df_cond.conditions`` has to be aligned with both reactions and metabolites. Usually, this is not easy, so ggshu provides a way to generate the reaction mapping and metabolite mapping separetely and then merge it by using the division ``/`` operator.
 
 .. code-block:: python
 
@@ -232,7 +234,7 @@ Sometimes distributed data is not available but we have different variables that
    ).to_json("flux_kcat_dist")
 
 .. image:: img/geom_boxpoint_screen.png
-  :alt: Distributions plotted in shu.
+  :alt: Distributions and point estimates plotted in shu.
 
 Data Format
 -----------
