@@ -4,8 +4,8 @@ use crate::data::{Data, ReactionState};
 use crate::escher::{EscherMap, Hover, MapState};
 use crate::geom::{AnyTag, HistTag, Xaxis};
 use bevy::prelude::*;
-use bevy_egui::egui::color_picker::{color_edit_button_hsva, color_edit_button_rgba, Alpha};
-use bevy_egui::egui::epaint::color::{Hsva, Rgba};
+use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
+use bevy_egui::egui::epaint::color::Rgba;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use std::collections::HashMap;
 
