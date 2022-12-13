@@ -22,13 +22,15 @@ impl Plugin for GuiPlugin {
             .add_system(follow_mouse_on_drag)
             .add_system(follow_mouse_on_rotate)
             .add_system(mouse_click_system);
-            
-        // file drop and file system does not work in WASM 
+
+        // file drop and file system does not work in WASM
         #[cfg(not(target_arch = "wasm32"))]
         building.add_system(file_drop).add_system(save_file);
 
         #[cfg(target_arch = "wasm32")]
-        building.add_system(listen_js_escher).add_system(listen_js_data);
+        building
+            .add_system(listen_js_escher)
+            .add_system(listen_js_data);
     }
 }
 
@@ -38,12 +40,12 @@ pub struct UiState {
     pub min_reaction: f32,
     pub max_reaction: f32,
     pub zero_white: bool,
-    pub min_reaction_color: Hsva,
-    pub max_reaction_color: Hsva,
+    pub min_reaction_color: Rgba,
+    pub max_reaction_color: Rgba,
     pub min_metabolite: f32,
     pub max_metabolite: f32,
-    pub min_metabolite_color: Hsva,
-    pub max_metabolite_color: Hsva,
+    pub min_metabolite_color: Rgba,
+    pub max_metabolite_color: Rgba,
     pub max_left: f32,
     pub max_right: f32,
     pub max_top: f32,
@@ -60,10 +62,10 @@ pub struct UiState {
 impl Default for UiState {
     fn default() -> Self {
         Self {
-            min_reaction_color: Hsva::new(0.58, 0.2, 0.5, 1.),
-            max_reaction_color: Hsva::new(0.58, 0.3, 0.85, 1.),
-            min_metabolite_color: Hsva::new(0.28, 0.2, 0.5, 1.),
-            max_metabolite_color: Hsva::new(0.28, 0.3, 0.85, 1.),
+            min_reaction_color: Rgba::from_srgba_unmultiplied(164, 191, 232, 255),
+            max_reaction_color: Rgba::from_srgba_unmultiplied(42, 98, 183, 255),
+            min_metabolite_color: Rgba::from_srgba_unmultiplied(183, 110, 42, 255),
+            max_metabolite_color: Rgba::from_srgba_unmultiplied(186, 148, 113, 255),
             zero_white: false,
             min_reaction: 20.,
             max_reaction: 60.,
@@ -96,20 +98,20 @@ fn ui_settings(
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         ui.label("Reaction scale");
         ui.horizontal(|ui| {
-            color_edit_button_hsva(ui, &mut ui_state.min_reaction_color, Alpha::Opaque);
+            color_edit_button_rgba(ui, &mut ui_state.min_reaction_color, Alpha::Opaque);
             ui.add(egui::Slider::new(&mut ui_state.min_reaction, 5.0..=90.0).text("min"));
         });
         ui.horizontal(|ui| {
-            color_edit_button_hsva(ui, &mut ui_state.max_reaction_color, Alpha::Opaque);
+            color_edit_button_rgba(ui, &mut ui_state.max_reaction_color, Alpha::Opaque);
             ui.add(egui::Slider::new(&mut ui_state.max_reaction, 5.0..=90.0).text("max"));
         });
         ui.label("Metabolite scale");
         ui.horizontal(|ui| {
-            color_edit_button_hsva(ui, &mut ui_state.min_metabolite_color, Alpha::Opaque);
+            color_edit_button_rgba(ui, &mut ui_state.min_metabolite_color, Alpha::Opaque);
             ui.add(egui::Slider::new(&mut ui_state.min_metabolite, 5.0..=90.0).text("min"));
         });
         ui.horizontal(|ui| {
-            color_edit_button_hsva(ui, &mut ui_state.max_metabolite_color, Alpha::Opaque);
+            color_edit_button_rgba(ui, &mut ui_state.max_metabolite_color, Alpha::Opaque);
             ui.add(egui::Slider::new(&mut ui_state.max_metabolite, 5.0..=90.0).text("max"));
         });
         ui.label("Histogram scale");
@@ -353,16 +355,13 @@ fn follow_mouse_on_rotate(
                 // clamping of angle to rect angles
                 let (_, angle) = trans.rotation.to_axis_angle();
                 const TOL: f32 = 0.06;
-                if f32::abs(angle) < TOL  {
+                if f32::abs(angle) < TOL {
                     trans.rotation = Quat::from_axis_angle(Vec3::Z, 0.);
-                }
-                else if f32::abs(angle - std::f32::consts::PI) < TOL  {
+                } else if f32::abs(angle - std::f32::consts::PI) < TOL {
                     trans.rotation = Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI);
-                }
-                else if f32::abs(angle - std::f32::consts::PI / 2.) < TOL  {
+                } else if f32::abs(angle - std::f32::consts::PI / 2.) < TOL {
                     trans.rotation = Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI / 2.);
-                }
-                else if f32::abs(angle - 3. * std::f32::consts::PI / 2.) < TOL  {
+                } else if f32::abs(angle - 3. * std::f32::consts::PI / 2.) < TOL {
                     trans.rotation = Quat::from_axis_angle(Vec3::Z, 3. * std::f32::consts::PI / 2.);
                 }
             }
