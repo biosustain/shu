@@ -570,11 +570,21 @@ fn plot_side_box(
                 .iter()
                 .position(|r| (r == &axis.id) & (geom.side == axis.side))
             {
-                let color = lerp_hsv(
-                    (colors.0[index] - min_val) / (max_val - min_val),
-                    ui_state.min_reaction_color,
-                    ui_state.max_reaction_color,
-                );
+                let color = if ui_state.zero_white & ((min_val * max_val) < 0.) {
+                    lerp3_hsv(
+                        colors.0[index],
+                        min_val,
+                        max_val,
+                        ui_state.min_reaction_color,
+                        ui_state.max_reaction_color,
+                    )
+                } else {
+                    lerp_hsv(
+                        (colors.0[index] - min_val) / (max_val - min_val),
+                        ui_state.min_reaction_color,
+                        ui_state.max_reaction_color,
+                    )
+                };
                 match geom.plot {
                     HistPlot::Hist | HistPlot::Kde => {
                         warn!(
@@ -584,23 +594,51 @@ fn plot_side_box(
                     _ => (),
                 };
 
-                let line_box = plot_box_point(
-                    axis.conditions.len(),
-                    axis.conditions
-                        .iter()
-                        .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
-                        .unwrap_or(0),
-                );
                 trans.translation.z += 10.;
-                commands
-                    .spawn(GeometryBuilder::build_as(
+                let shape = if f32::abs(colors.0[index]) > 1e-7 {
+                    let line_box = plot_box_point(
+                        axis.conditions.len(),
+                        axis.conditions
+                            .iter()
+                            .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
+                            .unwrap_or(0),
+                    );
+                    GeometryBuilder::build_as(
                         &line_box,
                         DrawMode::Outlined {
                             fill_mode: FillMode::color(color),
                             outline_mode: StrokeMode::new(Color::BLACK, 2.),
                         },
-                        trans.with_scale(Vec3::new(1.,1.,1.)),
-                    ))
+                        trans.with_scale(Vec3::new(1., 1., 1.)),
+                    )
+                } else {
+                    let circle_center = if axis.conditions.is_empty() {
+                        0.
+                    } else {
+                        let center = axis
+                            .conditions
+                            .iter()
+                            .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
+                            .unwrap_or(0) as f32
+                            * 40.0
+                            * 1.2;
+                        center - axis.conditions.len() as f32 * 40.0 * 1.2 / 2.
+                    };
+                    let shape = shapes::Circle {
+                        radius: 10.,
+                        center: Vec2::new(circle_center, 20.),
+                    };
+                    GeometryBuilder::build_as(
+                        &shape,
+                        DrawMode::Outlined {
+                            fill_mode: FillMode::color(color),
+                            outline_mode: StrokeMode::new(Color::BLACK, 2.),
+                        },
+                        trans.with_scale(Vec3::new(1., 1., 1.)),
+                    )
+                };
+                commands
+                    .spawn(shape)
                     .insert(HistTag {
                         side: geom.side.clone(),
                         condition: aes.condition.clone(),
