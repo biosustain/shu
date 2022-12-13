@@ -347,6 +347,21 @@ fn follow_mouse_on_rotate(
             let pos = trans.translation;
             if axis.rotating {
                 trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
+                // clamping of angle to rect angles
+                let (_, angle) = trans.rotation.to_axis_angle();
+                const TOL: f32 = 0.06;
+                if f32::abs(angle) < TOL  {
+                    trans.rotation = Quat::from_axis_angle(Vec3::Z, 0.);
+                }
+                else if f32::abs(angle - std::f32::consts::PI) < TOL  {
+                    trans.rotation = Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI);
+                }
+                else if f32::abs(angle - std::f32::consts::PI / 2.) < TOL  {
+                    trans.rotation = Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI / 2.);
+                }
+                else if f32::abs(angle - 3. * std::f32::consts::PI / 2.) < TOL  {
+                    trans.rotation = Quat::from_axis_angle(Vec3::Z, 3. * std::f32::consts::PI / 2.);
+                }
             }
         }
     }
