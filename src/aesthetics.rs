@@ -578,7 +578,7 @@ fn plot_side_box(
                             fill_mode: FillMode::color(color),
                             outline_mode: StrokeMode::new(Color::BLACK, 2.),
                         },
-                        *trans,
+                        trans.with_scale(Vec3::new(1.,1.,1.)),
                     ))
                     .insert(HistTag {
                         side: geom.side.clone(),
@@ -708,7 +708,7 @@ fn normalize_histogram_height(
 
 /// Unscale up children of scaled histograms.
 fn unscale_histogram_children(
-    parents: Query<(Entity, &Children), With<HistTag>>,
+    parents: Query<(Entity, &Children), (With<HistTag>, Without<Unscale>)>,
     mut query: Query<&mut Transform>,
 ) {
     for (parent, children) in parents.iter() {
