@@ -2,6 +2,7 @@
 
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
+use bevy::winit::WinitSettings;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_prototype_lyon::prelude::*;
 use serde::Deserialize;
@@ -25,6 +26,7 @@ pub struct Example {
 fn main() {
     App::new()
         .insert_resource(Msaa { samples: 4 })
+        .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins)
         .add_plugin(PanCamPlugin::default())
         .add_plugin(ShapePlugin)
@@ -132,6 +134,7 @@ fn main() {
 
     App::new()
         .insert_resource(Msaa { samples: 4 })
+        .insert_resource(WinitSettings::desktop_app())
         .insert_resource(ReceiverResource { rx: map_receiver })
         .insert_resource(ReceiverResource { rx: data_receiver })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
