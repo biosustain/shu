@@ -37,6 +37,7 @@ impl Plugin for GuiPlugin {
 pub struct UiState {
     pub min_reaction: f32,
     pub max_reaction: f32,
+    pub zero_white: bool,
     pub min_reaction_color: Hsva,
     pub max_reaction_color: Hsva,
     pub min_metabolite: f32,
@@ -63,6 +64,7 @@ impl Default for UiState {
             max_reaction_color: Hsva::new(0.58, 0.3, 0.85, 1.),
             min_metabolite_color: Hsva::new(0.28, 0.2, 0.5, 1.),
             max_metabolite_color: Hsva::new(0.28, 0.3, 0.85, 1.),
+            zero_white: false,
             min_reaction: 20.,
             max_reaction: 60.,
             min_metabolite: 20.,
@@ -123,6 +125,7 @@ fn ui_settings(
             color_edit_button_rgba(ui, &mut ui_state.color_top, Alpha::BlendOrAdditive);
             ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("top"));
         });
+        ui.checkbox(&mut ui_state.zero_white, "Zero as white");
         if let Some(first_cond) = ui_state.conditions.get(0) {
             if !((first_cond.is_empty()) & (ui_state.conditions.len() == 1)) {
                 let conditions = ui_state.conditions.clone();

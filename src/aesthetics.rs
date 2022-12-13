@@ -1,6 +1,7 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
 use crate::funcplot::{
-    lerp, lerp_hsv, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist, plot_kde, plot_scales,
+    lerp, lerp3_hsv, lerp_hsv, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist, plot_kde,
+    plot_scales,
 };
 use crate::geom::{
     AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side, Xaxis,
@@ -163,11 +164,21 @@ pub fn plot_arrow_color(
         for (mut draw_mode, arrow) in query.iter_mut() {
             if let DrawMode::Stroke(StrokeMode { ref mut color, .. }) = *draw_mode {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    *color = lerp_hsv(
-                        (colors.0[index] - min_val) / (max_val - min_val),
-                        ui_state.min_reaction_color,
-                        ui_state.max_reaction_color,
-                    );
+                    *color = if ui_state.zero_white & ((min_val * max_val) < 0.) {
+                        lerp3_hsv(
+                            colors.0[index],
+                            min_val,
+                            max_val,
+                            ui_state.min_reaction_color,
+                            ui_state.max_reaction_color,
+                        )
+                    } else {
+                        lerp_hsv(
+                            (colors.0[index] - min_val) / (max_val - min_val),
+                            ui_state.min_reaction_color,
+                            ui_state.max_reaction_color,
+                        )
+                    };
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
                 }
@@ -233,11 +244,21 @@ pub fn plot_metabolite_color(
             } = *draw_mode
             {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    *color = lerp_hsv(
-                        (colors.0[index] - min_val) / (max_val - min_val),
-                        ui_state.min_metabolite_color,
-                        ui_state.max_metabolite_color,
-                    );
+                    *color = if ui_state.zero_white & ((min_val * max_val) < 0.) {
+                        lerp3_hsv(
+                            colors.0[index],
+                            min_val,
+                            max_val,
+                            ui_state.min_reaction_color,
+                            ui_state.max_reaction_color,
+                        )
+                    } else {
+                        lerp_hsv(
+                            (colors.0[index] - min_val) / (max_val - min_val),
+                            ui_state.min_reaction_color,
+                            ui_state.max_reaction_color,
+                        )
+                    };
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
                 }

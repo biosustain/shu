@@ -226,3 +226,28 @@ pub fn lerp_hsv(t: f32, min_color: Hsva, max_color: Hsva) -> Color {
 pub fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
     (t - min_1) / (max_1 - min_1) * (max_2 - min_2) + min_2
 }
+
+/// Three-step color interpolation with 0 as medium point.
+/// True zeros are treated as missing values. Thus, the 0 mid point is not set
+/// to pure white to avoid confusing low values with true zeros.
+pub fn lerp3_hsv(
+    t: f32,
+    min_value: f32,
+    max_value: f32,
+    min_color: Hsva,
+    max_color: Hsva,
+) -> Color {
+    if f32::abs(t) < 1e-7 {
+        return Color::WHITE;
+    }
+
+    if t < 0. {
+        lerp_hsv(
+            -t / min_value,
+            min_color,
+            Hsva::from_rgb([0.83, 0.83, 0.87]),
+        )
+    } else {
+        lerp_hsv(t / max_value, Hsva::from_rgb([0.83, 0.83, 0.87]), max_color)
+    }
+}
