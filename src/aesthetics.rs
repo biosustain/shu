@@ -162,6 +162,31 @@ fn from_grad(col: GradColor) -> Color {
     Color::rgba(rgba.0 as f32, rgba.1 as f32, rgba.2 as f32, rgba.3 as f32)
 }
 
+fn get_grad(
+    zero: bool,
+    min_val: f32,
+    max_val: f32,
+    min_color: &bevy_egui::egui::color::Rgba,
+    max_color: &bevy_egui::egui::color::Rgba,
+) -> colorgrad::Gradient {
+    let mut grad = CustomGradient::new();
+    if zero & ((min_val * max_val) < 0.) {
+        grad.colors(&[
+            to_grad(min_color),
+            to_grad(&bevy_egui::egui::color::Rgba::from_rgb(0.83, 0.83, 0.89)),
+            to_grad(max_color),
+        ])
+        .domain(&[min_val as f64, 0., max_val as f64])
+    } else {
+        grad.colors(&[to_grad(min_color), to_grad(max_color)])
+            .domain(&[min_val as f64, max_val as f64])
+    }
+    .mode(colorgrad::BlendMode::Oklab)
+    .interpolation(colorgrad::Interpolation::CatmullRom)
+    .build()
+    .expect("no gradient")
+}
+
 /// Plot Color as numerical variable in arrows.
 pub fn plot_arrow_color(
     ui_state: Res<UiState>,
@@ -174,28 +199,13 @@ pub fn plot_arrow_color(
                 continue;
             }
         }
-        let min_val = min_f32(&colors.0);
-        let max_val = max_f32(&colors.0);
-        let grad = if ui_state.zero_white & ((min_val * max_val) < 0.) {
-            CustomGradient::new()
-                .colors(&[
-                    to_grad(&ui_state.min_reaction_color),
-                    GradColor::from_linear_rgba(0.83, 0.83, 0.89, 1.0),
-                    to_grad(&ui_state.max_reaction_color),
-                ])
-                .domain(&[min_val as f64, 0., max_val as f64])
-                .build()
-                .expect("no gradient")
-        } else {
-            CustomGradient::new()
-                .colors(&[
-                    to_grad(&ui_state.min_reaction_color),
-                    to_grad(&ui_state.max_reaction_color),
-                ])
-                .domain(&[min_val as f64, max_val as f64])
-                .build()
-                .expect("no gradient")
-        };
+        let grad = get_grad(
+            ui_state.zero_white,
+            min_f32(&colors.0),
+            max_f32(&colors.0),
+            &ui_state.min_reaction_color,
+            &ui_state.max_reaction_color,
+        );
         for (mut draw_mode, arrow) in query.iter_mut() {
             if let DrawMode::Stroke(StrokeMode { ref mut color, .. }) = *draw_mode {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
@@ -256,28 +266,13 @@ pub fn plot_metabolite_color(
                 continue;
             }
         }
-        let min_val = min_f32(&colors.0);
-        let max_val = max_f32(&colors.0);
-        let grad = if ui_state.zero_white & ((min_val * max_val) < 0.) {
-            CustomGradient::new()
-                .colors(&[
-                    to_grad(&ui_state.min_reaction_color),
-                    GradColor::from_linear_rgba(0.83, 0.83, 0.89, 1.0),
-                    to_grad(&ui_state.max_reaction_color),
-                ])
-                .domain(&[min_val as f64, 0., max_val as f64])
-                .build()
-                .expect("no gradient")
-        } else {
-            CustomGradient::new()
-                .colors(&[
-                    to_grad(&ui_state.min_reaction_color),
-                    to_grad(&ui_state.max_reaction_color),
-                ])
-                .domain(&[min_val as f64, max_val as f64])
-                .build()
-                .expect("no gradient")
-        };
+        let grad = get_grad(
+            ui_state.zero_white,
+            min_f32(&colors.0),
+            max_f32(&colors.0),
+            &ui_state.min_metabolite_color,
+            &ui_state.max_metabolite_color,
+        );
         for (mut draw_mode, arrow) in query.iter_mut() {
             if let DrawMode::Outlined {
                 fill_mode: FillMode { ref mut color, .. },
@@ -588,28 +583,13 @@ fn plot_side_box(
         if geom.rendered {
             continue;
         }
-        let min_val = min_f32(&colors.0);
-        let max_val = max_f32(&colors.0);
-        let grad = if ui_state.zero_white & ((min_val * max_val) < 0.) {
-            CustomGradient::new()
-                .colors(&[
-                    to_grad(&ui_state.min_reaction_color),
-                    GradColor::from_linear_rgba(0.83, 0.83, 0.89, 1.0),
-                    to_grad(&ui_state.max_reaction_color),
-                ])
-                .domain(&[min_val as f64, 0., max_val as f64])
-                .build()
-                .expect("no gradient")
-        } else {
-            CustomGradient::new()
-                .colors(&[
-                    to_grad(&ui_state.min_reaction_color),
-                    to_grad(&ui_state.max_reaction_color),
-                ])
-                .domain(&[min_val as f64, max_val as f64])
-                .build()
-                .expect("no gradient")
-        };
+        let grad = get_grad(
+            ui_state.zero_white,
+            min_f32(&colors.0),
+            max_f32(&colors.0),
+            &ui_state.min_reaction_color,
+            &ui_state.max_reaction_color,
+        );
 
         for (mut trans, axis) in query.iter_mut() {
             if let Some(index) = aes
