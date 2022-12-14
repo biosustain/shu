@@ -1,13 +1,12 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
 use crate::funcplot::{
-    lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist, plot_kde, plot_scales,
+    build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist,
+    plot_kde, plot_scales,
 };
 use crate::geom::{
     AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side, Xaxis,
 };
 use crate::gui::UiState;
-use colorgrad::Color as GradColor;
-use colorgrad::CustomGradient;
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -148,45 +147,6 @@ pub fn plot_arrow_size_dist(
     }
 }
 
-fn to_grad(col: &bevy_egui::egui::color::Rgba) -> GradColor {
-    GradColor::from_linear_rgba(
-        col.r() as f64,
-        col.g() as f64,
-        col.b() as f64,
-        col.a() as f64,
-    )
-}
-
-fn from_grad(col: GradColor) -> Color {
-    let rgba = col.to_linear_rgba();
-    Color::rgba(rgba.0 as f32, rgba.1 as f32, rgba.2 as f32, rgba.3 as f32)
-}
-
-fn get_grad(
-    zero: bool,
-    min_val: f32,
-    max_val: f32,
-    min_color: &bevy_egui::egui::color::Rgba,
-    max_color: &bevy_egui::egui::color::Rgba,
-) -> colorgrad::Gradient {
-    let mut grad = CustomGradient::new();
-    if zero & ((min_val * max_val) < 0.) {
-        grad.colors(&[
-            to_grad(min_color),
-            to_grad(&bevy_egui::egui::color::Rgba::from_rgb(0.83, 0.83, 0.89)),
-            to_grad(max_color),
-        ])
-        .domain(&[min_val as f64, 0., max_val as f64])
-    } else {
-        grad.colors(&[to_grad(min_color), to_grad(max_color)])
-            .domain(&[min_val as f64, max_val as f64])
-    }
-    .mode(colorgrad::BlendMode::Oklab)
-    .interpolation(colorgrad::Interpolation::CatmullRom)
-    .build()
-    .expect("no gradient")
-}
-
 /// Plot Color as numerical variable in arrows.
 pub fn plot_arrow_color(
     ui_state: Res<UiState>,
@@ -199,17 +159,19 @@ pub fn plot_arrow_color(
                 continue;
             }
         }
-        let grad = get_grad(
+        let min_val = min_f32(&colors.0);
+        let max_val = max_f32(&colors.0);
+        let grad = build_grad(
             ui_state.zero_white,
-            min_f32(&colors.0),
-            max_f32(&colors.0),
+            min_val,
+            max_val,
             &ui_state.min_reaction_color,
             &ui_state.max_reaction_color,
         );
         for (mut draw_mode, arrow) in query.iter_mut() {
             if let DrawMode::Stroke(StrokeMode { ref mut color, .. }) = *draw_mode {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    *color = from_grad(grad.at(colors.0[index] as f64));
+                    *color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
                 }
@@ -266,10 +228,12 @@ pub fn plot_metabolite_color(
                 continue;
             }
         }
-        let grad = get_grad(
+        let min_val = min_f32(&colors.0);
+        let max_val = max_f32(&colors.0);
+        let grad = build_grad(
             ui_state.zero_white,
-            min_f32(&colors.0),
-            max_f32(&colors.0),
+            min_val,
+            max_val,
             &ui_state.min_metabolite_color,
             &ui_state.max_metabolite_color,
         );
@@ -280,7 +244,7 @@ pub fn plot_metabolite_color(
             } = *draw_mode
             {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    *color = from_grad(grad.at(colors.0[index] as f64));
+                    *color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
                 }
@@ -583,10 +547,12 @@ fn plot_side_box(
         if geom.rendered {
             continue;
         }
-        let grad = get_grad(
+        let min_val = min_f32(&colors.0);
+        let max_val = max_f32(&colors.0);
+        let grad = build_grad(
             ui_state.zero_white,
-            min_f32(&colors.0),
-            max_f32(&colors.0),
+            min_val,
+            max_val,
             &ui_state.min_reaction_color,
             &ui_state.max_reaction_color,
         );
@@ -605,7 +571,7 @@ fn plot_side_box(
                     }
                     _ => (),
                 };
-                let color = from_grad(grad.at(colors.0[index] as f64));
+                let color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
 
                 trans.translation.z += 10.;
                 let shape = if f32::abs(colors.0[index]) > 1e-7 {

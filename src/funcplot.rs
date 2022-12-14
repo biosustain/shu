@@ -2,6 +2,7 @@
 
 use bevy::prelude::{Color, Font, Handle, Text, Text2dBundle, TextStyle, Transform, Vec2};
 use bevy_prototype_lyon::prelude::{Path, PathBuilder};
+use colorgrad::{Color as GradColor, CustomGradient, Gradient};
 
 pub fn max_f32(slice: &[f32]) -> f32 {
     slice
@@ -198,6 +199,58 @@ pub fn path_to_vec(path: &Path) -> Vec2 {
     last_point - first_point
 }
 
+/// Interpolat a value t in domain [min_1, max_1] to [min_2, max_2]
 pub fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
-    (t - min_1) / (max_1 - min_1) * (max_2 - min_2) + min_2
+    // clamp min and max to avoid explosion with low values on the first domain
+    if t >= max_1 {
+        max_2
+    } else if t <= min_1 {
+        min_2
+    } else {
+        (t - min_1) / (max_1 - min_1) * (max_2 - min_2) + min_2
+    }
+}
+
+fn to_grad(col: &bevy_egui::egui::color::Rgba) -> GradColor {
+    GradColor::from_linear_rgba(
+        col.r() as f64,
+        col.g() as f64,
+        col.b() as f64,
+        col.a() as f64,
+    )
+}
+
+/// Get the color for a given `t` from a `Gradient` with clamping to avoid exploding when the domain is very low.
+pub fn from_grad_clamped(grad: &Gradient, t: f32, min_val: f32, max_val: f32) -> Color {
+    let t = f32::clamp(t, min_val, max_val) as f64;
+    let rgba = grad.at(t).to_linear_rgba();
+    Color::rgba(rgba.0 as f32, rgba.1 as f32, rgba.2 as f32, rgba.3 as f32)
+}
+
+/// Build a `Gradient` for color interpolation between two colors from
+/// the domain defined by [min_val, max_val] or [min_val, 0) [0, max_val]
+/// if `zero` is `true`.
+pub fn build_grad(
+    zero: bool,
+    min_val: f32,
+    max_val: f32,
+    min_color: &bevy_egui::egui::color::Rgba,
+    max_color: &bevy_egui::egui::color::Rgba,
+) -> colorgrad::Gradient {
+    let mut grad = CustomGradient::new();
+    if zero & ((min_val * max_val) < 0.) {
+        grad.colors(&[
+            to_grad(min_color),
+            to_grad(&bevy_egui::egui::color::Rgba::from_rgb(0.83, 0.83, 0.89)),
+            to_grad(max_color),
+        ])
+        .domain(&[min_val as f64, 0., max_val as f64])
+    } else {
+        grad.colors(&[to_grad(min_color), to_grad(max_color)])
+            .domain(&[min_val as f64, max_val as f64])
+    }
+    .mode(colorgrad::BlendMode::Oklab)
+    .interpolation(colorgrad::Interpolation::CatmullRom)
+    .build()
+    .expect("no gradient")
 }
