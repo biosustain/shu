@@ -27,7 +27,13 @@ fn main() {
     App::new()
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WinitSettings::desktop_app())
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                title: "shu".to_string(),
+                ..default()
+            },
+            ..default()
+        }))
         .add_plugin(PanCamPlugin::default())
         .add_plugin(ShapePlugin)
         .add_plugin(EscherPlugin)
