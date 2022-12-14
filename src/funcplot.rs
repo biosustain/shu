@@ -7,13 +7,13 @@ use colorgrad::{Color as GradColor, CustomGradient, Gradient};
 pub fn max_f32(slice: &[f32]) -> f32 {
     slice
         .iter()
-        .fold(0f32, |acc, x| if x - acc > 1e-5 { *x } else { acc })
+        .fold(0f32, |acc, x| if x - acc > 1e-8 { *x } else { acc })
 }
 
 pub fn min_f32(slice: &[f32]) -> f32 {
     slice
         .iter()
-        .fold(0f32, |acc, x| if x - acc <= 1e-5 { *x } else { acc })
+        .fold(0f32, |acc, x| if x - acc <= 1e-8 { *x } else { acc })
 }
 
 fn std_normal(x: f32) -> f32 {
