@@ -29,6 +29,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_side_hist.before(load_map))
             .add_system(plot_side_box.before(load_map))
             .add_system(plot_hover_hist.before(load_map))
+            .add_system(change_active_axis.after(build_axes))
             .add_system(normalize_histogram_height)
             .add_system(unscale_histogram_children)
             .add_system(fill_conditions)
@@ -277,6 +278,10 @@ fn build_axes(
                 .sum::<f32>()
                 / dist.0.len() as f32,
         );
+        let global_xlimits = (
+            min_f32(&dist.0.iter().map(|x| min_f32(x)).collect::<Vec<f32>>()),
+            max_f32(&dist.0.iter().map(|x| max_f32(x)).collect::<Vec<f32>>()),
+        );
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let this_dist = match dist.0.get(index) {
@@ -317,6 +322,7 @@ fn build_axes(
                             id: arrow.id.clone(),
                             arrow_size: size,
                             xlimits,
+                            global_xlimits,
                             side: geom.side.clone(),
                             plot: geom.plot.clone(),
                             node_id: arrow.node_id,
@@ -330,6 +336,11 @@ fn build_axes(
                     f32::min(axis_entry.0.xlimits.0, xlimits.0),
                     f32::max(axis_entry.0.xlimits.1, xlimits.1),
                 );
+                axis_entry.0.global_xlimits = (
+                    f32::min(axis_entry.0.global_xlimits.0, global_xlimits.0),
+                    f32::max(axis_entry.0.global_xlimits.1, global_xlimits.1),
+                );
+
                 if let Some(cond) = aes.condition.as_ref() {
                     axis_entry.0.conditions.push(cond.clone());
                 }
@@ -401,6 +412,7 @@ fn build_point_axes(
                             id: arrow.id.clone(),
                             arrow_size: size,
                             xlimits: (0., 0.),
+                            global_xlimits: (0., 0.),
                             side: geom.side.clone(),
                             plot: geom.plot.clone(),
                             node_id: arrow.node_id,
@@ -464,9 +476,30 @@ fn build_hover_axes(
     }
 }
 
+/// Remove histograms and mark them for repaint with different xlimits.
+fn change_active_axis(
+    ui_state: Res<UiState>,
+    mut commands: Commands,
+    mut geom_query: Query<&mut GeomHist, (With<Gy>, Without<PopUp>)>,
+    // histograms not in hover and not a box
+    hists: Query<Entity, (With<HistTag>, Without<Unscale>, Without<AnyTag>)>,
+    mut global_scale: Local<bool>,
+) {
+    if ui_state.is_changed() & (ui_state.global_hist_scale != *global_scale) {
+        *global_scale = ui_state.global_hist_scale;
+        for e in hists.iter() {
+            commands.entity(e).despawn_recursive();
+        }
+        for mut geom in geom_query.iter_mut() {
+            geom.rendered = false;
+        }
+    }
+}
+
 /// Plot histogram as numerical variable next to arrows.
 fn plot_side_hist(
     mut commands: Commands,
+    ui_state: Res<UiState>,
     asset_server: Res<AssetServer>,
     mut aes_query: Query<
         (&Distribution<f32>, &Aesthetics, &mut GeomHist),
@@ -489,9 +522,14 @@ fn plot_side_hist(
                     Some(d) => d,
                     None => continue,
                 };
+                let xlimits = if ui_state.global_hist_scale {
+                    axis.global_xlimits
+                } else {
+                    axis.xlimits
+                };
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, axis.xlimits, geom.mean),
-                    HistPlot::Kde => plot_kde(this_dist, 200, axis.arrow_size, axis.xlimits, geom.mean),
+                    HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, xlimits, geom.mean),
+                    HistPlot::Kde => plot_kde(this_dist, 200, axis.arrow_size, xlimits, geom.mean),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
                         continue 'outer;
