@@ -264,11 +264,19 @@ fn build_axes(
     >,
 ) {
     let mut axes: HashMap<String, HashMap<Side, (Xaxis, Transform)>> = HashMap::new();
+    let mut means: HashMap<Side, Vec<f32>> = HashMap::new();
     // first gather all x-limits for different conditions and the arrow and side
     for (dist, aes, mut geom) in aes_query.iter_mut() {
         if geom.in_axis {
             continue;
         }
+        means.entry(geom.side.clone()).or_default().push(
+            dist.0
+                .iter()
+                .map(|cloud| cloud.iter().sum::<f32>() / cloud.len() as f32)
+                .sum::<f32>()
+                / dist.0.len() as f32,
+        );
         for (trans, arrow, path) in query.iter_mut() {
             if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                 let this_dist = match dist.0.get(index) {
@@ -327,6 +335,11 @@ fn build_axes(
                 }
                 geom.in_axis = true;
             }
+        }
+    }
+    for (_, _, mut geom) in aes_query.iter_mut() {
+        if let Some(side_means) = means.get(&geom.side) {
+            geom.mean = Some(side_means.iter().sum::<f32>() / side_means.len() as f32);
         }
     }
 
@@ -459,14 +472,14 @@ fn plot_side_hist(
         (&Distribution<f32>, &Aesthetics, &mut GeomHist),
         (With<Gy>, Without<PopUp>),
     >,
-    mut query: Query<(Entity, &Transform, &Xaxis)>,
+    query: Query<(&Transform, &Xaxis)>,
 ) {
     'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-        for (_e, trans, axis) in query.iter_mut() {
+        for (trans, axis) in query.iter() {
             if let Some(index) = aes
                 .identifiers
                 .iter()
@@ -477,8 +490,8 @@ fn plot_side_hist(
                     None => continue,
                 };
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, axis.xlimits),
-                    HistPlot::Kde => plot_kde(this_dist, 200, axis.arrow_size, axis.xlimits),
+                    HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, axis.xlimits, geom.mean),
+                    HistPlot::Kde => plot_kde(this_dist, 200, axis.arrow_size, axis.xlimits, geom.mean),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
                         continue 'outer;
@@ -490,7 +503,7 @@ fn plot_side_hist(
                 }
                 let line = line.unwrap();
                 let hex = match geom.side {
-                    // TODO: this should be a setting
+                    // the color is updated by another system given the settings
                     Side::Right => "7dce9688",
                     Side::Left => "DA968788",
                     _ => {
@@ -511,7 +524,6 @@ fn plot_side_hist(
                 );
 
                 commands
-                    // .entity(e)
                     .spawn(GeometryBuilder::build_as(
                         &line,
                         DrawMode::Fill(FillMode::color(Color::hex(hex).unwrap())),
@@ -653,8 +665,8 @@ fn plot_hover_hist(
                 };
                 let xlimits = hover.xlimits.as_ref().unwrap();
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 30, 600., *xlimits),
-                    HistPlot::Kde => plot_kde(this_dist, 200, 600., *xlimits),
+                    HistPlot::Hist => plot_hist(this_dist, 30, 600., *xlimits, None),
+                    HistPlot::Kde => plot_kde(this_dist, 200, 600., *xlimits, None),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
                         continue 'outer;

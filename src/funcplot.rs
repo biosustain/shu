@@ -34,7 +34,13 @@ fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
 }
 
 /// A dirty way of plotting Kdes with Paths.
-pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
+pub fn plot_kde(
+    samples: &[f32],
+    n: u32,
+    size: f32,
+    xlimits: (f32, f32),
+    mean: Option<f32>,
+) -> Option<Path> {
     let center = size / 2.;
     let anchors = linspace(-center, size - center, n);
     if center.is_nan() {
@@ -42,18 +48,36 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
     }
     let mut path_builder = PathBuilder::new();
     path_builder.move_to(Vec2::new(-center, 0.));
+    let mut y_max = 0.;
 
     for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
         let y = kde(*point_x, samples, 1.06);
         path_builder.line_to(Vec2::new(*anchor_x, y));
+        y_max = f32::max(y, y_max);
     }
     path_builder.line_to(Vec2::new(size - center, 0.));
     path_builder.line_to(Vec2::new(-center, 0.));
+    if let Some(x) = mean {
+        // just plot it if it is within the domain
+        if (x > xlimits.0) & (x < xlimits.1) {
+            add_vline(
+                &mut path_builder,
+                lerp(x, xlimits.0, xlimits.1, -center, size - center),
+                y_max,
+            )
+        }
+    }
     Some(path_builder.build())
 }
 
 /// Histogram plotting with n bins.
-pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
+pub fn plot_hist(
+    samples: &[f32],
+    bins: u32,
+    size: f32,
+    xlimits: (f32, f32),
+    mean: Option<f32>,
+) -> Option<Path> {
     let center = size / 2.;
     // a bin should not be less than a data point
     let bins = u32::min(samples.len() as u32 / 2, bins);
@@ -66,6 +90,8 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
     }
 
     let mut path_builder = PathBuilder::new();
+    let mut y_vline_1 = 0;
+    let mut y_vline_2 = 0;
     for ((anchor_a, anchor_b), (point_a, point_b)) in anchors.clone()[0..(anchors.len() - 1)]
         .iter()
         .zip(anchors[1..anchors.len()].iter())
@@ -80,6 +106,15 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
             .iter()
             .filter(|&&x| (x >= *point_a) & (x < *point_b))
             .count();
+        if let Some(x) = mean {
+            // the second y-point is once the first is initialized
+            if (y_vline_1 > 0) & (y_vline_2 == 0) {
+                y_vline_2 = y;
+            }
+            if (x >= *point_a) & (x < *point_b) {
+                y_vline_1 = y;
+            }
+        }
         if y == 0 {
             continue;
         }
@@ -88,7 +123,24 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
         path_builder.line_to(Vec2::new(*anchor_b, y as f32));
         path_builder.line_to(Vec2::new(*anchor_b, 0.));
     }
+    if let Some(x) = mean {
+        add_vline(
+            &mut path_builder,
+            lerp(x, xlimits.0, xlimits.1, -center, size - center),
+            y_vline_2 as f32,
+        )
+    }
     Some(path_builder.build())
+}
+
+// a vertical line so that different reactions can be compared
+// the mean comes from the global mean of that variable
+fn add_vline(path_builder: &mut PathBuilder, x: f32, y: f32) {
+    path_builder.move_to(Vec2::new(x - 3.0, 0.));
+    path_builder.line_to(Vec2::new(x - 3.0, y));
+    path_builder.line_to(Vec2::new(x + 3.0, y));
+    path_builder.line_to(Vec2::new(x + 3.0, 0.));
+    path_builder.line_to(Vec2::new(x - 3.0, 0.));
 }
 
 /// Plot a box where the color is the mean of the samples.
@@ -187,6 +239,7 @@ fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
     }
 }
 
+/// Get the size of a path as the largest distance between its points.
 pub fn path_to_vec(path: &Path) -> Vec2 {
     let first_point = Vec2::new(
         get_extreme(path, false, true),
@@ -199,7 +252,7 @@ pub fn path_to_vec(path: &Path) -> Vec2 {
     last_point - first_point
 }
 
-/// Interpolat a value t in domain [min_1, max_1] to [min_2, max_2]
+/// Interpolate a value `t` in domain `[min_1, max_1]` to `[min_2, max_2]`.
 pub fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
     // clamp min and max to avoid explosion with low values on the first domain
     if t >= max_1 {
