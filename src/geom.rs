@@ -30,6 +30,8 @@ pub enum HistPlot {
 pub struct GeomHist {
     pub side: Side,
     pub rendered: bool,
+    pub mean: Option<f32>,
+
     pub in_axis: bool,
     pub plot: HistPlot,
 }
@@ -40,6 +42,7 @@ impl GeomHist {
             side: Side::Left,
             rendered: false,
             in_axis: false,
+            mean: None,
             plot,
         }
     }
@@ -47,6 +50,7 @@ impl GeomHist {
         Self {
             side: Side::Right,
             rendered: false,
+            mean: None,
             in_axis: false,
             plot,
         }
@@ -56,6 +60,7 @@ impl GeomHist {
             side: Side::Up,
             rendered: false,
             in_axis: false,
+            mean: None,
             plot,
         }
     }
@@ -82,6 +87,7 @@ pub struct HistTag {
 pub struct Xaxis {
     pub id: String,
     pub arrow_size: f32,
+    pub global_xlimits: (f32, f32),
     pub xlimits: (f32, f32),
     pub side: Side,
     pub plot: HistPlot,
