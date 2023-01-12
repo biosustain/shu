@@ -79,7 +79,7 @@ def test_passing_conditions_to_geoms_raises(df_cond):
         )
 
 
-def test_mixed_conditions_work(df_cond):
+def test_mixed_conditions_one_dataframe_works(df_cond):
     plotting_data = (
         ggmap(
             df_cond,
@@ -89,10 +89,40 @@ def test_mixed_conditions_work(df_cond):
         + geom_metabolite(aes=aes(color="conc", metabolite="m"))
         + geom_kde(aes=aes(y="km"), mets=True)
     ).plotting_data
-    assert len(plotting_data["conditions"]) == 14
-    assert len(plotting_data["met_kde_y"]) == 12
+    assert len(plotting_data["conditions"]) == 6
+    assert len(plotting_data["met_conditions"]) == 14
+    assert len(plotting_data["kde_met_y"]) == 12
     assert (
-        plotting_data["met_kde_y"].apply(lambda x: len(x) == 1 and np.isnan(x[0]))
+        plotting_data["kde_met_y"].apply(lambda x: len(x) == 1 and np.isnan(x[0]))
     ).sum() == 10
     assert plotting_data["colors"].name, "flux"
+
+
+def test_mixed_conditions_two_dataframe_works(df_cond):
+    df_reac = df_cond[["r", "flux", "kcat", "cond"]]
+    df_reac = df_reac[~df_reac.r.isna()]
+    df_met = df_cond[["m", "conc", "km", "cond"]]
+    df_met = df_met[~df_met.m.isna()]
+    plotting_data = ((
+        ggmap(
+            df_reac,
+            aes(reaction="r", color="flux", size="flux", y="kcat", condition="cond"),
+        )
+        + geom_arrow()
+    ) / (
+        ggmap(
+            df_met,
+            aes(color="conc", metabolite="m", condition="cond"),
+        )
+        + geom_metabolite()
+        + geom_kde(aes=aes(y="km"), mets=True)
+    )).plotting_data
+    assert len(plotting_data["conditions"]) == 6
+    assert len(plotting_data["met_conditions"]) == 12
+    assert len(plotting_data["kde_met_y"]) == 12
+    assert (
+        plotting_data["kde_met_y"].apply(lambda x: len(x) == 1 and np.isnan(x[0]))
+    ).sum() == 10
+    assert plotting_data["colors"].name, "flux"
+    assert isinstance(plotting_data["colors"].to_list()[0], float)
     assert isinstance(plotting_data["colors"].to_list()[0], float)
