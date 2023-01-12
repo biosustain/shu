@@ -2,10 +2,11 @@
 
 import logging
 from typing import Dict, Optional
-from ggshu.aes import Aesthetics
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from ggshu.aes import Aesthetics
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
@@ -113,7 +114,7 @@ class GeomKde(Geom):
     ):
         super().__init__(df, aes)
         self.mapping = {
-            "y": "met_kde_y"
+            "y": "kde_met_y"
             if mets
             else "kde_left_y"
             if side == "left"
@@ -178,10 +179,12 @@ class GeomBoxPoint(GeomArrow):
     """
 
     def __init__(
-        self, *, df: Optional[pd.DataFrame] = None, aes: Optional[Aesthetics] = None, side="right",
+        self,
+        *,
+        df: Optional[pd.DataFrame] = None,
+        aes: Optional[Aesthetics] = None,
+        side="right",
     ):
         super().__init__(df=df, aes=aes)
-        self.mapping = {
-            "color": "box_y" if side == "right" else "box_left_y"
-        }
+        self.mapping = {"color": "box_y" if side == "right" else "box_left_y"}
         self.post_init()
