@@ -114,6 +114,8 @@ pub struct Data {
     box_left_y: Option<Vec<Number>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
+    /// Categorical values to be associated with conditions.
+    met_conditions: Option<Vec<String>>,
     /// Vector of metabolites' identifiers
     metabolites: Option<Vec<String>>,
     // TODO: generalize this for any Data Type and use them (from escher.rs)
@@ -317,6 +319,11 @@ fn load_data(
     }
 
     info!("Loading Metabolite data!");
+    let conditions = data
+        .met_conditions
+        .clone()
+        .unwrap_or_else(|| vec![String::from("")]);
+    let cond_set = conditions.iter().unique().collect::<HashSet<&String>>();
     if let Some(metabolites) = data.metabolites.as_ref() {
         for cond in cond_set {
             let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() == 1) {
