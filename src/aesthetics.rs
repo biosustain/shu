@@ -264,19 +264,26 @@ fn build_axes(
     >,
 ) {
     let mut axes: HashMap<String, HashMap<Side, (Xaxis, Transform)>> = HashMap::new();
+    let mut means: HashMap<Side, Vec<f32>> = HashMap::new();
     // first gather all x-limits for different conditions and the arrow and side
     for (dist, aes, mut geom) in aes_query.iter_mut() {
         if geom.in_axis {
             continue;
         }
+        means.entry(geom.side.clone()).or_default().push(
+            dist.0
+                .iter()
+                .map(|cloud| cloud.iter().sum::<f32>() / cloud.len() as f32)
+                .sum::<f32>()
+                / dist.0.len() as f32,
+        );
+        let xlimits = (
+            min_f32(&dist.0.iter().map(|x| min_f32(x)).collect::<Vec<f32>>()),
+            max_f32(&dist.0.iter().map(|x| max_f32(x)).collect::<Vec<f32>>()),
+        );
         for (trans, arrow, path) in query.iter_mut() {
-            if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                let this_dist = match dist.0.get(index) {
-                    Some(d) => d,
-                    None => continue,
-                };
+            if aes.identifiers.iter().any(|r| r == &arrow.id) {
                 let size = path_to_vec(path).length();
-                let xlimits = (min_f32(this_dist), max_f32(this_dist));
                 let (rotation_90, away) = match geom.side {
                     Side::Right => (-Vec2::Y.angle_between(arrow.direction.perp()), -30.),
                     Side::Left => (-Vec2::NEG_Y.angle_between(arrow.direction.perp()), 30.),
@@ -322,11 +329,17 @@ fn build_axes(
                     f32::min(axis_entry.0.xlimits.0, xlimits.0),
                     f32::max(axis_entry.0.xlimits.1, xlimits.1),
                 );
+
                 if let Some(cond) = aes.condition.as_ref() {
                     axis_entry.0.conditions.push(cond.clone());
                 }
                 geom.in_axis = true;
             }
+        }
+    }
+    for (_, _, mut geom) in aes_query.iter_mut() {
+        if let Some(side_means) = means.get(&geom.side) {
+            geom.mean = Some(side_means.iter().sum::<f32>() / side_means.len() as f32);
         }
     }
 
@@ -459,14 +472,14 @@ fn plot_side_hist(
         (&Distribution<f32>, &Aesthetics, &mut GeomHist),
         (With<Gy>, Without<PopUp>),
     >,
-    mut query: Query<(Entity, &Transform, &Xaxis)>,
+    query: Query<(&Transform, &Xaxis)>,
 ) {
     'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-        for (_e, trans, axis) in query.iter_mut() {
+        for (trans, axis) in query.iter() {
             if let Some(index) = aes
                 .identifiers
                 .iter()
@@ -490,7 +503,7 @@ fn plot_side_hist(
                 }
                 let line = line.unwrap();
                 let hex = match geom.side {
-                    // TODO: this should be a setting
+                    // the color is updated by another system given the settings
                     Side::Right => "7dce9688",
                     Side::Left => "DA968788",
                     _ => {
@@ -511,7 +524,6 @@ fn plot_side_hist(
                 );
 
                 commands
-                    // .entity(e)
                     .spawn(GeometryBuilder::build_as(
                         &line,
                         DrawMode::Fill(FillMode::color(Color::hex(hex).unwrap())),

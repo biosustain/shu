@@ -42,10 +42,12 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
     }
     let mut path_builder = PathBuilder::new();
     path_builder.move_to(Vec2::new(-center, 0.));
+    let mut y_max = 0.;
 
     for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
         let y = kde(*point_x, samples, 1.06);
         path_builder.line_to(Vec2::new(*anchor_x, y));
+        y_max = f32::max(y, y_max);
     }
     path_builder.line_to(Vec2::new(size - center, 0.));
     path_builder.line_to(Vec2::new(-center, 0.));
@@ -187,6 +189,7 @@ fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
     }
 }
 
+/// Get the size of a path as the largest distance between its points.
 pub fn path_to_vec(path: &Path) -> Vec2 {
     let first_point = Vec2::new(
         get_extreme(path, false, true),
@@ -199,7 +202,7 @@ pub fn path_to_vec(path: &Path) -> Vec2 {
     last_point - first_point
 }
 
-/// Interpolat a value t in domain [min_1, max_1] to [min_2, max_2]
+/// Interpolate a value `t` in domain `[min_1, max_1]` to `[min_2, max_2]`.
 pub fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
     // clamp min and max to avoid explosion with low values on the first domain
     if t >= max_1 {
