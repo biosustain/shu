@@ -34,13 +34,7 @@ fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
 }
 
 /// A dirty way of plotting Kdes with Paths.
-pub fn plot_kde(
-    samples: &[f32],
-    n: u32,
-    size: f32,
-    xlimits: (f32, f32),
-    mean: Option<f32>,
-) -> Option<Path> {
+pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
     let center = size / 2.;
     let anchors = linspace(-center, size - center, n);
     if center.is_nan() {
@@ -57,27 +51,11 @@ pub fn plot_kde(
     }
     path_builder.line_to(Vec2::new(size - center, 0.));
     path_builder.line_to(Vec2::new(-center, 0.));
-    if let Some(x) = mean {
-        // just plot it if it is within the domain
-        if (x > xlimits.0) & (x < xlimits.1) {
-            add_vline(
-                &mut path_builder,
-                lerp(x, xlimits.0, xlimits.1, -center, size - center),
-                y_max,
-            )
-        }
-    }
     Some(path_builder.build())
 }
 
 /// Histogram plotting with n bins.
-pub fn plot_hist(
-    samples: &[f32],
-    bins: u32,
-    size: f32,
-    xlimits: (f32, f32),
-    mean: Option<f32>,
-) -> Option<Path> {
+pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
     let center = size / 2.;
     // a bin should not be less than a data point
     let bins = u32::min(samples.len() as u32 / 2, bins);
@@ -90,8 +68,6 @@ pub fn plot_hist(
     }
 
     let mut path_builder = PathBuilder::new();
-    let mut y_vline_1 = 0;
-    let mut y_vline_2 = 0;
     for ((anchor_a, anchor_b), (point_a, point_b)) in anchors.clone()[0..(anchors.len() - 1)]
         .iter()
         .zip(anchors[1..anchors.len()].iter())
@@ -106,15 +82,6 @@ pub fn plot_hist(
             .iter()
             .filter(|&&x| (x >= *point_a) & (x < *point_b))
             .count();
-        if let Some(x) = mean {
-            // the second y-point is once the first is initialized
-            if (y_vline_1 > 0) & (y_vline_2 == 0) {
-                y_vline_2 = y;
-            }
-            if (x >= *point_a) & (x < *point_b) {
-                y_vline_1 = y;
-            }
-        }
         if y == 0 {
             continue;
         }
@@ -123,24 +90,7 @@ pub fn plot_hist(
         path_builder.line_to(Vec2::new(*anchor_b, y as f32));
         path_builder.line_to(Vec2::new(*anchor_b, 0.));
     }
-    if let Some(x) = mean {
-        add_vline(
-            &mut path_builder,
-            lerp(x, xlimits.0, xlimits.1, -center, size - center),
-            y_vline_2 as f32,
-        )
-    }
     Some(path_builder.build())
-}
-
-// a vertical line so that different reactions can be compared
-// the mean comes from the global mean of that variable
-fn add_vline(path_builder: &mut PathBuilder, x: f32, y: f32) {
-    path_builder.move_to(Vec2::new(x - 3.0, 0.));
-    path_builder.line_to(Vec2::new(x - 3.0, y));
-    path_builder.line_to(Vec2::new(x + 3.0, y));
-    path_builder.line_to(Vec2::new(x + 3.0, 0.));
-    path_builder.line_to(Vec2::new(x - 3.0, 0.));
 }
 
 /// Plot a box where the color is the mean of the samples.

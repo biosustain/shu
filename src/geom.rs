@@ -87,7 +87,6 @@ pub struct HistTag {
 pub struct Xaxis {
     pub id: String,
     pub arrow_size: f32,
-    pub global_xlimits: (f32, f32),
     pub xlimits: (f32, f32),
     pub side: Side,
     pub plot: HistPlot,
