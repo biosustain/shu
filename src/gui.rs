@@ -40,7 +40,6 @@ pub struct UiState {
     pub min_reaction: f32,
     pub max_reaction: f32,
     pub zero_white: bool,
-    pub global_hist_scale: bool,
     pub min_reaction_color: Rgba,
     pub max_reaction_color: Rgba,
     pub min_metabolite: f32,
@@ -68,7 +67,6 @@ impl Default for UiState {
             min_metabolite_color: Rgba::from_srgba_unmultiplied(183, 110, 42, 255),
             max_metabolite_color: Rgba::from_srgba_unmultiplied(186, 148, 113, 255),
             zero_white: false,
-            global_hist_scale: false,
             min_reaction: 20.,
             max_reaction: 60.,
             min_metabolite: 20.,
@@ -130,7 +128,6 @@ fn ui_settings(
             ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("top"));
         });
         ui.checkbox(&mut ui_state.zero_white, "Zero as white");
-        ui.checkbox(&mut ui_state.global_hist_scale, "Global hist scale");
         if let Some(first_cond) = ui_state.conditions.get(0) {
             if !((first_cond.is_empty()) & (ui_state.conditions.len() == 1)) {
                 let conditions = ui_state.conditions.clone();
