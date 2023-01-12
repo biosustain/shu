@@ -29,6 +29,7 @@ impl Plugin for AesPlugin {
             .add_system(plot_side_hist.before(load_map))
             .add_system(plot_side_box.before(load_map))
             .add_system(plot_hover_hist.before(load_map))
+            .add_system(change_color.before(plot_side_box))
             .add_system(normalize_histogram_height)
             .add_system(unscale_histogram_children)
             .add_system(fill_conditions)
@@ -73,6 +74,14 @@ pub struct Gcolor {}
 /// Marker to avoid scaling some Entities with HistTag.
 #[derive(Component)]
 struct Unscale;
+
+/// Marker for things that need to change the color when UiChanges.
+#[derive(Component)]
+struct ColorListener {
+    value: f32,
+    min_val: f32,
+    max_val: f32,
+}
 
 /// Plot arrow size.
 pub fn plot_arrow_size(
@@ -635,6 +644,11 @@ fn plot_side_box(
                         condition: aes.condition.clone(),
                         node_id: axis.node_id,
                     })
+                    .insert(ColorListener {
+                        value: colors.0[index],
+                        min_val,
+                        max_val,
+                    })
                     .insert(Unscale {});
             }
             geom.rendered = true;
@@ -751,6 +765,32 @@ fn normalize_histogram_height(
                     let color = ui_state.color_top;
                     Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                 }
+            }
+        }
+    }
+}
+
+/// Propagate color from Ui to color component.
+fn change_color(
+    ui_state: Res<UiState>,
+    mut query: Query<(&mut DrawMode, &HistTag, &ColorListener)>,
+) {
+    let mut gradients: HashMap<Side, colorgrad::Gradient> = HashMap::new();
+    if ui_state.is_changed() {
+        for (mut draw_mode, hist, color) in query.iter_mut() {
+            let grad = gradients.entry(hist.side.clone()).or_insert(build_grad(
+                ui_state.zero_white,
+                color.min_val,
+                color.max_val,
+                &ui_state.min_reaction_color,
+                &ui_state.max_reaction_color,
+            ));
+            if let DrawMode::Outlined {
+                ref mut fill_mode, ..
+            } = *draw_mode
+            {
+                fill_mode.color =
+                    from_grad_clamped(grad, color.value, color.min_val, color.max_val);
             }
         }
     }
