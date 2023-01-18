@@ -42,3 +42,20 @@ processed and plotted by a *system* (in [`src/aesthetics.rs`](src/aesthetics.rs)
 
 Data handling (`df`, ad `map_file`) lives in [`src/data.rs`](src/data.rs) and
 [`src/escher.rs`](src/escher.rs) and the GUI componets lives in [`src/gui.rs`](src/gui.rs).
+
+## License
+
+Copyright 2023 The Novo Nordisk Foundation Center for Biosustainability.
+
+Licensed under either of
+
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
