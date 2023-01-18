@@ -86,6 +86,7 @@ impl Number {
     }
 }
 
+/// Metabolic data from the user that can be read from a `file.metabolism.json`.
 #[derive(Deserialize, TypeUuid, Default)]
 #[uuid = "413be529-bfeb-41a3-8db0-4b8b382a2c46"]
 pub struct Data {
@@ -129,6 +130,7 @@ pub struct Data {
     kde_met_y: Option<Vec<Vec<Number>>>,
 }
 
+/// Resource that contains a [`Handle`] to user data. Modified when new datas comes in.
 #[derive(Resource)]
 pub struct ReactionState {
     pub reaction_data: Option<Handle<Data>>,

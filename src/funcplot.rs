@@ -4,12 +4,14 @@ use bevy::prelude::{Color, Font, Handle, Text, Text2dBundle, TextStyle, Transfor
 use bevy_prototype_lyon::prelude::{Path, PathBuilder};
 use colorgrad::{Color as GradColor, CustomGradient, Gradient};
 
+/// Maximum of a slice.
 pub fn max_f32(slice: &[f32]) -> f32 {
     slice
         .iter()
         .fold(0f32, |acc, x| if x - acc > 1e-8 { *x } else { acc })
 }
 
+/// Minimum of a slice.
 pub fn min_f32(slice: &[f32]) -> f32 {
     slice
         .iter()
