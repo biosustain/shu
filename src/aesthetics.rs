@@ -4,7 +4,7 @@ use crate::funcplot::{
     plot_kde, plot_scales,
 };
 use crate::geom::{
-    AnyTag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side, Xaxis,
+    AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side, Xaxis,
 };
 use crate::gui::UiState;
 use itertools::Itertools;
@@ -328,8 +328,6 @@ fn build_axes(
                             side: geom.side.clone(),
                             plot: geom.plot.clone(),
                             node_id: arrow.node_id,
-                            dragged: false,
-                            rotating: false,
                             conditions: Vec::new(),
                         },
                         transform,
@@ -355,6 +353,7 @@ fn build_axes(
     for (axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
         commands
             .spawn(axis)
+            .insert(Drag::default())
             .insert(trans)
             .insert(VisibilityBundle::default());
     }
@@ -413,8 +412,6 @@ fn build_point_axes(
                             side: geom.side.clone(),
                             plot: geom.plot.clone(),
                             node_id: arrow.node_id,
-                            dragged: false,
-                            rotating: false,
                             conditions: Vec::new(),
                         },
                         transform,
@@ -430,6 +427,7 @@ fn build_point_axes(
     for (axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
         commands
             .spawn(axis)
+            .insert(Drag::default())
             .insert(trans)
             .insert(Unscale {})
             .insert(VisibilityBundle::default());

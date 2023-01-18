@@ -2,7 +2,7 @@
 
 use crate::data::{Data, ReactionState};
 use crate::escher::{EscherMap, Hover, MapState};
-use crate::geom::{AnyTag, HistTag, Xaxis};
+use crate::geom::{AnyTag, Drag, HistTag, Xaxis};
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
@@ -281,11 +281,11 @@ fn show_hover(
 fn mouse_click_system(
     windows: Res<Windows>,
     mouse_button_input: Res<Input<MouseButton>>,
-    mut drag_query: Query<(&Transform, &mut Xaxis), Without<AnyTag>>,
+    mut drag_query: Query<(&Transform, &mut Drag), Without<AnyTag>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Middle) {
-        for (trans, mut axis) in drag_query.iter_mut() {
+        for (trans, mut drag) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -293,19 +293,19 @@ fn mouse_click_system(
                     .length_squared()
                     < 5000.
                 {
-                    axis.dragged = true;
+                    drag.dragged = true;
                 }
             }
         }
     }
 
     if mouse_button_input.just_released(MouseButton::Middle) {
-        for (_, mut axis) in drag_query.iter_mut() {
-            axis.dragged = false;
+        for (_, mut drag) in drag_query.iter_mut() {
+            drag.dragged = false;
         }
     }
     if mouse_button_input.just_pressed(MouseButton::Right) {
-        for (trans, mut axis) in drag_query.iter_mut() {
+        for (trans, mut drag) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -313,15 +313,15 @@ fn mouse_click_system(
                     .length_squared()
                     < 5000.
                 {
-                    axis.rotating = true;
+                    drag.rotating = true;
                 }
             }
         }
     }
 
     if mouse_button_input.just_released(MouseButton::Right) {
-        for (_, mut axis) in drag_query.iter_mut() {
-            axis.rotating = false;
+        for (_, mut drag) in drag_query.iter_mut() {
+            drag.rotating = false;
         }
     }
 }
@@ -329,11 +329,11 @@ fn mouse_click_system(
 /// Move the center-dragged histograms.
 fn follow_mouse_on_drag(
     windows: Res<Windows>,
-    mut drag_query: Query<(&mut Transform, &Xaxis)>,
+    mut drag_query: Query<(&mut Transform, &Drag)>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
-    for (mut trans, axis) in drag_query.iter_mut() {
-        if axis.dragged {
+    for (mut trans, drag) in drag_query.iter_mut() {
+        if drag.dragged {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -345,13 +345,13 @@ fn follow_mouse_on_drag(
 
 /// Rotate the right-dragged histograms.
 fn follow_mouse_on_rotate(
-    mut drag_query: Query<(&mut Transform, &Xaxis)>,
+    mut drag_query: Query<(&mut Transform, &Drag)>,
     mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
 ) {
     for ev in mouse_motion_events.iter() {
-        for (mut trans, axis) in drag_query.iter_mut() {
+        for (mut trans, drag) in drag_query.iter_mut() {
             let pos = trans.translation;
-            if axis.rotating {
+            if drag.rotating {
                 trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
                 // clamping of angle to rect angles
                 let (_, angle) = trans.rotation.to_axis_angle();

@@ -91,9 +91,14 @@ pub struct Xaxis {
     pub side: Side,
     pub plot: HistPlot,
     pub node_id: u64,
+    pub conditions: Vec<String>,
+}
+
+/// Component that marks something susceptible of being dragged/rotated.
+#[derive(Debug, Component, Default)]
+pub struct Drag {
     pub dragged: bool,
     pub rotating: bool,
-    pub conditions: Vec<String>,
 }
 
 impl std::fmt::Display for Side {
