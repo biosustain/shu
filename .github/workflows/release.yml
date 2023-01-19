@@ -170,7 +170,8 @@ jobs:
         run: |
           export CFLAGS="-fno-stack-check"
           export MACOSX_DEPLOYMENT_TARGET="10.9"
-
+      - name: Install zld
+        run: brew install michaeleisel/zld/zld
       - name: Build
         run: |
           cargo build --release --target x86_64-apple-darwin
