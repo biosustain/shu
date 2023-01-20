@@ -13,6 +13,8 @@ mod escher;
 mod funcplot;
 mod geom;
 mod gui;
+#[cfg(test)]
+mod tests;
 
 use escher::{EscherMap, EscherPlugin, MapState};
 

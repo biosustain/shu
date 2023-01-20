@@ -73,7 +73,7 @@ pub struct Gcolor {}
 
 /// Marker to avoid scaling some Entities with HistTag.
 #[derive(Component)]
-struct Unscale;
+pub struct Unscale;
 
 /// Marker for things that need to change the color when UiChanges.
 #[derive(Component)]
