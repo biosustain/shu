@@ -52,12 +52,11 @@ jobs:
       - name: Install dependencies
         run: |
           cd ggshu
-          python -m pip install poetry
-          poetry install
+          python -m pip install .
       - name: Functional test
         run: |
           cd ggshu
-          poetry run pytest
+          python -m pytest
 
   # Run cargo clippy -- -D warnings
   clippy_check:
