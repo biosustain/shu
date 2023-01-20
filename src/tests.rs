@@ -17,7 +17,7 @@ fn setup(asset_path: impl AsRef<std::path::Path>) -> AssetServer {
 }
 
 #[test]
-fn gy_dist_aes_spaws_xaxis() {
+fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     // Setup app
     let mut app = App::new();
     // build_axes queries for aesthetics
@@ -60,15 +60,26 @@ fn gy_dist_aes_spaws_xaxis() {
     app.add_plugin(AesPlugin);
     app.update();
 
+    // one update for xaxis creation
     assert!(app
         .world
         .query::<&Xaxis>()
         .iter(&app.world)
         .next()
         .is_some());
+
+    // another update for HistTag creation
+    app.update();
+    assert!(app
+        .world
+        .query::<(&HistTag, &Path)>()
+        .iter(&app.world)
+        .next()
+        .is_some());
 }
+
 #[test]
-fn point_dist_aes_spaws_box_axis() {
+fn point_dist_aes_spaws_box_axis_spawns_box() {
     // Setup app
     let mut app = App::new();
     // build_axes queries for aesthetics
@@ -109,6 +120,16 @@ fn point_dist_aes_spaws_box_axis() {
     assert!(app
         .world
         .query::<(&Xaxis, &Unscale)>()
+        .iter(&app.world)
+        .next()
+        .is_some());
+
+    // another update for HistTag creation
+    app.update();
+
+    assert!(app
+        .world
+        .query::<(&HistTag, &Unscale, &Path)>()
         .iter(&app.world)
         .next()
         .is_some());
