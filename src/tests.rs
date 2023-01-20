@@ -1,9 +1,10 @@
 use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, Unscale};
 use crate::geom::{GeomHist, HistTag, Xaxis};
-use crate::gui::UiState;
-use crate::{escher, geom};
+use crate::gui::{file_drop, UiState};
+use crate::{data, escher, geom};
 use bevy::prelude::*;
-use bevy_prototype_lyon::prelude::{DrawMode, GeometryBuilder, PathBuilder, StrokeMode};
+use bevy::window::WindowId;
+use bevy_prototype_lyon::prelude::{DrawMode, GeometryBuilder, Path, PathBuilder, StrokeMode};
 
 use bevy::asset::FileAssetIo;
 use bevy::tasks::IoTaskPool;
@@ -136,51 +137,41 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
 }
 
 #[test]
-fn point_dist_aes_spawns_side_box() {
+fn loading_file_drop_does_not_crash() {
     // Setup app
     let mut app = App::new();
-    // build_axes queries for aesthetics
-    app.world
-        .spawn(Aesthetics {
-            plotted: false,
-            identifiers: vec!["a".to_string(), "b".to_string(), "c".to_string()],
-            condition: None,
-        })
-        .insert(Gy {})
-        .insert(Point(vec![1f32, 2., 2.]))
-        .insert(GeomHist::right(geom::HistPlot::Kde));
-    // and for Paths with ArrowTag
-    let path_builder = PathBuilder::new();
-    let line = path_builder.build();
-    app.world.spawn((
-        GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(
-                Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                10.0,
-            )),
-            Transform::from_xyz(1., 1., 1.),
-        ),
-        escher::ArrowTag {
-            id: String::from("a"),
-            hists: None,
-            node_id: 9,
-            direction: Vec2::new(0., 1.),
-        },
-    ));
     app.insert_resource(UiState::default());
-    app.insert_resource(AssetServer::new(FileAssetIo::new("asset2", false)));
+    let asset_server = setup("assets");
+    let escher_handle: Handle<escher::EscherMap> = asset_server.load("ecoli_core_map.json");
+    app.insert_resource(data::ReactionState {
+        reaction_data: None,
+        reac_loaded: false,
+        met_loaded: false,
+    });
+    app.insert_resource(asset_server);
+    app.insert_resource(escher::MapState {
+        escher_map: escher_handle,
+        loaded: false,
+    });
+    app.add_stage_before(
+        bevy::app::CoreStage::PreUpdate,
+        bevy::asset::AssetStage::LoadAssets,
+        SystemStage::parallel(),
+    );
+    app.add_stage_after(
+        bevy::app::CoreStage::PostUpdate,
+        bevy::asset::AssetStage::AssetEvents,
+        SystemStage::parallel(),
+    );
+    app.add_event::<FileDragAndDrop>();
+    app.add_plugin(data::DataPlugin);
+    app.add_plugin(escher::EscherPlugin);
+    app.add_system(file_drop);
 
-    app.add_plugin(AesPlugin);
-    // one update for xaxis creation
     app.update();
-    // another update for histtag creation
+    app.world.send_event(FileDragAndDrop::DroppedFile {
+        id: WindowId::new(),
+        path_buf: "assets/ecoli_core_map.json".into(),
+    });
     app.update();
-
-    assert!(app
-        .world
-        .query::<&HistTag>()
-        .iter(&app.world)
-        .next()
-        .is_some());
 }
