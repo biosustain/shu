@@ -29,5 +29,5 @@ Contents
    plotting
    map
 
-.. _releases: https://github.com/biosustain/shu/releases 
+.. _releases: https://github.com/biosustain/shu/releases/latest
 .. _escher: https://github.com/zakandrewking/escher

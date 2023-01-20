@@ -28,6 +28,26 @@ kinds of data: reaction data and metabolite data. **Shu** attempts to provide wa
 with special focus on being able to plot **distributions** (not just points) and **n-conditions**. Escher also has the
 distinction between color and size, it is simply that they are not independently accessible from the GUI.
 
+## How to use
+
+Shu is distributed both through a web app (preview build at https://carrascomj.github.io/shu) and as standalone
+native application. To use the latter, download the [latest release for your operating system](https://github.com/biosustain/shu/releases/latest), unpack if necessary and run it as executable.
+
+Documentation for the rust crate and the python API will be made available once they are published. In the meantime, a preview
+of the python documentation can be found at https://carrascomj.github.io/shu/docs.
+
+### Building from source (latest master commit)
+
+Install [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and run
+
+```bash
+git clone https://github.com/biosustain/shu.git
+cd shu
+cargo install --path .
+```
+
+This may possibly require extra dependencies. Check the bevy setup, **shu** uses `lld`
+to fasten linking times.
 
 ## API design
  
