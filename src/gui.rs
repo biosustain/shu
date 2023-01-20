@@ -184,7 +184,7 @@ fn ui_settings(
     });
 }
 
-fn file_drop(
+pub fn file_drop(
     mut dnd_evr: EventReader<FileDragAndDrop>,
     asset_server: Res<AssetServer>,
     mut reaction_resource: ResMut<ReactionState>,
