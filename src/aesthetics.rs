@@ -4,7 +4,8 @@ use crate::funcplot::{
     plot_kde, plot_scales,
 };
 use crate::geom::{
-    AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side, Xaxis,
+    AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
+    VisCondition, Xaxis,
 };
 use crate::gui::UiState;
 use itertools::Itertools;
@@ -536,9 +537,11 @@ fn plot_side_hist(
                         DrawMode::Fill(FillMode::color(Color::hex(hex).unwrap())),
                         *trans,
                     ))
+                    .insert(VisCondition {
+                        condition: aes.condition.clone(),
+                    })
                     .insert(HistTag {
                         side: geom.side.clone(),
-                        condition: aes.condition.clone(),
                         node_id: axis.node_id,
                     })
                     .with_children(|parent| {
@@ -637,9 +640,11 @@ fn plot_side_box(
                 };
                 commands
                     .spawn(shape)
+                    .insert(VisCondition {
+                        condition: aes.condition.clone(),
+                    })
                     .insert(HistTag {
                         side: geom.side.clone(),
-                        condition: aes.condition.clone(),
                         node_id: axis.node_id,
                     })
                     .insert(ColorListener {
@@ -707,11 +712,15 @@ fn plot_hover_hist(
                     },
                 );
                 commands
-                    .spawn(HistTag {
-                        side: geom.side.clone(),
-                        condition: aes.condition.clone(),
-                        node_id: hover.node_id,
-                    })
+                    .spawn((
+                        HistTag {
+                            side: geom.side.clone(),
+                            node_id: hover.node_id,
+                        },
+                        VisCondition {
+                            condition: aes.condition.clone(),
+                        },
+                    ))
                     .insert(geometry)
                     .with_children(|p| {
                         p.spawn(SpriteBundle {
@@ -837,10 +846,10 @@ fn fill_conditions(mut ui_state: ResMut<UiState>, aesthetics: Query<&Aesthetics>
 /// Hide histograms that are not in the conditions.
 pub fn filter_histograms(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut Visibility, &HistTag), Without<AnyTag>>,
+    mut query: Query<(&mut Visibility, &VisCondition), Without<AnyTag>>,
 ) {
-    for (mut vis, hist) in query.iter_mut() {
-        if let Some(condition) = &hist.condition {
+    for (mut vis, cond) in query.iter_mut() {
+        if let Some(condition) = &cond.condition {
             if (condition != &ui_state.condition) & (ui_state.condition != "ALL") {
                 *vis = Visibility::INVISIBLE;
             } else {

@@ -78,8 +78,12 @@ pub struct GeomMetabolite {
 #[derive(Component)]
 pub struct HistTag {
     pub side: Side,
-    pub condition: Option<String>,
     pub node_id: u64,
+}
+
+#[derive(Component)]
+pub struct VisCondition {
+    pub condition: Option<String>,
 }
 
 /// Component that indicates the plot position and axis.
