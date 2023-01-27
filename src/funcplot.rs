@@ -130,6 +130,7 @@ impl ScaleBundle {
         size: f32,
         font: Handle<Font>,
         font_size: f32,
+        color: Color,
     ) -> Self {
         // build x component
         let x_0 = Text2dBundle {
@@ -138,7 +139,7 @@ impl ScaleBundle {
                 TextStyle {
                     font: font.clone(),
                     font_size,
-                    color: Color::rgb(51. / 255., 78. / 255., 107. / 255.),
+                    color,
                 },
             ),
             // to the left so that it is centered
@@ -151,7 +152,7 @@ impl ScaleBundle {
                 TextStyle {
                     font: font.clone(),
                     font_size,
-                    color: Color::rgb(51. / 255., 78. / 255., 107. / 255.),
+                    color,
                 },
             ),
             transform: Transform::from_xyz(size / 2., 0., 0.2),
@@ -163,7 +164,7 @@ impl ScaleBundle {
                 TextStyle {
                     font,
                     font_size,
-                    color: Color::rgb(51. / 255., 78. / 255., 107. / 255.),
+                    color,
                 },
             ),
             transform: Transform::from_xyz(mean_pos, 0., 0.2),
@@ -179,7 +180,7 @@ pub fn plot_scales(samples: &[f32], size: f32, font: Handle<Font>, font_size: f3
     let min = min_f32(samples);
     let max = max_f32(samples);
     let mean_pos = lerp(mean, min, max, -size / 2., size / 2.);
-    ScaleBundle::new(min, max, mean, mean_pos, size, font, font_size)
+    ScaleBundle::new(min, max, mean, mean_pos, size, font, font_size, Color::rgb(51. / 255., 78. / 255., 107. / 255.))
 }
 
 fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
