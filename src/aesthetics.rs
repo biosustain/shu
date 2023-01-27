@@ -520,16 +520,7 @@ fn plot_side_hist(
                     }
                 };
                 // TODO(carrascomj): just y, x should be by axis
-                let scales = plot_scales(
-                    this_dist,
-                    axis.arrow_size,
-                    font.clone(),
-                    12.,
-                    match geom.plot {
-                        HistPlot::Kde => 0.1,
-                        _ => 80.,
-                    },
-                );
+                let scales = plot_scales(this_dist, axis.arrow_size, font.clone(), 12.);
 
                 commands
                     .spawn(GeometryBuilder::build_as(
@@ -701,16 +692,7 @@ fn plot_hover_hist(
                     transform,
                 );
                 geometry.visibility = Visibility::INVISIBLE;
-                let scales = plot_scales(
-                    this_dist,
-                    600.,
-                    font.clone(),
-                    12.,
-                    match geom.plot {
-                        HistPlot::Kde => 0.15,
-                        _ => 120.,
-                    },
-                );
+                let scales = plot_scales(this_dist, 600., font.clone(), 12.);
                 commands
                     .spawn((
                         HistTag {

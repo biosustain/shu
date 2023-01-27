@@ -30,7 +30,7 @@ fn kde(x: f32, samples: &[f32], h: f32) -> f32 {
             .sum::<f32>()
 }
 
-fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
+pub fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
     let delta: f32 = (stop - start) / (nstep as f32 - 1.);
     (0..(nstep)).map(|i| start + i as f32 * delta).collect()
 }
@@ -120,57 +120,66 @@ pub struct ScaleBundle {
     pub x_n: Text2dBundle,
 }
 
-/// Build and position text tags to indicate the scale of thethe  x-axis.
-pub fn plot_scales(
-    samples: &[f32],
-    size: f32,
-    font: Handle<Font>,
-    font_size: f32,
-    mean_y: f32,
-) -> ScaleBundle {
-    let mean: f32 = samples.iter().sum::<f32>() / samples.len() as f32;
-    let min = min_f32(samples);
-    let max = max_f32(samples);
-    let mean_pos = lerp(mean, min, max, -size / 2., size / 2.);
-    ScaleBundle {
-        x_0: Text2dBundle {
+impl ScaleBundle {
+    /// Build text components from minimum, maximum and mean values.
+    pub fn new(
+        minimum: f32,
+        maximum: f32,
+        mean: f32,
+        mean_pos: f32,
+        size: f32,
+        font: Handle<Font>,
+        font_size: f32,
+    ) -> Self {
+        // build x component
+        let x_0 = Text2dBundle {
             text: Text::from_section(
-                format!("{:+.3e}", min),
+                format!("{:+.3e}", minimum),
                 TextStyle {
                     font: font.clone(),
                     font_size,
-                    color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+                    color: Color::rgb(51. / 255., 78. / 255., 107. / 255.),
                 },
             ),
-            transform: Transform::from_xyz(-size / 2., 0., 0.2),
+            // to the left so that it is centered
+            transform: Transform::from_xyz(-size / 2. - font_size * 2., 0., 0.2),
             ..Default::default()
-        },
-        y: Text2dBundle {
+        };
+        let x_n = Text2dBundle {
             text: Text::from_section(
-                format!("{:+.3e}", mean),
+                format!("{:+.3e}", maximum),
                 TextStyle {
                     font: font.clone(),
                     font_size,
-                    color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                },
-            ),
-            // the y axis seems to be OK here
-            transform: Transform::from_xyz(mean_pos, mean_y, 0.2),
-            ..Default::default()
-        },
-        x_n: Text2dBundle {
-            text: Text::from_section(
-                format!("{:+.3e}", max),
-                TextStyle {
-                    font,
-                    font_size,
-                    color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+                    color: Color::rgb(51. / 255., 78. / 255., 107. / 255.),
                 },
             ),
             transform: Transform::from_xyz(size / 2., 0., 0.2),
             ..Default::default()
-        },
+        };
+        let y = Text2dBundle {
+            text: Text::from_section(
+                format!("{:+.3e}", mean),
+                TextStyle {
+                    font,
+                    font_size,
+                    color: Color::rgb(51. / 255., 78. / 255., 107. / 255.),
+                },
+            ),
+            transform: Transform::from_xyz(mean_pos, 0., 0.2),
+            ..Default::default()
+        };
+        Self { x_0, y, x_n }
     }
+}
+
+/// Build and position text tags to indicate the scale of thethe  x-axis.
+pub fn plot_scales(samples: &[f32], size: f32, font: Handle<Font>, font_size: f32) -> ScaleBundle {
+    let mean: f32 = samples.iter().sum::<f32>() / samples.len() as f32;
+    let min = min_f32(samples);
+    let max = max_f32(samples);
+    let mean_pos = lerp(mean, min, max, -size / 2., size / 2.);
+    ScaleBundle::new(min, max, mean, mean_pos, size, font, font_size)
 }
 
 fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
