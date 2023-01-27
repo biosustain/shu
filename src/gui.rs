@@ -2,7 +2,7 @@
 
 use crate::data::{Data, ReactionState};
 use crate::escher::{EscherMap, Hover, MapState};
-use crate::geom::{AnyTag, Drag, HistTag, Xaxis};
+use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
@@ -241,7 +241,7 @@ fn show_hover(
     ui_state: Res<UiState>,
     windows: Res<Windows>,
     hover_query: Query<(&Transform, &Hover)>,
-    mut popup_query: Query<(&mut Visibility, &AnyTag, &HistTag)>,
+    mut popup_query: Query<(&mut Visibility, &AnyTag, &VisCondition), With<HistTag>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     let (camera, camera_transform) = q_camera.single();
