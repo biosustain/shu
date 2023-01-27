@@ -13,6 +13,7 @@ mod escher;
 mod funcplot;
 mod geom;
 mod gui;
+mod legend;
 #[cfg(test)]
 mod tests;
 
@@ -43,6 +44,7 @@ fn main() {
         .add_plugin(data::DataPlugin)
         .add_startup_system(setup_system)
         .add_plugin(aesthetics::AesPlugin)
+        .add_plugin(legend::LegendPlugin)
         .run();
 }
 
