@@ -22,6 +22,7 @@ impl Plugin for GuiPlugin {
             .add_system(follow_mouse_on_drag)
             .add_system(follow_mouse_on_drag_ui)
             .add_system(follow_mouse_on_rotate)
+            .add_system(scale_ui)
             .add_system(mouse_click_system)
             .add_system(mouse_click_ui_system);
 
@@ -398,6 +399,15 @@ fn follow_mouse_on_rotate(
                 }
             }
         }
+    }
+}
+
+/// Change size of UI on +/-.
+fn scale_ui(key_input: Res<Input<KeyCode>>, mut ui_scale: ResMut<UiScale>) {
+    if key_input.just_pressed(KeyCode::Plus) {
+        ui_scale.scale += 0.1;
+    } else if key_input.just_pressed(KeyCode::Minus) {
+        ui_scale.scale -= 0.1;
     }
 }
 
