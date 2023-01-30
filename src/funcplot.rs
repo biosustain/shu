@@ -181,7 +181,16 @@ pub fn plot_scales(samples: &[f32], size: f32, font: Handle<Font>, font_size: f3
     let min = min_f32(samples);
     let max = max_f32(samples);
     let mean_pos = lerp(mean, min, max, -size / 2., size / 2.);
-    ScaleBundle::new(min, max, mean, mean_pos, size, font, font_size, Color::rgb(51. / 255., 78. / 255., 107. / 255.))
+    ScaleBundle::new(
+        min,
+        max,
+        mean,
+        mean_pos,
+        size,
+        font,
+        font_size,
+        Color::rgb(51. / 255., 78. / 255., 107. / 255.),
+    )
 }
 
 fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {

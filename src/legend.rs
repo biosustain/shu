@@ -1,18 +1,19 @@
 //! Legend generation on demand.
 
-use bevy::{prelude::*, utils::HashMap};
+use bevy::prelude::*;
 
 use crate::{
-    aesthetics::{Aesthetics, Gcolor, Point},
+    aesthetics::{Aesthetics, Gcolor, Point, Unscale},
     funcplot::{linspace, max_f32, min_f32, ScaleBundle},
-    geom::{Drag, GeomArrow, GeomMetabolite, HistPlot, Side, Xaxis},
+    geom::{Drag, GeomArrow, GeomMetabolite, Side, Xaxis},
     gui::UiState,
 };
 
 // parameters for legend sizes
 const WIDTH: Val = Val::Px(300.0);
-const HEIGHT: Val = Val::Px(100.0);
+const HEIGHT: Val = Val::Px(200.0);
 const HEIGHT_CHILD: Val = Val::Px(50.0);
+const HIST_HEIGHT_CHILD: Val = Val::Px(80.0);
 const ARROW_BUNDLE_WIDTH: Val = Val::Px(280.0);
 const ARROW_WIDTH: Val = Val::Px(150.0);
 const ARROW_HEIGHT: Val = Val::Px(40.);
@@ -24,9 +25,9 @@ pub struct LegendPlugin;
 impl Plugin for LegendPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(spawn_legend)
-            // .add_system(draw_legend_for_axis)
             .add_system(color_legend_arrow)
-            .add_system(color_legend_circle);
+            .add_system(color_legend_circle)
+            .add_system(color_legend_for_histograms);
     }
 }
 
@@ -35,10 +36,21 @@ struct LegendArrow;
 #[derive(Component)]
 struct LegendCircle;
 #[derive(Component)]
+struct LegendHist;
+#[derive(Component)]
 struct Xmin;
 #[derive(Component)]
 struct Xmax;
 
+/// Spawn the legend. Nothing is displayed on spawn; only when the user
+/// adds data corresponding to a part of the legend, that part is displayed.
+///
+/// The legend is a Column with 3 row children:
+/// - arrow legend with 3 children: Text(min), UiImage(arrow), Text(max).
+/// - metabolite legend with 3 children: Text(min), UiImage(arrow), Text(max).
+/// - histogram legend with 2 column children:
+///     - Text(min), UiImage(histogram left), Text(max).
+///     - Text(min), UiImage(histogram), Text(maximum).
 fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/Assistant-Regular.ttf");
     let scales_arrow = ScaleBundle::new(
@@ -52,13 +64,17 @@ fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
         Color::hex("504d50").unwrap(),
     );
     let scales_mets = scales_arrow.clone();
+    let scales_left = scales_arrow.clone();
+    let scales_right = scales_arrow.clone();
     let arrow_handle = asset_server.load("arrow_grad.png");
     let met_handle = asset_server.load("met_grad.png");
+    let hist_left_handle = asset_server.load("hist_legend.png");
+    let hist_right_handle = asset_server.load("hist_legend_right.png");
     commands
         .spawn(NodeBundle {
             style: Style {
                 size: Size::new(WIDTH, HEIGHT),
-                flex_direction: FlexDirection::Column,
+                flex_direction: FlexDirection::ColumnReverse,
                 align_items: AlignItems::Center,
                 position_type: PositionType::Absolute,
                 position: UiRect {
@@ -154,9 +170,114 @@ fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     Xmax,
                 ));
             });
+        })
+        // hist legend
+        .with_children(|p| {
+            // container for both histogram sides
+            p.spawn(NodeBundle {
+                style: Style {
+                    size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD * 2.0),
+                    display: Display::Flex,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::SpaceBetween,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            // container for left histogram side with text tags for axis
+            .with_children(|p| {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD * 20.),
+                        display: Display::None,
+                        align_items: AlignItems::FlexEnd,
+                        flex_direction: FlexDirection::Column,
+                        justify_content: JustifyContent::Center,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(LegendHist)
+                .insert(Side::Left)
+                // left histogram side
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_left.x_0.text,
+                            ..default()
+                        },
+                        Xmin,
+                    ));
+                })
+                .with_children(|p| {
+                    p.spawn(ImageBundle {
+                        style: Style {
+                            size: Size::new(HIST_HEIGHT_CHILD, HIST_HEIGHT_CHILD),
+                            ..default()
+                        },
+                        image: UiImage(hist_left_handle),
+                        ..default()
+                    });
+                })
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_left.x_n.text,
+                            ..default()
+                        },
+                        Xmax,
+                    ));
+                });
+            })
+            // container for right histogram side with text tags for axis
+            .with_children(|p| {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD * 20.),
+                        display: Display::None,
+                        align_items: AlignItems::FlexStart,
+                        flex_direction: FlexDirection::Column,
+                        justify_content: JustifyContent::Center,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(LegendHist)
+                .insert(Side::Right)
+                // right histogram side
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_right.x_0.text,
+                            ..default()
+                        },
+                        Xmin,
+                    ));
+                })
+                .with_children(|p| {
+                    p.spawn(ImageBundle {
+                        style: Style {
+                            size: Size::new(HIST_HEIGHT_CHILD, HIST_HEIGHT_CHILD),
+                            ..default()
+                        },
+                        image: UiImage(hist_right_handle),
+                        ..default()
+                    });
+                })
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_right.x_n.text,
+                            ..default()
+                        },
+                        Xmax,
+                    ));
+                });
+            });
         });
 }
 
+/// If a [`GeomArrow`] with color is added, and arrow is displayed showcasing the color scale with a gradient.
 fn color_legend_arrow(
     ui_state: Res<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Children), With<LegendArrow>>,
@@ -212,6 +333,7 @@ fn color_legend_arrow(
     }
 }
 
+/// If [`GeomMetabolite`] with color is added, and arrow is displayed showcasing the color scale with a gradient.
 fn color_legend_circle(
     ui_state: Res<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Children), With<LegendCircle>>,
@@ -261,6 +383,58 @@ fn color_legend_circle(
                         }
                     });
                     image.data = data.collect::<Vec<u8>>();
+                }
+            }
+        }
+    }
+}
+
+/// When a new Right or Left histogram `Xaxis` is spawned, add a legend corresponding to that axis.
+fn color_legend_for_histograms(
+    ui_state: Res<UiState>,
+    mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendHist>>,
+    // Unscale means that it is not a histogram
+    axis_query: Query<&Xaxis, Without<Unscale>>,
+    mut img_query: Query<&mut BackgroundColor>,
+    mut text_query: Query<&mut Text, With<Xmin>>,
+    mut text_max_query: Query<&mut Text, Without<Xmin>>,
+) {
+    let mut left: Option<((f32, f32), &Side)> = None;
+    let mut right: Option<((f32, f32), &Side)> = None;
+    // gather all axis limits
+    for axis in axis_query.iter() {
+        if left.is_some() & right.is_some() {
+            break;
+        }
+        match axis.side {
+            Side::Left if left.is_none() => left = Some((axis.xlimits, &axis.side)),
+            Side::Right if right.is_none() => right = Some((axis.xlimits, &axis.side)),
+            _ => continue,
+        }
+    }
+    // if an axis matches the legend in side, show the legend with bounds and color
+    for axis in [left, right].iter().filter_map(|o| o.as_ref()) {
+        for (_parent, mut style, side, children) in &mut legend_query {
+            for child in children.iter() {
+                if axis.1 == side {
+                    if let Ok(mut text) = text_query.get_mut(*child) {
+                        text.sections[0].value = format!("{:.2e}", axis.0 .0);
+                    } else if let Ok(mut text) = text_max_query.get_mut(*child) {
+                        text.sections[0].value = format!("{:.2e}", axis.0 .1);
+                    } else if let Ok(mut color) = img_query.get_mut(*child) {
+                        style.display = Display::Flex;
+                        color.0 = match side {
+                            Side::Left => {
+                                let color = ui_state.color_left;
+                                Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                            }
+                            Side::Right => {
+                                let color = ui_state.color_right;
+                                Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                            }
+                            _ => panic!("unexpected side"),
+                        };
+                    }
                 }
             }
         }

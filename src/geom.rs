@@ -8,9 +8,10 @@ pub struct GeomArrow {
     pub plotted: bool,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone, Deserialize, Serialize)]
+#[derive(Hash, PartialEq, Eq, Debug, Clone, Deserialize, Serialize, Default, Component)]
 pub enum Side {
     Left,
+    #[default]
     Right,
     // for hovering instances
     Up,
