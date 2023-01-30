@@ -5,7 +5,7 @@ use bevy::{prelude::*, utils::HashMap};
 use crate::{
     aesthetics::{Aesthetics, Gcolor, Point},
     funcplot::{linspace, max_f32, min_f32, ScaleBundle},
-    geom::{GeomArrow, HistPlot, Side, Xaxis, GeomMetabolite},
+    geom::{GeomArrow, HistPlot, Side, Xaxis, GeomMetabolite, Drag},
     gui::UiState,
 };
 
@@ -55,6 +55,7 @@ fn spawn_legend(
             },
             ..Default::default()
         })
+        .insert((Drag::default(), Interaction::default()))
         // arrow legend
         .with_children(|p| {
             p.spawn(NodeBundle {
