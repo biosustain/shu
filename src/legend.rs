@@ -5,14 +5,23 @@ use bevy::{prelude::*, utils::HashMap};
 use crate::{
     aesthetics::{Aesthetics, Gcolor, Point},
     funcplot::{linspace, max_f32, min_f32, ScaleBundle},
-    geom::{GeomArrow, HistPlot, Side, Xaxis, GeomMetabolite, Drag},
+    geom::{Drag, GeomArrow, GeomMetabolite, HistPlot, Side, Xaxis},
     gui::UiState,
 };
+
+// parameters for legend sizes
+const WIDTH: Val = Val::Px(300.0);
+const HEIGHT: Val = Val::Px(100.0);
+const HEIGHT_CHILD: Val = Val::Px(50.0);
+const ARROW_BUNDLE_WIDTH: Val = Val::Px(280.0);
+const ARROW_WIDTH: Val = Val::Px(150.0);
+const ARROW_HEIGHT: Val = Val::Px(40.);
+const CIRCLE_BUNDLE_WIDTH: Val = Val::Px(160.0);
+const CIRCLE_DIAM: Val = Val::Px(35.0);
 
 pub struct LegendPlugin;
 
 impl Plugin for LegendPlugin {
- 
     fn build(&self, app: &mut App) {
         app.add_startup_system(spawn_legend)
             // .add_system(draw_legend_for_axis)
@@ -30,19 +39,25 @@ struct Xmin;
 #[derive(Component)]
 struct Xmax;
 
-fn spawn_legend(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
+fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/Assistant-Regular.ttf");
-    let scales_arrow = ScaleBundle::new(0., 0., 0., 200., 200., font.clone(), 20., Color::hex("504d50").unwrap());
-    let scales_mets = ScaleBundle::new(0., 0., 0., 200., 200., font, 20., Color::hex("504d50").unwrap());
+    let scales_arrow = ScaleBundle::new(
+        0.,
+        0.,
+        0.,
+        200.,
+        200.,
+        font,
+        20.,
+        Color::hex("504d50").unwrap(),
+    );
+    let scales_mets = scales_arrow.clone();
     let arrow_handle = asset_server.load("arrow_grad.png");
     let met_handle = asset_server.load("met_grad.png");
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size::new(Val::Px(300.), Val::Px(100.)),
+                size: Size::new(WIDTH, HEIGHT),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 position_type: PositionType::Absolute,
@@ -61,7 +76,7 @@ fn spawn_legend(
             p.spawn(NodeBundle {
                 style: Style {
                     display: Display::None,
-                    size: Size::new(Val::Px(280.), Val::Px(50.)),
+                    size: Size::new(ARROW_BUNDLE_WIDTH, HEIGHT_CHILD),
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceBetween,
                     ..Default::default()
@@ -81,7 +96,7 @@ fn spawn_legend(
             .with_children(|p| {
                 p.spawn(ImageBundle {
                     style: Style {
-                        size: Size::new(Val::Px(150.0), Val::Px(40.0)),
+                        size: Size::new(ARROW_WIDTH, ARROW_HEIGHT),
                         ..default()
                     },
                     image: UiImage(arrow_handle),
@@ -102,7 +117,7 @@ fn spawn_legend(
         .with_children(|p| {
             p.spawn(NodeBundle {
                 style: Style {
-                    size: Size::new(Val::Px(160.), Val::Px(50.)),
+                    size: Size::new(CIRCLE_BUNDLE_WIDTH, HEIGHT_CHILD),
                     display: Display::None,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceBetween,
@@ -123,7 +138,7 @@ fn spawn_legend(
             .with_children(|p| {
                 p.spawn(ImageBundle {
                     style: Style {
-                        size: Size::new(Val::Px(35.0), Val::Px(35.0)),
+                        size: Size::new(CIRCLE_DIAM, CIRCLE_DIAM),
                         ..default()
                     },
                     image: UiImage(met_handle),

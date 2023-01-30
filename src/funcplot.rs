@@ -114,6 +114,7 @@ pub fn plot_box_point(n_cond: usize, cond_index: usize) -> Path {
 }
 
 /// Bundle for text that goes into plot scales.
+#[derive(Clone)]
 pub struct ScaleBundle {
     pub x_0: Text2dBundle,
     pub y: Text2dBundle,
