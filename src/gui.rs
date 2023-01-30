@@ -20,8 +20,10 @@ impl Plugin for GuiPlugin {
             .add_system(ui_settings)
             .add_system(show_hover)
             .add_system(follow_mouse_on_drag)
+            .add_system(follow_mouse_on_drag_ui)
             .add_system(follow_mouse_on_rotate)
-            .add_system(mouse_click_system);
+            .add_system(mouse_click_system)
+            .add_system(mouse_click_ui_system);
 
         // file drop and file system does not work in WASM
         #[cfg(not(target_arch = "wasm32"))]
@@ -88,6 +90,8 @@ impl Default for UiState {
 
 struct SaveEvent(String);
 
+/// Settings for appearance of map and plots.
+/// This is managed by [`bevy_egui`] and it is separate from the rest of the GUI.
 fn ui_settings(
     windows: Res<Windows>,
     mut egui_context: ResMut<EguiContext>,
@@ -184,6 +188,7 @@ fn ui_settings(
     });
 }
 
+/// Open `.metabolism.json` and `.reactions.json` files when dropped on the window.
 pub fn file_drop(
     mut dnd_evr: EventReader<FileDragAndDrop>,
     asset_server: Res<AssetServer>,
@@ -191,15 +196,8 @@ pub fn file_drop(
     mut escher_resource: ResMut<MapState>,
 ) {
     for ev in dnd_evr.iter() {
-        if let FileDragAndDrop::DroppedFile { id, path_buf } = ev {
+        if let FileDragAndDrop::DroppedFile { path_buf, .. } = ev {
             println!("Dropped file with path: {:?}", path_buf);
-
-            if id.is_primary() {
-                // it was dropped over the main window
-            }
-
-            // it was dropped over our UI element
-            // (our UI element is being hovered over)
 
             if path_buf.to_str().unwrap().ends_with("metabolism.json") {
                 let reaction_handle: Handle<Data> = asset_server.load(path_buf.to_str().unwrap());
@@ -277,7 +275,7 @@ fn show_hover(
     }
 }
 
-/// Register an histogram as being dragged by center or right button.
+/// Register an non-UI entity (histogram) as being dragged by center or right button.
 fn mouse_click_system(
     windows: Res<Windows>,
     mouse_button_input: Res<Input<MouseButton>>,
@@ -326,10 +324,26 @@ fn mouse_click_system(
     }
 }
 
-/// Move the center-dragged histograms.
+/// Register a UI Drag enity as being dragged by center or right button.
+fn mouse_click_ui_system(
+    mouse_button_input: Res<Input<MouseButton>>,
+    mut drag_query: Query<(&mut Drag, &Interaction)>,
+) {
+    for (mut drag, interaction) in drag_query.iter_mut() {
+        match interaction {
+            Interaction::Hovered | Interaction::Clicked => {
+                drag.dragged = mouse_button_input.pressed(MouseButton::Middle);
+                drag.rotating = mouse_button_input.pressed(MouseButton::Right);
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Move the center-dragged interactable non-UI entities (histograms).
 fn follow_mouse_on_drag(
     windows: Res<Windows>,
-    mut drag_query: Query<(&mut Transform, &Drag)>,
+    mut drag_query: Query<(&mut Transform, &Drag), Without<Style>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     for (mut trans, drag) in drag_query.iter_mut() {
@@ -343,7 +357,24 @@ fn follow_mouse_on_drag(
     }
 }
 
-/// Rotate the right-dragged histograms.
+/// Move the center-dragged interactable UI entities.
+fn follow_mouse_on_drag_ui(windows: Res<Windows>, mut drag_query: Query<(&mut Style, &Drag)>) {
+    for (mut style, drag) in drag_query.iter_mut() {
+        if drag.dragged {
+            let win = windows.get_primary().expect("no primary window");
+            if let Some(screen_pos) = win.cursor_position() {
+                style.position = UiRect {
+                    // arbitrary offset to make it feel more natural
+                    left: Val::Px(screen_pos.x - 60.),
+                    bottom: Val::Px(screen_pos.y),
+                    ..Default::default()
+                };
+            }
+        }
+    }
+}
+
+/// Rotate the right-dragged interactable (histograms and legend) entities.
 fn follow_mouse_on_rotate(
     mut drag_query: Query<(&mut Transform, &Drag)>,
     mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
