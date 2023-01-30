@@ -3,15 +3,15 @@
 use bevy::prelude::*;
 
 use crate::{
-    aesthetics::{Aesthetics, Gcolor, Point, Unscale},
+    aesthetics::{Aesthetics, Gcolor, Gy, Point, Unscale},
     funcplot::{linspace, max_f32, min_f32, ScaleBundle},
-    geom::{Drag, GeomArrow, GeomMetabolite, Side, Xaxis},
+    geom::{Drag, GeomArrow, GeomHist, GeomMetabolite, PopUp, Side, Xaxis},
     gui::UiState,
 };
 
 // parameters for legend sizes
 const WIDTH: Val = Val::Px(300.0);
-const HEIGHT: Val = Val::Px(200.0);
+const HEIGHT: Val = Val::Px(250.0);
 const HEIGHT_CHILD: Val = Val::Px(50.0);
 const HIST_HEIGHT_CHILD: Val = Val::Px(80.0);
 const ARROW_BUNDLE_WIDTH: Val = Val::Px(280.0);
@@ -27,7 +27,8 @@ impl Plugin for LegendPlugin {
         app.add_startup_system(spawn_legend)
             .add_system(color_legend_arrow)
             .add_system(color_legend_circle)
-            .add_system(color_legend_for_histograms);
+            .add_system(color_legend_histograms)
+            .add_system(color_legend_box);
     }
 }
 
@@ -38,6 +39,8 @@ struct LegendCircle;
 #[derive(Component)]
 struct LegendHist;
 #[derive(Component)]
+struct LegendBox;
+#[derive(Component)]
 struct Xmin;
 #[derive(Component)]
 struct Xmax;
@@ -45,12 +48,13 @@ struct Xmax;
 /// Spawn the legend. Nothing is displayed on spawn; only when the user
 /// adds data corresponding to a part of the legend, that part is displayed.
 ///
-/// The legend is a Column with 3 row children:
+/// The legend is a Column with 4 row children:
 /// - arrow legend with 3 children: Text(min), UiImage(arrow), Text(max).
-/// - metabolite legend with 3 children: Text(min), UiImage(arrow), Text(max).
+/// - metabolite legend with 3 children: Text(min), UiImage(circle), Text(max).
 /// - histogram legend with 2 column children:
-///     - Text(min), UiImage(histogram left), Text(max).
+///     - Text(min), UiImage(histogram), Text(max).
 ///     - Text(min), UiImage(histogram), Text(maximum).
+/// - box legend, same as histogram but with Rects instead of images.
 fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/Assistant-Regular.ttf");
     let scales_arrow = ScaleBundle::new(
@@ -66,10 +70,13 @@ fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     let scales_mets = scales_arrow.clone();
     let scales_left = scales_arrow.clone();
     let scales_right = scales_arrow.clone();
+    let scales_left_box = scales_arrow.clone();
+    let scales_right_box = scales_arrow.clone();
     let arrow_handle = asset_server.load("arrow_grad.png");
     let met_handle = asset_server.load("met_grad.png");
     let hist_left_handle = asset_server.load("hist_legend.png");
     let hist_right_handle = asset_server.load("hist_legend_right.png");
+    let box_handle = asset_server.load("rect_legend.png");
     commands
         .spawn(NodeBundle {
             style: Style {
@@ -274,6 +281,108 @@ fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ));
                 });
             });
+        })
+        // box-point legend
+        .with_children(|p| {
+            // container for both box sides
+            p.spawn(NodeBundle {
+                style: Style {
+                    size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD),
+                    display: Display::Flex,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::SpaceBetween,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            // container for left box side with text tags for axis
+            .with_children(|p| {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD),
+                        display: Display::None,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::SpaceBetween,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(LegendBox)
+                .insert(Side::Left)
+                // left box side
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_right_box.x_0.text,
+                            ..default()
+                        },
+                        Xmin,
+                    ));
+                })
+                .with_children(|p| {
+                    p.spawn(ImageBundle {
+                        style: Style {
+                            size: Size::new(CIRCLE_DIAM * 0.8, CIRCLE_DIAM * 0.8),
+                            ..default()
+                        },
+                        image: UiImage(box_handle.clone()),
+                        ..default()
+                    });
+                })
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_right_box.x_n.text,
+                            ..default()
+                        },
+                        Xmax,
+                    ));
+                });
+            })
+            // container for right box side with text tags for axis
+            .with_children(|p| {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD),
+                        display: Display::None,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::SpaceBetween,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(LegendBox)
+                .insert(Side::Right)
+                // right box side
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_left_box.x_0.text,
+                            ..default()
+                        },
+                        Xmin,
+                    ));
+                })
+                .with_children(|p| {
+                    p.spawn(ImageBundle {
+                        style: Style {
+                            size: Size::new(CIRCLE_DIAM * 0.8, CIRCLE_DIAM * 0.8),
+                            ..default()
+                        },
+                        image: UiImage(box_handle.clone()),
+                        ..default()
+                    });
+                })
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_left_box.x_n.text,
+                            ..default()
+                        },
+                        Xmax,
+                    ));
+                });
+            });
         });
 }
 
@@ -287,14 +396,15 @@ fn color_legend_arrow(
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomArrow>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    for (colors, aes) in point_query.iter() {
-        if let Some(condition) = &aes.condition {
-            if condition != &ui_state.condition {
-                continue;
+    for (_parent, mut style, children) in &mut legend_query {
+        let mut displayed = Display::None;
+        for (colors, aes) in point_query.iter() {
+            if let Some(condition) = &aes.condition {
+                if condition != &ui_state.condition {
+                    continue;
+                }
             }
-        }
-        for (_parent, mut style, children) in &mut legend_query {
-            style.display = Display::Flex;
+            displayed = Display::Flex;
             let min_val = min_f32(&colors.0);
             let max_val = max_f32(&colors.0);
             let grad = crate::funcplot::build_grad(
@@ -330,6 +440,7 @@ fn color_legend_arrow(
                 }
             }
         }
+        style.display = displayed;
     }
 }
 
@@ -343,14 +454,15 @@ fn color_legend_circle(
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomMetabolite>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    for (colors, aes) in point_query.iter() {
-        if let Some(condition) = &aes.condition {
-            if condition != &ui_state.condition {
-                continue;
+    for (_parent, mut style, children) in &mut legend_query {
+        let mut displayed = Display::None;
+        for (colors, aes) in point_query.iter() {
+            if let Some(condition) = &aes.condition {
+                if condition != &ui_state.condition {
+                    continue;
+                }
             }
-        }
-        for (_parent, mut style, children) in &mut legend_query {
-            style.display = Display::Flex;
+            displayed = Display::Flex;
             let min_val = min_f32(&colors.0);
             let max_val = max_f32(&colors.0);
             let grad = crate::funcplot::build_grad(
@@ -386,11 +498,12 @@ fn color_legend_circle(
                 }
             }
         }
+        style.display = displayed;
     }
 }
 
 /// When a new Right or Left histogram `Xaxis` is spawned, add a legend corresponding to that axis.
-fn color_legend_for_histograms(
+fn color_legend_histograms(
     ui_state: Res<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendHist>>,
     // Unscale means that it is not a histogram
@@ -438,5 +551,66 @@ fn color_legend_for_histograms(
                 }
             }
         }
+    }
+}
+
+/// If a [`GeomArrow`] with color is added, and arrow is displayed showcasing the color scale with a gradient.
+fn color_legend_box(
+    ui_state: Res<UiState>,
+    mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendBox>>,
+    mut img_query: Query<&UiImage>,
+    mut text_query: Query<&mut Text, With<Xmin>>,
+    mut text_max_query: Query<&mut Text, Without<Xmin>>,
+    point_query: Query<(&Point<f32>, &Aesthetics, &GeomHist), (With<Gy>, Without<PopUp>)>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    for (_parent, mut style, side, children) in &mut legend_query {
+        let mut displayed = Display::None;
+        for (colors, aes, geom_hist) in point_query.iter() {
+            if let Some(condition) = &aes.condition {
+                if condition != &ui_state.condition {
+                    continue;
+                }
+            }
+            if geom_hist.side != *side {
+                continue;
+            }
+            displayed = Display::Flex;
+            let min_val = min_f32(&colors.0);
+            let max_val = max_f32(&colors.0);
+            let grad = crate::funcplot::build_grad(
+                ui_state.zero_white,
+                min_val,
+                max_val,
+                &ui_state.min_reaction_color,
+                &ui_state.max_reaction_color,
+            );
+            for child in children.iter() {
+                if let Ok(mut text) = text_query.get_mut(*child) {
+                    text.sections[0].value = format!("{:.2e}", min_val);
+                } else if let Ok(mut text) = text_max_query.get_mut(*child) {
+                    text.sections[0].value = format!("{:.2e}", max_val);
+                } else if let Ok(img_legend) = img_query.get_mut(*child) {
+                    // modify the image inplace
+                    let handle = images.get_handle(&img_legend.0);
+                    let image = images.get_mut(&handle).unwrap();
+
+                    let width = image.size().x as f64;
+                    let points = linspace(min_val, max_val, width as u32);
+                    let data = image.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
+                        let row = (i as f64 / width).floor();
+                        let x = i as f64 - width * row;
+                        if pixel[3] != 0 {
+                            let color = grad.at(points[x as usize] as f64).to_rgba8();
+                            [color[0], color[1], color[2], color[3]].into_iter()
+                        } else {
+                            [0, 0, 0, 0].into_iter()
+                        }
+                    });
+                    image.data = data.collect::<Vec<u8>>();
+                }
+            }
+        }
+        style.display = displayed;
     }
 }
