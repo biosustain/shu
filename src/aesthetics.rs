@@ -475,7 +475,6 @@ fn build_hover_axes(
 /// Plot histogram as numerical variable next to arrows.
 fn plot_side_hist(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut aes_query: Query<
         (&Distribution<f32>, &Aesthetics, &mut GeomHist),
         (With<Gy>, Without<PopUp>),
@@ -486,7 +485,6 @@ fn plot_side_hist(
         if geom.rendered {
             continue;
         }
-        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         for (trans, axis) in query.iter() {
             if let Some(index) = aes
                 .identifiers
@@ -519,8 +517,6 @@ fn plot_side_hist(
                         continue;
                     }
                 };
-                // TODO(carrascomj): just y, x should be by axis
-                let scales = plot_scales(this_dist, axis.arrow_size, font.clone(), 12.);
 
                 commands
                     .spawn(GeometryBuilder::build_as(
@@ -534,15 +530,6 @@ fn plot_side_hist(
                     .insert(HistTag {
                         side: geom.side.clone(),
                         node_id: axis.node_id,
-                    })
-                    .with_children(|parent| {
-                        parent.spawn(scales.x_0);
-                    })
-                    .with_children(|parent| {
-                        parent.spawn(scales.x_n);
-                    })
-                    .with_children(|parent| {
-                        parent.spawn(scales.y);
                     });
             }
             geom.rendered = true;
