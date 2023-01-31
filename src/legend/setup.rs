@@ -9,14 +9,14 @@ use crate::{
 };
 
 // parameters for legend sizes
-const WIDTH: Val = Val::Px(300.0);
-const HEIGHT: Val = Val::Px(250.0);
-const HEIGHT_CHILD: Val = Val::Px(50.0);
-const HIST_HEIGHT_CHILD: Val = Val::Px(80.0);
-const ARROW_BUNDLE_WIDTH: Val = Val::Px(280.0);
-const ARROW_WIDTH: Val = Val::Px(150.0);
-const ARROW_HEIGHT: Val = Val::Px(40.);
-const CIRCLE_BUNDLE_WIDTH: Val = Val::Px(160.0);
+const WIDTH: Val = Val::Px(230.0);
+const HEIGHT: Val = Val::Px(240.0);
+const HEIGHT_CHILD: Val = Val::Px(40.0);
+const HIST_HEIGHT_CHILD: Val = Val::Px(60.0);
+const ARROW_BUNDLE_WIDTH: Val = Val::Px(210.0);
+const ARROW_WIDTH: Val = Val::Px(120.0);
+const ARROW_HEIGHT: Val = Val::Px(22.);
+const CIRCLE_BUNDLE_WIDTH: Val = Val::Px(120.0);
 const CIRCLE_DIAM: Val = Val::Px(35.0);
 
 #[derive(Component)]
@@ -51,7 +51,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
         200.,
         200.,
         font,
-        20.,
+        15.,
         Color::hex("504d50").unwrap(),
     );
     let scales_mets = scales_arrow.clone();
@@ -67,7 +67,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                size: Size::new(WIDTH, HEIGHT),
+                max_size: Size::new(WIDTH, HEIGHT),
                 flex_direction: FlexDirection::ColumnReverse,
                 align_items: AlignItems::Center,
                 position_type: PositionType::Absolute,
@@ -81,6 +81,108 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..Default::default()
         })
         .insert((Drag::default(), Interaction::default()))
+        // box-point legend
+        .with_children(|p| {
+            // container for both box sides
+            p.spawn(NodeBundle {
+                style: Style {
+                    max_size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD / 2.0),
+                    display: Display::Flex,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::SpaceEvenly,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            // container for left box side with text tags for axis
+            .with_children(|p| {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.3, HIST_HEIGHT_CHILD / 2.0),
+                        display: Display::None,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::SpaceBetween,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(LegendBox)
+                .insert(Side::Left)
+                // left box side
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_right_box.x_0.text,
+                            ..default()
+                        },
+                        Xmin,
+                    ));
+                })
+                .with_children(|p| {
+                    p.spawn(ImageBundle {
+                        style: Style {
+                            size: Size::new(CIRCLE_DIAM * 0.5, CIRCLE_DIAM * 0.5),
+                            ..default()
+                        },
+                        image: UiImage(box_handle.clone()),
+                        ..default()
+                    });
+                })
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_right_box.x_n.text,
+                            ..default()
+                        },
+                        Xmax,
+                    ));
+                });
+            })
+            // container for right box side with text tags for axis
+            .with_children(|p| {
+                p.spawn(NodeBundle {
+                    style: Style {
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.3, HIST_HEIGHT_CHILD / 2.0),
+                        display: Display::None,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::SpaceBetween,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+                .insert(LegendBox)
+                .insert(Side::Right)
+                // right box side
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_left_box.x_0.text,
+                            ..default()
+                        },
+                        Xmin,
+                    ));
+                })
+                .with_children(|p| {
+                    p.spawn(ImageBundle {
+                        style: Style {
+                            size: Size::new(CIRCLE_DIAM * 0.5, CIRCLE_DIAM * 0.5),
+                            ..default()
+                        },
+                        image: UiImage(box_handle.clone()),
+                        ..default()
+                    });
+                })
+                .with_children(|p| {
+                    p.spawn((
+                        TextBundle {
+                            text: scales_left_box.x_n.text,
+                            ..default()
+                        },
+                        Xmax,
+                    ));
+                });
+            });
+        })
         // arrow legend
         .with_children(|p| {
             p.spawn(NodeBundle {
@@ -148,7 +250,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(ImageBundle {
                     style: Style {
-                        size: Size::new(CIRCLE_DIAM, CIRCLE_DIAM),
+                        size: Size::new(CIRCLE_DIAM, CIRCLE_DIAM * 0.8),
                         ..default()
                     },
                     image: UiImage(met_handle),
@@ -170,7 +272,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             // container for both histogram sides
             p.spawn(NodeBundle {
                 style: Style {
-                    size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD * 2.0),
+                    min_size: Size::new(ARROW_BUNDLE_WIDTH, Val::Px(0.0)),
+                    max_size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD * 2.0),
                     display: Display::Flex,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceBetween,
@@ -182,7 +285,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD * 20.),
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD * 2.0),
                         display: Display::None,
                         align_items: AlignItems::FlexEnd,
                         flex_direction: FlexDirection::Column,
@@ -206,7 +309,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_children(|p| {
                     p.spawn(ImageBundle {
                         style: Style {
-                            size: Size::new(HIST_HEIGHT_CHILD, HIST_HEIGHT_CHILD),
+                            size: Size::new(HIST_HEIGHT_CHILD * 0.6, HIST_HEIGHT_CHILD),
                             ..default()
                         },
                         image: UiImage(hist_left_handle),
@@ -251,7 +354,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_children(|p| {
                     p.spawn(ImageBundle {
                         style: Style {
-                            size: Size::new(HIST_HEIGHT_CHILD, HIST_HEIGHT_CHILD),
+                            size: Size::new(HIST_HEIGHT_CHILD * 0.6, HIST_HEIGHT_CHILD),
                             ..default()
                         },
                         image: UiImage(hist_right_handle),
@@ -262,108 +365,6 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     p.spawn((
                         TextBundle {
                             text: scales_right.x_n.text,
-                            ..default()
-                        },
-                        Xmax,
-                    ));
-                });
-            });
-        })
-        // box-point legend
-        .with_children(|p| {
-            // container for both box sides
-            p.spawn(NodeBundle {
-                style: Style {
-                    size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD),
-                    display: Display::Flex,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::SpaceBetween,
-                    ..Default::default()
-                },
-                ..Default::default()
-            })
-            // container for left box side with text tags for axis
-            .with_children(|p| {
-                p.spawn(NodeBundle {
-                    style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD),
-                        display: Display::None,
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::SpaceBetween,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                })
-                .insert(LegendBox)
-                .insert(Side::Left)
-                // left box side
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_right_box.x_0.text,
-                            ..default()
-                        },
-                        Xmin,
-                    ));
-                })
-                .with_children(|p| {
-                    p.spawn(ImageBundle {
-                        style: Style {
-                            size: Size::new(CIRCLE_DIAM * 0.8, CIRCLE_DIAM * 0.8),
-                            ..default()
-                        },
-                        image: UiImage(box_handle.clone()),
-                        ..default()
-                    });
-                })
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_right_box.x_n.text,
-                            ..default()
-                        },
-                        Xmax,
-                    ));
-                });
-            })
-            // container for right box side with text tags for axis
-            .with_children(|p| {
-                p.spawn(NodeBundle {
-                    style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD),
-                        display: Display::None,
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::SpaceBetween,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                })
-                .insert(LegendBox)
-                .insert(Side::Right)
-                // right box side
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_left_box.x_0.text,
-                            ..default()
-                        },
-                        Xmin,
-                    ));
-                })
-                .with_children(|p| {
-                    p.spawn(ImageBundle {
-                        style: Style {
-                            size: Size::new(CIRCLE_DIAM * 0.8, CIRCLE_DIAM * 0.8),
-                            ..default()
-                        },
-                        image: UiImage(box_handle.clone()),
-                        ..default()
-                    });
-                })
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_left_box.x_n.text,
                             ..default()
                         },
                         Xmax,
