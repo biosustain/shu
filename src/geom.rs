@@ -8,12 +8,13 @@ pub struct GeomArrow {
     pub plotted: bool,
 }
 
+/// Side of the arrow a plot (box point, histogram or legend) is referring to.
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Deserialize, Serialize, Default, Component)]
 pub enum Side {
     Left,
     #[default]
     Right,
-    // for hovering instances
+    /// for hovering instances
     Up,
 }
 

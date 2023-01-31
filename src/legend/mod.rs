@@ -1,9 +1,9 @@
-//! Legend generation on demand.
+//! Procedural legend generation.
 
 use bevy::prelude::*;
 
 use crate::{
-    aesthetics::{Aesthetics, Gcolor, Gy, Point, Unscale},
+    aesthetics::{Aesthetics, Distribution, Gcolor, Gy, Point, Unscale},
     funcplot::{linspace, max_f32, min_f32},
     geom::{GeomArrow, GeomHist, GeomMetabolite, PopUp, Side, Xaxis},
     gui::UiState,
@@ -26,6 +26,15 @@ impl Plugin for LegendPlugin {
 }
 
 /// If a [`GeomArrow`] with color is added, and arrow is displayed showcasing the color scale with a gradient.
+///
+/// The legend is displayed only if there is data with the right aes [`Gcolor`] and geom [`GeomArrow`].
+///
+/// # Conditions
+///
+/// * If the data comes with `None` condition, the legend is always displayed.
+/// * If the data comes with `Some` condition only the selected condition is displayed.
+/// * If "ALL" conditions are selected, the legend is displayed for the last condition,
+///   which is the one that is displayed on the map.
 fn color_legend_arrow(
     ui_state: Res<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Children), With<LegendArrow>>,
@@ -40,6 +49,11 @@ fn color_legend_arrow(
         for (colors, aes) in point_query.iter() {
             if let Some(condition) = &aes.condition {
                 if condition != &ui_state.condition {
+                    if ui_state.condition == "ALL" {
+                        // legend should not show if there are no data matching the
+                        // geoms and aes even if the condition is "ALL"
+                        displayed = Display::Flex;
+                    }
                     continue;
                 }
             }
@@ -84,6 +98,15 @@ fn color_legend_arrow(
 }
 
 /// If [`GeomMetabolite`] with color is added, and arrow is displayed showcasing the color scale with a gradient.
+///
+/// The legend is displayed only if there is data with the right aes [`Gcolor`] and geom [`GeomMetabolite`].
+///
+/// # Conditions
+///
+/// * If the data comes with `None` condition, the legend is always displayed.
+/// * If the data comes with `Some` condition only the selected condition is displayed.
+/// * If "ALL" conditions are selected, the legend is displayed for the last condition,
+///   which is the one that is displayed on the map.
 fn color_legend_circle(
     ui_state: Res<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Children), With<LegendCircle>>,
@@ -98,6 +121,9 @@ fn color_legend_circle(
         for (colors, aes) in point_query.iter() {
             if let Some(condition) = &aes.condition {
                 if condition != &ui_state.condition {
+                    if ui_state.condition == "ALL" {
+                        displayed = Display::Flex;
+                    }
                     continue;
                 }
             }
@@ -145,34 +171,53 @@ fn color_legend_circle(
 fn color_legend_histograms(
     ui_state: Res<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendHist>>,
-    // Unscale means that it is not a histogram
+    // Unscale means would mean that is not a histogram
     axis_query: Query<&Xaxis, Without<Unscale>>,
+    // only queries for collapsing the legend if no hist data is displayed anymore
+    hist_query: Query<
+        &GeomHist,
+        (
+            With<Gy>,
+            Without<PopUp>,
+            With<Aesthetics>,
+            With<Distribution<f32>>,
+        ),
+    >,
     mut img_query: Query<&mut BackgroundColor>,
     mut text_query: Query<&mut Text, With<Xmin>>,
     mut text_max_query: Query<&mut Text, Without<Xmin>>,
 ) {
-    let mut left: Option<((f32, f32), &Side)> = None;
-    let mut right: Option<((f32, f32), &Side)> = None;
-    // gather all axis limits
+    let mut left: Option<((f32, f32), &Side, bool)> = None;
+    let mut right: Option<((f32, f32), &Side, bool)> = None;
+    // gather axis limits for each axis if they exist
     for axis in axis_query.iter() {
         if left.is_some() & right.is_some() {
             break;
         }
-        match axis.side {
-            Side::Left if left.is_none() => left = Some((axis.xlimits, &axis.side)),
-            Side::Right if right.is_none() => right = Some((axis.xlimits, &axis.side)),
+        let side = match axis.side {
+            Side::Left if left.is_none() => &mut left,
+            Side::Right if right.is_none() => &mut right,
             _ => continue,
-        }
+        };
+        *side = Some((
+            axis.xlimits,
+            &axis.side,
+            hist_query.iter().any(|hist| hist.side == axis.side),
+        ));
     }
     // if an axis matches the legend in side, show the legend with bounds and color
-    for axis in [left, right].iter().filter_map(|o| o.as_ref()) {
+    for (xlimits, axis_side, display) in [left, right].iter().filter_map(|o| o.as_ref()) {
         for (_parent, mut style, side, children) in &mut legend_query {
+            if !display {
+                style.display = Display::None;
+                continue;
+            }
             for child in children.iter() {
-                if axis.1 == side {
+                if axis_side == &side {
                     if let Ok(mut text) = text_query.get_mut(*child) {
-                        text.sections[0].value = format!("{:.2e}", axis.0 .0);
+                        text.sections[0].value = format!("{:.2e}", xlimits.0);
                     } else if let Ok(mut text) = text_max_query.get_mut(*child) {
-                        text.sections[0].value = format!("{:.2e}", axis.0 .1);
+                        text.sections[0].value = format!("{:.2e}", xlimits.1);
                     } else if let Ok(mut color) = img_query.get_mut(*child) {
                         style.display = Display::Flex;
                         color.0 = match side {
@@ -193,7 +238,15 @@ fn color_legend_histograms(
     }
 }
 
-/// If a [`GeomArrow`] with color is added, and arrow is displayed showcasing the color scale with a gradient.
+/// Display left and right gradient boxes only if there is such a query like `point_query`,
+/// which corresponds to a box-point geom.
+///
+/// # Conditions
+///
+/// * If the data comes with `None` condition, the legend is always displayed.
+/// * If the data comes with `Some` condition only the selected condition is displayed.
+/// * If "ALL" conditions are selected, the legend is displayed for the last condition,
+///   which is the one that is displayed on the map.
 fn color_legend_box(
     ui_state: Res<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendBox>>,
@@ -208,6 +261,9 @@ fn color_legend_box(
         for (colors, aes, geom_hist) in point_query.iter() {
             if let Some(condition) = &aes.condition {
                 if condition != &ui_state.condition {
+                    if ui_state.condition == "ALL" {
+                        displayed = Display::Flex;
+                    }
                     continue;
                 }
             }

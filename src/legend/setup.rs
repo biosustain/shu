@@ -1,4 +1,5 @@
-//! Legend generation on demand.
+//! This module contains the code for spawning the legend, which is a
+//! very verbose flexbox layout.
 
 use bevy::prelude::*;
 
