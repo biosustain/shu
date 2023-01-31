@@ -16,10 +16,11 @@ Controls
 
 * **Left click** and drag to move around the map.
 * **Scroll whell** to zoom in and out.
-* **Right click** on a histogram (on its center) and drag the mouse while holding
+* **Right click** on a histogram or the legend (on its center) and drag the mouse while holding
   the button to zoom in/out to rotate it.
-* **Middle click** on a histogram (on its center) and drag the mouse while holding
+* **Middle click** on a histogram or the legend (on its center) and drag the mouse while holding
   the button to move it.
+* **+** and **-** keys to scale up and down the legend.
 
 Contents
 --------
@@ -28,6 +29,7 @@ Contents
 
    plotting
    map
+   developers
 
 .. _releases: https://github.com/biosustain/shu/releases/latest
 .. _escher: https://github.com/zakandrewking/escher

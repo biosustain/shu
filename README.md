@@ -4,6 +4,8 @@
 
 ## What?
 
+Documentation: https://biosustain.github.io/shu/docs/
+
 App to plot multidimensional data to a metabolic map. Metabolic maps are graphs with metabolites
 as nodes and reactions as edges.
 
