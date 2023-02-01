@@ -6,7 +6,7 @@ use crate::{
     aesthetics::{Aesthetics, Distribution, Gcolor, Gy, Point, Unscale},
     funcplot::{linspace, max_f32, min_f32},
     geom::{GeomArrow, GeomHist, GeomMetabolite, PopUp, Side, Xaxis},
-    gui::UiState,
+    gui::{or_color, UiState},
 };
 
 mod setup;
@@ -223,13 +223,11 @@ fn color_legend_histograms(
                         style.display = Display::Flex;
                         color.0 = match side {
                             Side::Left => {
-                                let color =
-                                    ui_state.color_left.entry(condition.clone()).or_default();
+                                let color = or_color(&condition, &mut ui_state.color_left);
                                 Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                             }
                             Side::Right => {
-                                let color =
-                                    ui_state.color_right.entry(condition.clone()).or_default();
+                                let color = or_color(&condition, &mut ui_state.color_left);
                                 Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                             }
                             _ => panic!("unexpected side"),

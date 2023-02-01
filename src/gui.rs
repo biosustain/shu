@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use itertools::Itertools;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
@@ -40,11 +41,8 @@ impl Plugin for GuiPlugin {
 
 /// Retrieve a mutable reference to the color or insert the color
 /// that is already in the map at the empty string.
-pub fn or_insert_from_empty_color<'m>(
-    key: &str,
-    map: &'m mut HashMap<String, Rgba>,
-) -> &'m mut Rgba {
-    let def_color = map.get("").unwrap().clone();
+pub fn or_color<'m>(key: &str, map: &'m mut HashMap<String, Rgba>) -> &'m mut Rgba {
+    let def_color = *map.get("").unwrap();
     match map.entry(key.to_string()) {
         Entry::Occupied(v) => v.into_mut(),
         Entry::Vacant(v) => v.insert(def_color),
@@ -124,6 +122,29 @@ impl Default for UiState {
     }
 }
 
+impl UiState {
+    fn get_geom_params_mut(&mut self, extreme: &str, geom: &str) -> (&mut Rgba, &mut f32) {
+        match (extreme, geom) {
+            ("min", "Reaction") => (&mut self.min_reaction_color, &mut self.min_reaction),
+            ("max", "Reaction") => (&mut self.max_reaction_color, &mut self.max_reaction),
+            ("min", "Metabolite") => (&mut self.min_metabolite_color, &mut self.min_metabolite),
+            ("max", "Metabolite") => (&mut self.max_metabolite_color, &mut self.max_metabolite),
+            ("left", _) => (or_color(geom, &mut self.color_left), &mut self.max_left),
+            ("right", _) => (or_color(geom, &mut self.color_right), &mut self.max_left),
+            ("top", _) => (or_color(geom, &mut self.color_top), &mut self.max_left),
+            _ => panic!("Unknown side"),
+        }
+    }
+
+    fn get_mut_paths(&mut self, label: &str) -> &mut String {
+        match label {
+            "Map" => &mut self.map_path,
+            "Data" => &mut self.data_path,
+            _ => panic!("Unknown label"),
+        }
+    }
+}
+
 struct SaveEvent(String);
 
 /// Settings for appearance of map and plots.
@@ -131,62 +152,41 @@ struct SaveEvent(String);
 fn ui_settings(
     windows: Res<Windows>,
     mut egui_context: ResMut<EguiContext>,
-    mut ui_state: ResMut<UiState>,
+    mut state: ResMut<UiState>,
     mut save_events: EventWriter<SaveEvent>,
     mut load_events: EventWriter<FileDragAndDrop>,
 ) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
-        ui.label("Reaction scale");
-        ui.horizontal(|ui| {
-            color_edit_button_rgba(ui, &mut ui_state.min_reaction_color, Alpha::Opaque);
-            ui.add(egui::Slider::new(&mut ui_state.min_reaction, 5.0..=90.0).text("min"));
-        });
-        ui.horizontal(|ui| {
-            color_edit_button_rgba(ui, &mut ui_state.max_reaction_color, Alpha::Opaque);
-            ui.add(egui::Slider::new(&mut ui_state.max_reaction, 5.0..=90.0).text("max"));
-        });
-        ui.label("Metabolite scale");
-        ui.horizontal(|ui| {
-            color_edit_button_rgba(ui, &mut ui_state.min_metabolite_color, Alpha::Opaque);
-            ui.add(egui::Slider::new(&mut ui_state.min_metabolite, 5.0..=90.0).text("min"));
-        });
-        ui.horizontal(|ui| {
-            color_edit_button_rgba(ui, &mut ui_state.max_metabolite_color, Alpha::Opaque);
-            ui.add(egui::Slider::new(&mut ui_state.max_metabolite, 5.0..=90.0).text("max"));
-        });
+        for (geom, ext) in ["Reaction", "Metabolite"]
+            .into_iter()
+            .cartesian_product(["min", "max"])
+        {
+            if "min" == ext {
+                ui.label(format!("{geom} scale"));
+            }
+            let (color, value) = state.get_geom_params_mut(ext, geom);
+            ui.horizontal(|ui| {
+                color_edit_button_rgba(ui, color, Alpha::Opaque);
+                ui.add(egui::Slider::new(value, 5.0..=90.0).text(ext));
+            });
+        }
+
         ui.label("Histogram scale");
-        ui.horizontal(|ui| {
-            let condition = ui_state.condition.clone();
-            color_edit_button_rgba(
-                ui,
-                &mut or_insert_from_empty_color(&condition, &mut ui_state.color_left),
-                Alpha::BlendOrAdditive,
-            );
-            ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
-        });
-        ui.horizontal(|ui| {
-            let condition = ui_state.condition.clone();
-            color_edit_button_rgba(
-                ui,
-                &mut or_insert_from_empty_color(&condition, &mut ui_state.color_right),
-                Alpha::BlendOrAdditive,
-            );
-            ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
-        });
-        ui.horizontal(|ui| {
-            let condition = ui_state.condition.clone();
-            color_edit_button_rgba(
-                ui,
-                &mut or_insert_from_empty_color(&condition, &mut ui_state.color_top),
-                Alpha::BlendOrAdditive,
-            );
-            ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("top"));
-        });
-        ui.checkbox(&mut ui_state.zero_white, "Zero as white");
-        if let Some(first_cond) = ui_state.conditions.get(0) {
-            if !((first_cond.is_empty()) & (ui_state.conditions.len() == 1)) {
-                let conditions = ui_state.conditions.clone();
-                let condition = &mut ui_state.condition;
+        let condition = state.condition.clone();
+        for side in ["left", "right", "top"] {
+            ui.horizontal(|ui| {
+                let (color, value) = state.get_geom_params_mut(side, &condition);
+                color_edit_button_rgba(ui, color, Alpha::BlendOrAdditive);
+                ui.add(egui::Slider::new(value, 1.0..=300.0).text(side));
+            });
+        }
+
+        ui.checkbox(&mut state.zero_white, "Zero as white");
+
+        if let Some(first_cond) = state.conditions.get(0) {
+            if !((first_cond.is_empty()) & (state.conditions.len() == 1)) {
+                let conditions = state.conditions.clone();
+                let condition = &mut state.condition;
                 egui::ComboBox::from_label("Condition")
                     .selected_text(condition.clone())
                     .show_ui(ui, |ui| {
@@ -202,33 +202,27 @@ fn ui_settings(
         ui.collapsing("Export", |ui| {
             ui.horizontal(|ui| {
                 if ui.button("Save").clicked() {
-                    save_events.send(SaveEvent(ui_state.save_path.clone()))
+                    save_events.send(SaveEvent(state.save_path.clone()))
                 }
-                ui.text_edit_singleline(&mut ui_state.save_path);
+                ui.text_edit_singleline(&mut state.save_path);
             })
         });
         #[cfg(not(target_arch = "wasm32"))]
         ui.collapsing("Import", |ui| {
-            // piggyback on file_drop()
             let win = windows.get_primary().expect("no primary window");
-            ui.horizontal(|ui| {
-                if ui.button("Map").clicked() {
-                    load_events.send(FileDragAndDrop::DroppedFile {
-                        id: win.id(),
-                        path_buf: ui_state.map_path.clone().into(),
-                    });
-                }
-                ui.text_edit_singleline(&mut ui_state.map_path);
-            });
-            ui.horizontal(|ui| {
-                if ui.button("Data").clicked() {
-                    load_events.send(FileDragAndDrop::DroppedFile {
-                        id: win.id(),
-                        path_buf: ui_state.data_path.clone().into(),
-                    })
-                }
-                ui.text_edit_singleline(&mut ui_state.data_path);
-            })
+            for label in ["Map", "Data"] {
+                let path = state.get_mut_paths(label);
+                ui.horizontal(|ui| {
+                    if ui.button(label).clicked() {
+                        // piggyback on file_drop()
+                        load_events.send(FileDragAndDrop::DroppedFile {
+                            id: win.id(),
+                            path_buf: path.clone().into(),
+                        });
+                    }
+                    ui.text_edit_singleline(path);
+                });
+            }
         });
 
         ui.add(egui::Hyperlink::from_label_and_url(
