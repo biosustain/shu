@@ -169,7 +169,7 @@ fn color_legend_circle(
 
 /// When a new Right or Left histogram `Xaxis` is spawned, add a legend corresponding to that axis.
 fn color_legend_histograms(
-    ui_state: Res<UiState>,
+    mut ui_state: ResMut<UiState>,
     mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendHist>>,
     // Unscale means would mean that is not a histogram
     axis_query: Query<&Xaxis, Without<Unscale>>,
@@ -205,6 +205,7 @@ fn color_legend_histograms(
             hist_query.iter().any(|hist| hist.side == axis.side),
         ));
     }
+    let condition = ui_state.condition.clone();
     // if an axis matches the legend in side, show the legend with bounds and color
     for (xlimits, axis_side, display) in [left, right].iter().filter_map(|o| o.as_ref()) {
         for (_parent, mut style, side, children) in &mut legend_query {
@@ -222,11 +223,13 @@ fn color_legend_histograms(
                         style.display = Display::Flex;
                         color.0 = match side {
                             Side::Left => {
-                                let color = ui_state.color_left;
+                                let color =
+                                    ui_state.color_left.entry(condition.clone()).or_default();
                                 Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                             }
                             Side::Right => {
-                                let color = ui_state.color_right;
+                                let color =
+                                    ui_state.color_right.entry(condition.clone()).or_default();
                                 Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                             }
                             _ => panic!("unexpected side"),

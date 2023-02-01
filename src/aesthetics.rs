@@ -7,7 +7,7 @@ use crate::geom::{
     AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
     VisCondition, Xaxis,
 };
-use crate::gui::UiState;
+use crate::gui::{or_insert_from_empty_color, UiState};
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -717,28 +717,47 @@ fn plot_hover_hist(
 /// Normalize the height of histograms to be comparable with each other.
 /// It treats the two sides independently.
 fn normalize_histogram_height(
-    ui_state: Res<UiState>,
-    mut query: Query<(&mut Transform, &mut Path, &mut DrawMode, &HistTag), Without<Unscale>>,
+    mut ui_state: ResMut<UiState>,
+    mut query: Query<
+        (
+            &mut Transform,
+            &mut Path,
+            &mut DrawMode,
+            &HistTag,
+            &VisCondition,
+        ),
+        Without<Unscale>,
+    >,
 ) {
-    for (mut trans, path, mut draw_mode, hist) in query.iter_mut() {
+    for (mut trans, path, mut draw_mode, hist, condition) in query.iter_mut() {
         let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
         trans.scale.y = match hist.side {
             Side::Left => ui_state.max_left / height,
             Side::Right => ui_state.max_right / height,
             Side::Up => ui_state.max_top / height,
         };
+        let ui_condition = ui_state.condition.clone();
         if let DrawMode::Fill(ref mut fill_mode) = *draw_mode {
             fill_mode.color = match hist.side {
                 Side::Left => {
-                    let color = ui_state.color_left;
+                    let color = match condition.condition.as_ref() {
+                        Some(cond) => or_insert_from_empty_color(&cond, &mut ui_state.color_left),
+                        None => or_insert_from_empty_color(&ui_condition, &mut ui_state.color_left),
+                    };
                     Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                 }
                 Side::Right => {
-                    let color = ui_state.color_right;
+                    let color = match condition.condition.as_ref() {
+                        Some(cond) => or_insert_from_empty_color(&cond, &mut ui_state.color_right),
+                        None => or_insert_from_empty_color(&ui_condition, &mut ui_state.color_right),
+                    };
                     Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                 }
                 Side::Up => {
-                    let color = ui_state.color_top;
+                    let color = match condition.condition.as_ref() {
+                        Some(cond) => or_insert_from_empty_color(&cond, &mut ui_state.color_top),
+                        None => or_insert_from_empty_color(&ui_condition, &mut ui_state.color_top),
+                    };
                     Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                 }
             }

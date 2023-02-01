@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 pub struct GuiPlugin;
@@ -37,6 +38,19 @@ impl Plugin for GuiPlugin {
     }
 }
 
+/// Retrieve a mutable reference to the color or insert the color
+/// that is already in the map at the empty string.
+pub fn or_insert_from_empty_color<'m>(
+    key: &str,
+    map: &'m mut HashMap<String, Rgba>,
+) -> &'m mut Rgba {
+    let def_color = map.get("").unwrap().clone();
+    match map.entry(key.to_string()) {
+        Entry::Occupied(v) => v.into_mut(),
+        Entry::Vacant(v) => v.insert(def_color),
+    }
+}
+
 /// Global appeareance settings.
 #[derive(Resource)]
 pub struct UiState {
@@ -52,9 +66,9 @@ pub struct UiState {
     pub max_left: f32,
     pub max_right: f32,
     pub max_top: f32,
-    pub color_left: Rgba,
-    pub color_right: Rgba,
-    pub color_top: Rgba,
+    pub color_left: HashMap<String, Rgba>,
+    pub color_right: HashMap<String, Rgba>,
+    pub color_top: HashMap<String, Rgba>,
     pub condition: String,
     pub conditions: Vec<String>,
     pub save_path: String,
@@ -77,9 +91,30 @@ impl Default for UiState {
             max_left: 100.,
             max_right: 100.,
             max_top: 100.,
-            color_left: Rgba::from_srgba_unmultiplied(218, 150, 135, 124),
-            color_right: Rgba::from_srgba_unmultiplied(125, 206, 96, 124),
-            color_top: Rgba::from_srgba_unmultiplied(161, 134, 216, 124),
+            color_left: {
+                let mut color = HashMap::new();
+                color.insert(
+                    String::from(""),
+                    Rgba::from_srgba_unmultiplied(218, 150, 135, 124),
+                );
+                color
+            },
+            color_right: {
+                let mut color = HashMap::new();
+                color.insert(
+                    String::from(""),
+                    Rgba::from_srgba_unmultiplied(125, 206, 96, 124),
+                );
+                color
+            },
+            color_top: {
+                let mut color = HashMap::new();
+                color.insert(
+                    String::from(""),
+                    Rgba::from_srgba_unmultiplied(161, 134, 216, 124),
+                );
+                color
+            },
             condition: String::from(""),
             conditions: vec![String::from("")],
             save_path: String::from("this_map.json"),
@@ -121,15 +156,30 @@ fn ui_settings(
         });
         ui.label("Histogram scale");
         ui.horizontal(|ui| {
-            color_edit_button_rgba(ui, &mut ui_state.color_left, Alpha::BlendOrAdditive);
+            let condition = ui_state.condition.clone();
+            color_edit_button_rgba(
+                ui,
+                &mut or_insert_from_empty_color(&condition, &mut ui_state.color_left),
+                Alpha::BlendOrAdditive,
+            );
             ui.add(egui::Slider::new(&mut ui_state.max_left, 1.0..=300.0).text("left"));
         });
         ui.horizontal(|ui| {
-            color_edit_button_rgba(ui, &mut ui_state.color_right, Alpha::BlendOrAdditive);
+            let condition = ui_state.condition.clone();
+            color_edit_button_rgba(
+                ui,
+                &mut or_insert_from_empty_color(&condition, &mut ui_state.color_right),
+                Alpha::BlendOrAdditive,
+            );
             ui.add(egui::Slider::new(&mut ui_state.max_right, 1.0..=300.0).text("right"));
         });
         ui.horizontal(|ui| {
-            color_edit_button_rgba(ui, &mut ui_state.color_top, Alpha::BlendOrAdditive);
+            let condition = ui_state.condition.clone();
+            color_edit_button_rgba(
+                ui,
+                &mut or_insert_from_empty_color(&condition, &mut ui_state.color_top),
+                Alpha::BlendOrAdditive,
+            );
             ui.add(egui::Slider::new(&mut ui_state.max_top, 1.0..=300.0).text("top"));
         });
         ui.checkbox(&mut ui_state.zero_white, "Zero as white");
