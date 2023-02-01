@@ -431,12 +431,18 @@ fn save_file(
                     .insert(axis.side.clone(), (*trans).into());
             }
         }
-        std::fs::write(
-            &save_event.0,
-            serde_json::to_string(escher_map).expect("Serializing the map failed!"),
-        )
-        .expect("Saving the model failed!");
+        safe_json_write(&save_event.0, escher_map)
+            .unwrap_or_else(|e| warn!("Could not write the file: {}.", e));
     }
+}
+
+fn safe_json_write<P, C>(path: P, contents: C) -> std::io::Result<()>
+where
+    P: AsRef<std::path::Path>,
+    C: serde::Serialize,
+{
+    std::fs::write(path, serde_json::to_string(&contents)?)?;
+    Ok(())
 }
 
 #[cfg(target_arch = "wasm32")]
