@@ -29,3 +29,4 @@ templates_path = ['_templates']
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
+html_favicon = "img/favicon.png"
