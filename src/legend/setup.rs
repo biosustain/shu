@@ -78,6 +78,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
                 ..Default::default()
             },
+            focus_policy: bevy::ui::FocusPolicy::Block,
+            z_index: ZIndex::Global(10),
             ..Default::default()
         })
         .insert((Drag::default(), Interaction::default()))
@@ -92,6 +94,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::SpaceEvenly,
                     ..Default::default()
                 },
+                focus_policy: bevy::ui::FocusPolicy::Pass,
                 ..Default::default()
             })
             // container for left box side with text tags for axis
@@ -104,6 +107,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::SpaceBetween,
                         ..Default::default()
                     },
+                    focus_policy: bevy::ui::FocusPolicy::Pass,
                     ..Default::default()
                 })
                 .insert(LegendBox)
@@ -124,6 +128,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             size: Size::new(CIRCLE_DIAM * 0.5, CIRCLE_DIAM * 0.5),
                             ..default()
                         },
+                        focus_policy: bevy::ui::FocusPolicy::Pass,
                         image: UiImage(box_handle.clone()),
                         ..default()
                     });
@@ -148,6 +153,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::SpaceBetween,
                         ..Default::default()
                     },
+                    focus_policy: bevy::ui::FocusPolicy::Pass,
                     ..Default::default()
                 })
                 .insert(LegendBox)
@@ -168,6 +174,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             size: Size::new(CIRCLE_DIAM * 0.5, CIRCLE_DIAM * 0.5),
                             ..default()
                         },
+                        focus_policy: bevy::ui::FocusPolicy::Pass,
                         image: UiImage(box_handle.clone()),
                         ..default()
                     });
@@ -193,6 +200,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::SpaceBetween,
                     ..Default::default()
                 },
+                focus_policy: bevy::ui::FocusPolicy::Pass,
                 ..Default::default()
             })
             .insert(LegendArrow)
@@ -211,6 +219,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         size: Size::new(ARROW_WIDTH, ARROW_HEIGHT),
                         ..default()
                     },
+                    focus_policy: bevy::ui::FocusPolicy::Pass,
                     image: UiImage(arrow_handle),
                     ..default()
                 });
@@ -235,6 +244,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::SpaceBetween,
                     ..Default::default()
                 },
+                focus_policy: bevy::ui::FocusPolicy::Pass,
                 ..Default::default()
             })
             .insert(LegendCircle)
@@ -253,6 +263,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         size: Size::new(CIRCLE_DIAM, CIRCLE_DIAM * 0.8),
                         ..default()
                     },
+                    focus_policy: bevy::ui::FocusPolicy::Pass,
                     image: UiImage(met_handle),
                     ..default()
                 });
@@ -279,6 +290,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::SpaceBetween,
                     ..Default::default()
                 },
+                focus_policy: bevy::ui::FocusPolicy::Pass,
                 ..Default::default()
             })
             // container for left histogram side with text tags for axis
@@ -292,6 +304,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::Center,
                         ..Default::default()
                     },
+                    focus_policy: bevy::ui::FocusPolicy::Pass,
                     ..Default::default()
                 })
                 .insert(LegendHist)
@@ -312,6 +325,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             size: Size::new(HIST_HEIGHT_CHILD * 0.6, HIST_HEIGHT_CHILD),
                             ..default()
                         },
+                        focus_policy: bevy::ui::FocusPolicy::Pass,
                         image: UiImage(hist_left_handle),
                         ..default()
                     });
@@ -337,6 +351,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::Center,
                         ..Default::default()
                     },
+                    focus_policy: bevy::ui::FocusPolicy::Pass,
                     ..Default::default()
                 })
                 .insert(LegendHist)
@@ -358,6 +373,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         },
                         image: UiImage(hist_right_handle),
+                        focus_policy: bevy::ui::FocusPolicy::Pass,
                         ..default()
                     });
                 })

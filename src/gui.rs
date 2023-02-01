@@ -372,15 +372,20 @@ fn mouse_click_system(
 /// Register a UI Drag enity as being dragged by center or right button.
 fn mouse_click_ui_system(
     mouse_button_input: Res<Input<MouseButton>>,
-    mut drag_query: Query<(&mut Drag, &Interaction)>,
+    mut drag_query: Query<(&mut Drag, &Interaction, &mut BackgroundColor)>,
+    // mut drag_query: Query<(&mut Drag, &Interaction)>,
 ) {
-    for (mut drag, interaction) in drag_query.iter_mut() {
+    for (mut drag, interaction, mut background_color) in drag_query.iter_mut() {
+        // for (mut drag, interaction) in drag_query.iter_mut() {
         match interaction {
             Interaction::Hovered | Interaction::Clicked => {
                 drag.dragged = mouse_button_input.pressed(MouseButton::Middle);
                 drag.rotating = mouse_button_input.pressed(MouseButton::Right);
+                *background_color = BackgroundColor(Color::rgba(0.9, 0.9, 0.9, 0.2));
             }
-            _ => {}
+            _ => {
+                *background_color = BackgroundColor(Color::rgba(1.0, 1.0, 1.0, 0.0));
+            }
         }
     }
 }
