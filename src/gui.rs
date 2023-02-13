@@ -130,8 +130,8 @@ impl UiState {
             ("min", "Metabolite") => (&mut self.min_metabolite_color, &mut self.min_metabolite),
             ("max", "Metabolite") => (&mut self.max_metabolite_color, &mut self.max_metabolite),
             ("left", _) => (or_color(geom, &mut self.color_left), &mut self.max_left),
-            ("right", _) => (or_color(geom, &mut self.color_right), &mut self.max_left),
-            ("top", _) => (or_color(geom, &mut self.color_top), &mut self.max_left),
+            ("right", _) => (or_color(geom, &mut self.color_right), &mut self.max_right),
+            ("top", _) => (or_color(geom, &mut self.color_top), &mut self.max_top),
             _ => panic!("Unknown side"),
         }
     }
