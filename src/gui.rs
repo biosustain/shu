@@ -1,7 +1,7 @@
 //! Gui (windows and panels) to upload data and hover.
 
 use crate::data::{Data, ReactionState};
-use crate::escher::{EscherMap, Hover, MapState};
+use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
@@ -18,13 +18,16 @@ impl Plugin for GuiPlugin {
         let building = app
             .add_plugin(EguiPlugin)
             .insert_resource(UiState::default())
+            .insert_resource(AxisMode::Hide)
             .add_event::<SaveEvent>()
             .add_system(ui_settings)
             .add_system(show_hover)
             .add_system(follow_mouse_on_drag)
             .add_system(follow_mouse_on_drag_ui)
             .add_system(follow_mouse_on_rotate)
+            .add_system(follow_mouse_on_scale)
             .add_system(scale_ui)
+            .add_system(show_axes)
             .add_system(mouse_click_system)
             .add_system(mouse_click_ui_system);
 
@@ -38,6 +41,7 @@ impl Plugin for GuiPlugin {
             .add_system(listen_js_data);
     }
 }
+const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
 
 /// Retrieve a mutable reference to the color or insert the color
 /// that is already in the map at the empty string.
@@ -324,11 +328,14 @@ fn show_hover(
 fn mouse_click_system(
     windows: Res<Windows>,
     mouse_button_input: Res<Input<MouseButton>>,
-    mut drag_query: Query<(&Transform, &mut Drag), Without<AnyTag>>,
+    node_to_text: Res<NodeToText>,
+    axis_mode: Res<AxisMode>,
+    mut drag_query: Query<(&Transform, &mut Drag, &Xaxis), Without<Style>>,
+    mut text_query: Query<&mut Text, With<ArrowTag>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Middle) {
-        for (trans, mut drag) in drag_query.iter_mut() {
+        for (trans, mut drag, axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -337,18 +344,30 @@ fn mouse_click_system(
                     < 5000.
                 {
                     drag.dragged = true;
+                    node_to_text.inner.get(&axis.node_id).map(|e| {
+                        text_query.get_mut(*e).map(|mut text| {
+                            text.sections[0].style.font_size = 40.;
+                            text.sections[0].style.color = HIGH_COLOR;
+                        })
+                    });
                 }
             }
         }
     }
 
     if mouse_button_input.just_released(MouseButton::Middle) {
-        for (_, mut drag) in drag_query.iter_mut() {
+        for (_, mut drag, axis) in drag_query.iter_mut() {
             drag.dragged = false;
+            node_to_text.inner.get(&axis.node_id).map(|e| {
+                text_query.get_mut(*e).map(|mut text| {
+                    text.sections[0].style.font_size = 35.;
+                    text.sections[0].style.color = ARROW_COLOR;
+                })
+            });
         }
     }
     if mouse_button_input.just_pressed(MouseButton::Right) {
-        for (trans, mut drag) in drag_query.iter_mut() {
+        for (trans, mut drag, axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
             let win = windows.get_primary().expect("no primary window");
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
@@ -356,15 +375,32 @@ fn mouse_click_system(
                     .length_squared()
                     < 5000.
                 {
-                    drag.rotating = true;
+                    if matches!(*axis_mode, AxisMode::Show) {
+                        drag.scaling = true;
+                    } else {
+                        drag.rotating = true;
+                    }
+                    node_to_text.inner.get(&axis.node_id).map(|e| {
+                        text_query.get_mut(*e).map(|mut text| {
+                            text.sections[0].style.font_size = 40.;
+                            text.sections[0].style.color = HIGH_COLOR;
+                        })
+                    });
                 }
             }
         }
     }
 
     if mouse_button_input.just_released(MouseButton::Right) {
-        for (_, mut drag) in drag_query.iter_mut() {
+        for (_, mut drag, axis) in drag_query.iter_mut() {
             drag.rotating = false;
+            drag.scaling = false;
+            node_to_text.inner.get(&axis.node_id).map(|e| {
+                text_query.get_mut(*e).map(|mut text| {
+                    text.sections[0].style.font_size = 35.;
+                    text.sections[0].style.color = ARROW_COLOR;
+                })
+            });
         }
     }
 }
@@ -373,10 +409,8 @@ fn mouse_click_system(
 fn mouse_click_ui_system(
     mouse_button_input: Res<Input<MouseButton>>,
     mut drag_query: Query<(&mut Drag, &Interaction, &mut BackgroundColor)>,
-    // mut drag_query: Query<(&mut Drag, &Interaction)>,
 ) {
     for (mut drag, interaction, mut background_color) in drag_query.iter_mut() {
-        // for (mut drag, interaction) in drag_query.iter_mut() {
         match interaction {
             Interaction::Hovered | Interaction::Clicked => {
                 drag.dragged = mouse_button_input.pressed(MouseButton::Middle);
@@ -451,12 +485,58 @@ fn follow_mouse_on_rotate(
     }
 }
 
+/// Scale the right-dragged interactable (histograms and legend) entities on AxisMode::Show.
+fn follow_mouse_on_scale(
+    mut drag_query: Query<(&mut Transform, &Drag)>,
+    mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
+) {
+    for ev in mouse_motion_events.iter() {
+        for (mut trans, drag) in drag_query.iter_mut() {
+            if drag.scaling {
+                const FACTOR: f32 = 0.01;
+                let scale = ev.delta.x * FACTOR;
+                trans.scale.x += scale;
+            }
+        }
+    }
+}
+
 /// Change size of UI on +/-.
 fn scale_ui(key_input: Res<Input<KeyCode>>, mut ui_scale: ResMut<UiScale>) {
     if key_input.just_pressed(KeyCode::Plus) {
         ui_scale.scale += 0.1;
     } else if key_input.just_pressed(KeyCode::Minus) {
         ui_scale.scale -= 0.1;
+    }
+}
+
+#[derive(Resource)]
+pub enum AxisMode {
+    Show,
+    Hide,
+}
+
+impl AxisMode {
+    fn toggle(&mut self) {
+        match self {
+            AxisMode::Show => *self = AxisMode::Hide,
+            AxisMode::Hide => *self = AxisMode::Show,
+        }
+    }
+}
+
+/// Show/hide axes of histograms when x is pressed.
+fn show_axes(
+    key_input: Res<Input<KeyCode>>,
+    mut mode: ResMut<AxisMode>,
+    mut axis_query: Query<
+        &mut Visibility,
+        (With<Xaxis>, With<bevy_prototype_lyon::prelude::DrawMode>),
+    >,
+) {
+    if key_input.just_pressed(KeyCode::S) {
+        mode.toggle();
+        axis_query.iter_mut().for_each(|mut v| v.toggle());
     }
 }
 

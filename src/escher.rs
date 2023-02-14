@@ -11,7 +11,8 @@ pub struct EscherPlugin;
 
 impl Plugin for EscherPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(load_map);
+        app.insert_resource(NodeToText::default())
+            .add_system(load_map);
     }
 }
 
@@ -19,6 +20,14 @@ impl Plugin for EscherPlugin {
 pub struct MapState {
     pub escher_map: Handle<EscherMap>,
     pub loaded: bool,
+}
+
+pub const ARROW_COLOR: Color = Color::rgb(51. / 255., 78. / 255., 101. / 255.);
+
+/// Resource to map arrow ids to their [`Entity`] for hovering purposes.
+#[derive(Resource, Default)]
+pub struct NodeToText {
+    pub inner: HashMap<u64, Entity>,
 }
 
 #[derive(Deserialize, TypeUuid, Default, Serialize)]
@@ -252,7 +261,7 @@ fn build_text_tag(
         TextStyle {
             font,
             font_size,
-            color: Color::rgb(51. / 255., 78. / 255., 101. / 255.),
+            color: ARROW_COLOR,
         },
     );
     Text2dBundle {
@@ -295,6 +304,7 @@ pub struct Hover {
 pub fn load_map(
     mut commands: Commands,
     mut state: ResMut<MapState>,
+    mut node_to_text: ResMut<NodeToText>,
     asset_server: Res<AssetServer>,
     mut custom_assets: ResMut<Assets<EscherMap>>,
     existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>, With<HistTag>, With<Xaxis>)>>,
@@ -304,6 +314,7 @@ pub fn load_map(
     if state.loaded || custom_asset.is_none() {
         return;
     }
+    let node_to_text = &mut node_to_text.inner;
 
     // previous arrows and circles are despawned.
     // HistTags has to be despawned too because they are spawned when painted,
@@ -342,8 +353,8 @@ pub fn load_map(
             node_id,
             xlimits: None,
         };
-        commands
-            .spawn(GeometryBuilder::build_as(
+        commands.spawn((
+            GeometryBuilder::build_as(
                 &shape,
                 DrawMode::Outlined {
                     fill_mode: FillMode::color(Color::rgb(224. / 255., 137. / 255., 101. / 255.)),
@@ -353,18 +364,14 @@ pub fn load_map(
                     ),
                 },
                 Transform::from_xyz(met.x - center_x, -met.y + center_y, 2.),
-            ))
-            .insert(circle.clone());
-        commands
-            .spawn(build_text_tag(
-                &mut met,
-                font.clone(),
-                center_x,
-                center_y,
-                25.,
-            ))
-            .insert(hover)
-            .insert(circle);
+            ),
+            circle.clone(),
+        ));
+        commands.spawn((
+            build_text_tag(&mut met, font.clone(), center_x, center_y, 25.),
+            hover,
+            circle,
+        ));
     }
     for (node_id, mut reac) in reactions {
         let mut path_builder = PathBuilder::new();
@@ -430,24 +437,22 @@ pub fn load_map(
         commands.spawn((
             GeometryBuilder::build_as(
                 &line,
-                DrawMode::Stroke(StrokeMode::new(
-                    Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                    10.0,
-                )),
+                DrawMode::Stroke(StrokeMode::new(ARROW_COLOR, 10.0)),
                 Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 1.),
             ),
             arrow.clone(),
         ));
-        commands
-            .spawn(build_text_tag(
-                &mut reac,
-                font.clone(),
-                center_x,
-                center_y,
-                35.,
-            ))
-            .insert(arrow)
-            .insert(hover);
+        // spawn the text and collect its id in the hashmap for hovering.
+        node_to_text.insert(
+            node_id,
+            commands
+                .spawn((
+                    build_text_tag(&mut reac, font.clone(), center_x, center_y, 35.),
+                    arrow,
+                    hover,
+                ))
+                .id(),
+        );
     }
     // Send signal to repaint histograms.
     for mut geom in existing_geom_hist.iter_mut() {

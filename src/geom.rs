@@ -105,6 +105,7 @@ pub struct Xaxis {
 pub struct Drag {
     pub dragged: bool,
     pub rotating: bool,
+    pub scaling: bool,
 }
 
 impl std::fmt::Display for Side {

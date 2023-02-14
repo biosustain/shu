@@ -1,7 +1,10 @@
 //! Functions for plotting data.
 
 use bevy::prelude::{Color, Font, Handle, Text, Text2dBundle, TextStyle, Transform, Vec2};
-use bevy_prototype_lyon::prelude::{Path, PathBuilder};
+use bevy_prototype_lyon::{
+    entity::ShapeBundle,
+    prelude::{DrawMode, GeometryBuilder, Path, PathBuilder, StrokeMode},
+};
 use colorgrad::{Color as GradColor, CustomGradient, Gradient};
 
 /// Maximum of a slice.
@@ -194,6 +197,19 @@ impl ScaleBundle {
         };
         Self { x_0, y, x_n }
     }
+}
+
+pub fn plot_line(size: f32, transform: Transform) -> ShapeBundle {
+    let mut path_builder = PathBuilder::new();
+    path_builder.move_to(Vec2::new(-size / 2., 0.));
+    path_builder.line_to(Vec2::new(size / 2., 0.));
+    let mut geom = GeometryBuilder::build_as(
+        &path_builder.build(),
+        DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
+        transform,
+    );
+    geom.visibility = bevy::prelude::Visibility::INVISIBLE;
+    geom
 }
 
 /// Build and position text tags to indicate the scale of thethe  x-axis.

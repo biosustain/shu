@@ -1,7 +1,7 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
 use crate::funcplot::{
     build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist,
-    plot_kde, plot_scales,
+    plot_kde, plot_line, plot_scales,
 };
 use crate::geom::{
     AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
@@ -352,11 +352,8 @@ fn build_axes(
     }
 
     for (axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
-        commands
-            .spawn(axis)
-            .insert(Drag::default())
-            .insert(trans)
-            .insert(VisibilityBundle::default());
+        let size = axis.arrow_size;
+        commands.spawn((axis, Drag::default(), plot_line(size, trans)));
     }
 }
 
@@ -426,12 +423,13 @@ fn build_point_axes(
     }
 
     for (axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
-        commands
-            .spawn(axis)
-            .insert(Drag::default())
-            .insert(trans)
-            .insert(Unscale {})
-            .insert(VisibilityBundle::default());
+        commands.spawn((
+            axis,
+            Drag::default(),
+            trans,
+            Unscale {},
+            VisibilityBundle::default(),
+        ));
     }
 }
 
@@ -616,21 +614,22 @@ fn plot_side_box(
                         trans.with_scale(Vec3::new(1., 1., 1.)),
                     )
                 };
-                commands
-                    .spawn(shape)
-                    .insert(VisCondition {
+                commands.spawn((
+                    shape,
+                    VisCondition {
                         condition: aes.condition.clone(),
-                    })
-                    .insert(HistTag {
+                    },
+                    HistTag {
                         side: geom.side.clone(),
                         node_id: axis.node_id,
-                    })
-                    .insert(ColorListener {
+                    },
+                    ColorListener {
                         value: colors.0[index],
                         min_val,
                         max_val,
-                    })
-                    .insert(Unscale {});
+                    },
+                    Unscale {},
+                ));
             }
             geom.rendered = true;
         }
