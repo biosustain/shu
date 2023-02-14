@@ -69,7 +69,13 @@ class GeomHist(Geom):
     Parameters
     ----------
     aes: Optional[Aesthetics]
-        with accepted aesthetics being `{"reaction", "metabolite", "y"}`."""
+        with accepted aesthetics being `{"reaction", "metabolite", "y"}`.
+    side: str, default="right"
+        Either "left", "right" or "hover". It determines the placement of the geom
+        with respect to the reaction
+    mets: bool, default=False
+        Whether the geom maps to metabolites (True) or reactions (False).
+    """
 
     def __init__(
         self,
@@ -102,6 +108,11 @@ class GeomKde(Geom):
     ----------
     aes: Optional[Aesthetics]
         with accepted aesthetics being `{"reaction", "metabolite", "y"}`.
+    side: str, default="right"
+        Either "left", "right" or "hover". It determines the placement of the geom
+        with respect to the reaction
+    mets: bool, default=False
+        Whether the geom maps to metabolites (True) or reactions (False).
     """
 
     def __init__(
@@ -170,12 +181,15 @@ class GeomMetabolite(GeomArrow):
 
 
 class GeomBoxPoint(GeomArrow):
-    """Geometric mapping from aesthetics to the circles (metabolites) in the metabolic map.
+    """Geometric mapping from aesthetics to the coloured boxes in the metabolic map.
 
     Parameters
     ----------
     aes: Optional[Aesthetics]
-        with accepted aesthetics being `{"metabolite", "color", "size"}`.
+        with accepted aesthetics being `{"color"}`.
+    side: str, default="right"
+        Either "left", "right" or "hover". It determines the placement of the geom
+        with respect to the reaction
     """
 
     def __init__(
