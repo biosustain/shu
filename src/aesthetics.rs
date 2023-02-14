@@ -497,7 +497,7 @@ fn plot_side_hist(
                 };
                 let line = match geom.plot {
                     HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, axis.xlimits),
-                    HistPlot::Kde => plot_kde(this_dist, 200, axis.arrow_size, axis.xlimits),
+                    HistPlot::Kde => plot_kde(this_dist, 80, axis.arrow_size, axis.xlimits),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
                         continue 'outer;
@@ -661,7 +661,7 @@ fn plot_hover_hist(
                 let xlimits = hover.xlimits.as_ref().unwrap();
                 let line = match geom.plot {
                     HistPlot::Hist => plot_hist(this_dist, 30, 600., *xlimits),
-                    HistPlot::Kde => plot_kde(this_dist, 200, 600., *xlimits),
+                    HistPlot::Kde => plot_kde(this_dist, 80, 600., *xlimits),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
                         continue 'outer;

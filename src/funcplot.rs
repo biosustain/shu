@@ -35,7 +35,19 @@ pub fn linspace(start: f32, stop: f32, nstep: u32) -> Vec<f32> {
     (0..(nstep)).map(|i| start + i as f32 * delta).collect()
 }
 
-/// A dirty way of plotting Kdes with Paths.
+enum PlottingState {
+    Zero,
+    Over { last_x: f32 },
+}
+
+/// Plot a density with a normal kernel using [`Paths`].
+///
+/// The path defines a set of positive curves starting when y_0 > 0 at [x_0, y_0]
+/// to n consecutive [x_n, y] KDE evaluations until y == 0 again. The last line
+/// is [x_n, 0] -> [x_0, 0] and the path is closed.
+///
+/// This way, artifacts produced when tesselating infinitesimal areas or when the
+/// path is not closed are avoided.
 pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
     let center = size / 2.;
     let anchors = linspace(-center, size - center, n);
@@ -43,16 +55,25 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
         return None;
     }
     let mut path_builder = PathBuilder::new();
-    path_builder.move_to(Vec2::new(-center, 0.));
-    let mut y_max = 0.;
-
+    let mut state = PlottingState::Zero;
     for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
-        let y = kde(*point_x, samples, 1.06);
-        path_builder.line_to(Vec2::new(*anchor_x, y));
-        y_max = f32::max(y, y_max);
+        let y = f32::max(kde(*point_x, samples, 1.06), 0.);
+        match state {
+            PlottingState::Zero => {
+                if y > 0. {
+                    path_builder.move_to(Vec2::new(*anchor_x, y));
+                    state = PlottingState::Over { last_x: *anchor_x };
+                }
+            }
+            PlottingState::Over { last_x } => {
+                path_builder.line_to(Vec2::new(*anchor_x, y));
+                if y == 0. {
+                    path_builder.line_to(Vec2::new(last_x, 0.));
+                    state = PlottingState::Zero;
+                }
+            }
+        }
     }
-    path_builder.line_to(Vec2::new(size - center, 0.));
-    path_builder.line_to(Vec2::new(-center, 0.));
     Some(path_builder.build())
 }
 
