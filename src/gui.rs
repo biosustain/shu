@@ -86,10 +86,10 @@ pub struct UiState {
 impl Default for UiState {
     fn default() -> Self {
         Self {
-            min_reaction_color: Rgba::from_srgba_unmultiplied(164, 191, 232, 255),
-            max_reaction_color: Rgba::from_srgba_unmultiplied(42, 98, 183, 255),
-            min_metabolite_color: Rgba::from_srgba_unmultiplied(183, 110, 42, 255),
-            max_metabolite_color: Rgba::from_srgba_unmultiplied(186, 148, 113, 255),
+            min_reaction_color: Rgba::from_srgba_unmultiplied(178, 74, 74, 255),
+            max_reaction_color: Rgba::from_srgba_unmultiplied(64, 169, 127, 255),
+            min_metabolite_color: Rgba::from_srgba_unmultiplied(222, 208, 167, 255),
+            max_metabolite_color: Rgba::from_srgba_unmultiplied(189, 143, 120, 255),
             zero_white: false,
             min_reaction: 20.,
             max_reaction: 60.,
