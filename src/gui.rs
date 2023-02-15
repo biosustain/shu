@@ -43,13 +43,18 @@ impl Plugin for GuiPlugin {
 }
 const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
 
-/// Retrieve a mutable reference to the color or insert the color
-/// that is already in the map at the empty string.
+/// Retrieve a mutable reference to the color or insert a random color
+/// wit the alpha that is already in the map at the empty string.
 pub fn or_color<'m>(key: &str, map: &'m mut HashMap<String, Rgba>) -> &'m mut Rgba {
-    let def_color = *map.get("").unwrap();
+    let alpha = map.get("").map(|color| color.a()).unwrap_or(1.0);
     match map.entry(key.to_string()) {
         Entry::Occupied(v) => v.into_mut(),
-        Entry::Vacant(v) => v.insert(def_color),
+        Entry::Vacant(v) => v.insert(Rgba::from_rgba_premultiplied(
+            fastrand::f32(),
+            fastrand::f32(),
+            fastrand::f32(),
+            alpha,
+        )),
     }
 }
 
@@ -97,7 +102,7 @@ impl Default for UiState {
                 let mut color = HashMap::new();
                 color.insert(
                     String::from(""),
-                    Rgba::from_srgba_unmultiplied(218, 150, 135, 124),
+                    Rgba::from_srgba_unmultiplied(218, 150, 135, 190),
                 );
                 color
             },
@@ -105,7 +110,7 @@ impl Default for UiState {
                 let mut color = HashMap::new();
                 color.insert(
                     String::from(""),
-                    Rgba::from_srgba_unmultiplied(125, 206, 96, 124),
+                    Rgba::from_srgba_unmultiplied(125, 206, 96, 190),
                 );
                 color
             },
@@ -113,7 +118,7 @@ impl Default for UiState {
                 let mut color = HashMap::new();
                 color.insert(
                     String::from(""),
-                    Rgba::from_srgba_unmultiplied(161, 134, 216, 124),
+                    Rgba::from_srgba_unmultiplied(161, 134, 216, 190),
                 );
                 color
             },

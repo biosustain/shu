@@ -2637,6 +2637,7 @@ dependencies = [
  "bevy_prototype_lyon",
  "colorgrad",
  "console_error_panic_hook",
+ "fastrand",
  "itertools",
  "serde",
  "serde_json",
