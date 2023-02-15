@@ -269,6 +269,7 @@ fn color_legend_box(
                 }
             }
             if geom_hist.side != *side {
+                displayed = Display::None;
                 continue;
             }
             displayed = Display::Flex;
