@@ -261,10 +261,7 @@ fn color_legend_box(
         let mut displayed = Display::None;
         for (colors, aes, geom_hist) in point_query.iter() {
             if let Some(condition) = &aes.condition {
-                if condition != &ui_state.condition {
-                    if ui_state.condition == "ALL" {
-                        displayed = Display::Flex;
-                    }
+                if (condition != &ui_state.condition) & (ui_state.condition != "ALL") {
                     continue;
                 }
             }
