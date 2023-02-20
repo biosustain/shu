@@ -1,5 +1,5 @@
 use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, Unscale};
-use crate::geom::{GeomHist, HistTag, Xaxis};
+use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
 use crate::gui::{file_drop, UiState};
 use crate::{data, escher, geom};
 use bevy::prelude::*;
@@ -34,6 +34,10 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
             vec![1f32, 2., 1.],
             vec![6f32, 2., 6.],
         ]))
+        .insert(AesFilter {
+            met: false,
+            pbox: false,
+        })
         .insert(GeomHist::right(geom::HistPlot::Kde));
     // and for Paths with ArrowTag
     let path_builder = PathBuilder::new();
@@ -52,6 +56,10 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
             hists: None,
             node_id: 9,
             direction: Vec2::new(0., 1.),
+        },
+        AesFilter {
+            met: false,
+            pbox: false,
         },
     ));
 
@@ -92,6 +100,10 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
         })
         .insert(Gy {})
         .insert(Point(vec![1f32, 2., 2.]))
+        .insert(AesFilter {
+            met: false,
+            pbox: true,
+        })
         .insert(GeomHist::right(geom::HistPlot::Kde));
     // and for Paths with ArrowTag
     let path_builder = PathBuilder::new();
@@ -110,6 +122,10 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
             hists: None,
             node_id: 9,
             direction: Vec2::new(0., 1.),
+        },
+        AesFilter {
+            met: false,
+            pbox: true,
         },
     ));
 

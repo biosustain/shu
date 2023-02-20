@@ -4,7 +4,7 @@ use crate::funcplot::{
     plot_kde, plot_line, plot_scales,
 };
 use crate::geom::{
-    AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
+    AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
     VisCondition, Xaxis,
 };
 use crate::gui::{or_color, UiState};
@@ -474,12 +474,12 @@ fn build_hover_axes(
 fn plot_side_hist(
     mut commands: Commands,
     mut aes_query: Query<
-        (&Distribution<f32>, &Aesthetics, &mut GeomHist),
+        (&Distribution<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
         (With<Gy>, Without<PopUp>),
     >,
     query: Query<(&Transform, &Xaxis)>,
 ) {
-    'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
+    'outer: for (dist, aes, mut geom, is_met) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
@@ -498,14 +498,10 @@ fn plot_side_hist(
                     HistPlot::Kde => plot_kde(this_dist, 80, axis.arrow_size, axis.xlimits),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
-                        continue 'outer;
+                        None
                     }
                 };
-                if line.is_none() {
-                    println!("line not plotted for geom {}", geom.side);
-                    continue 'outer;
-                }
-                let line = line.unwrap();
+                let Some(line) = line else { continue 'outer };
                 let hex = match geom.side {
                     // the color is updated by another system given the settings
                     Side::Right => "7dce9688",
@@ -516,19 +512,21 @@ fn plot_side_hist(
                     }
                 };
 
-                commands
-                    .spawn(GeometryBuilder::build_as(
+                commands.spawn((
+                    GeometryBuilder::build_as(
                         &line,
                         DrawMode::Fill(FillMode::color(Color::hex(hex).unwrap())),
                         *trans,
-                    ))
-                    .insert(VisCondition {
+                    ),
+                    VisCondition {
                         condition: aes.condition.clone(),
-                    })
-                    .insert(HistTag {
+                    },
+                    HistTag {
                         side: geom.side.clone(),
                         node_id: axis.node_id,
-                    });
+                    },
+                    (*is_met).clone(),
+                ));
             }
             geom.rendered = true;
         }
@@ -538,10 +536,13 @@ fn plot_side_hist(
 fn plot_side_box(
     mut commands: Commands,
     ui_state: Res<UiState>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, Without<PopUp>)>,
+    mut aes_query: Query<
+        (&Point<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
+        (With<Gy>, Without<PopUp>),
+    >,
     mut query: Query<(&mut Transform, &Xaxis), With<Unscale>>,
 ) {
-    for (colors, aes, mut geom) in aes_query.iter_mut() {
+    for (colors, aes, mut geom, is_box) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
@@ -629,6 +630,7 @@ fn plot_side_box(
                         max_val,
                     },
                     Unscale {},
+                    (*is_box).clone(),
                 ));
             }
             geom.rendered = true;
@@ -641,9 +643,12 @@ fn plot_hover_hist(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut query: Query<(&Transform, &Hover)>,
-    mut aes_query: Query<(&Distribution<f32>, &Aesthetics, &mut GeomHist), (With<Gy>, With<PopUp>)>,
+    mut aes_query: Query<
+        (&Distribution<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
+        (With<Gy>, With<PopUp>),
+    >,
 ) {
-    'outer: for (dist, aes, mut geom) in aes_query.iter_mut() {
+    'outer: for (dist, aes, mut geom, is_met) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
@@ -663,13 +668,10 @@ fn plot_hover_hist(
                     HistPlot::Kde => plot_kde(this_dist, 80, 600., *xlimits),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
-                        continue 'outer;
+                        None
                     }
                 };
-                if line.is_none() {
-                    continue 'outer;
-                }
-                let line = line.unwrap();
+                let Some(line) = line else { continue 'outer };
                 let transform =
                     Transform::from_xyz(trans.translation.x + 150., trans.translation.y + 150., 5.);
                 let mut geometry = GeometryBuilder::build_as(
@@ -706,7 +708,7 @@ fn plot_hover_hist(
                     .with_children(|parent| {
                         parent.spawn(scales.y);
                     })
-                    .insert(AnyTag { id: hover.node_id });
+                    .insert((AnyTag { id: hover.node_id }, (*is_met).clone()));
             }
             geom.rendered = true;
         }

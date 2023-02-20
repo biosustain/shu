@@ -137,3 +137,11 @@ pub struct PopUp;
 pub struct AnyTag {
     pub id: u64,
 }
+
+/// Mark aesthetics as pertaining to mets.
+/// Used to filter removal queries.
+#[derive(Component, Clone)]
+pub struct AesFilter {
+    pub met: bool,
+    pub pbox: bool,
+}
