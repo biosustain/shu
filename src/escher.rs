@@ -218,7 +218,7 @@ pub struct ArrowTag {
     pub node_id: u64,
     pub hists: Option<HashMap<Side, SerTransform>>,
 }
- 
+
 pub trait Tag: Component {
     fn id(&self) -> &str;
 }

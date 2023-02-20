@@ -284,7 +284,6 @@ fn load_data(
                             pbox: true,
                         },
                         aesthetics::Aesthetics {
-                            plotted: false,
                             identifiers: ids,
                             condition: if cond.is_empty() {
                                 None
@@ -411,7 +410,6 @@ fn insert_geom_map<F, Aes: Component, Geom: Component>(
     }
     commands
         .spawn(aesthetics::Aesthetics {
-            plotted: false,
             identifiers: ids,
             condition: if ggcomp.cond.is_empty() {
                 None
@@ -462,7 +460,6 @@ fn insert_geom_hist<F, Aes: Component, Geom: Component>(
         let mut ent_commands = commands.spawn(ggcomp.geom_component);
         ent_commands
             .insert(aesthetics::Aesthetics {
-                plotted: false,
                 identifiers: ids,
                 condition: if ggcomp.cond.is_empty() {
                     None

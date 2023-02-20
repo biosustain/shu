@@ -24,7 +24,6 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     // build_axes queries for aesthetics
     app.world
         .spawn(Aesthetics {
-            plotted: false,
             identifiers: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             condition: None,
         })
@@ -94,7 +93,6 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     // build_axes queries for aesthetics
     app.world
         .spawn(Aesthetics {
-            plotted: false,
             identifiers: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             condition: None,
         })

@@ -84,10 +84,6 @@ impl UiSelector for GeomMetabolite {
 
 #[derive(Component)]
 pub struct Aesthetics {
-    /// flag to filter out the plotting
-    /// it will be moved to the Geoms since more than one group of Aes
-    /// can be a plotted with different geoms.
-    pub plotted: bool,
     /// ordered identifers that each aesthetic will be plotted at
     pub identifiers: Vec<String>,
     /// ordered condition identifiers
