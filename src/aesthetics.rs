@@ -1,4 +1,4 @@
-use crate::escher::{load_map, ArrowTag, CircleTag, Hover};
+use crate::escher::{load_map, ArrowTag, CircleTag, Hover, Tag};
 use crate::funcplot::{
     build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist,
     plot_kde, plot_line, plot_scales,
@@ -20,10 +20,10 @@ pub struct AesPlugin;
 
 impl Plugin for AesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(plot_arrow_size)
-            .add_system(plot_arrow_color)
-            .add_system(plot_arrow_size_dist)
-            .add_system(plot_metabolite_color)
+        app.add_system(plot_arrow_size::<GeomArrow>)
+            .add_system(plot_metabolite_size::<GeomMetabolite>)
+            .add_system(plot_color::<ArrowTag, GeomArrow>)
+            .add_system(plot_color::<CircleTag, GeomMetabolite>)
             .add_system(build_axes.before(load_map))
             .add_system(build_hover_axes.before(load_map))
             .add_system(build_point_axes.before(load_map))
@@ -35,8 +35,50 @@ impl Plugin for AesPlugin {
             .add_system(unscale_histogram_children)
             .add_system(fill_conditions)
             .add_system(filter_histograms)
-            .add_system(follow_the_axes)
-            .add_system(plot_metabolite_size);
+            .add_system(follow_the_axes);
+    }
+}
+
+pub trait UiSelector: Component {
+    fn min_value(ui: &UiState) -> f32;
+    fn max_value(ui: &UiState) -> f32;
+    fn min_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba;
+    fn max_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba;
+}
+
+impl UiSelector for GeomArrow {
+    fn min_value(ui: &UiState) -> f32 {
+        ui.min_reaction
+    }
+
+    fn max_value(ui: &UiState) -> f32 {
+        ui.max_reaction
+    }
+
+    fn min_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
+        &ui.min_reaction_color
+    }
+
+    fn max_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
+        &ui.max_reaction_color
+    }
+}
+
+impl UiSelector for GeomMetabolite {
+    fn min_value(ui: &UiState) -> f32 {
+        ui.min_metabolite
+    }
+
+    fn max_value(ui: &UiState) -> f32 {
+        ui.max_metabolite
+    }
+
+    fn min_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
+        &ui.min_metabolite_color
+    }
+
+    fn max_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
+        &ui.max_metabolite_color
     }
 }
 
@@ -85,12 +127,12 @@ struct ColorListener {
 }
 
 /// Plot arrow size.
-pub fn plot_arrow_size(
+pub fn plot_arrow_size<Geom: UiSelector>(
     ui_state: Res<UiState>,
     mut query: Query<(&mut DrawMode, &ArrowTag)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomArrow>, With<Gsize>)>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &Geom), With<Gsize>>,
 ) {
-    for (sizes, aes) in aes_query.iter_mut() {
+    for (sizes, aes, _geom) in aes_query.iter_mut() {
         if let Some(condition) = &aes.condition {
             if condition != &ui_state.condition {
                 continue;
@@ -109,45 +151,8 @@ pub fn plot_arrow_size(
                         unscaled_width,
                         min_val,
                         max_val,
-                        ui_state.min_reaction,
-                        ui_state.max_reaction,
-                    );
-                } else {
-                    options.line_width = 10.;
-                }
-            }
-        }
-    }
-}
-
-/// For arrows (reactions) sizes, distributions are summarised as the mean.
-pub fn plot_arrow_size_dist(
-    ui_state: Res<UiState>,
-    mut query: Query<(&mut DrawMode, &ArrowTag)>,
-    mut aes_query: Query<(&Distribution<f32>, &Aesthetics), (With<GeomArrow>, With<Gsize>)>,
-) {
-    for (sizes, aes) in aes_query.iter_mut() {
-        if let Some(condition) = &aes.condition {
-            if condition != &ui_state.condition {
-                continue;
-            }
-        }
-        for (mut draw_mode, arrow) in query.iter_mut() {
-            let min_val = min_f32(&sizes.0.iter().flatten().copied().collect::<Vec<f32>>());
-            let max_val = max_f32(&sizes.0.iter().flatten().copied().collect::<Vec<f32>>());
-            if let DrawMode::Stroke(StrokeMode {
-                ref mut options, ..
-            }) = *draw_mode
-            {
-                if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    let unscaled_width =
-                        sizes.0[index].iter().sum::<f32>() / sizes.0[index].len() as f32;
-                    options.line_width = lerp(
-                        unscaled_width,
-                        min_val,
-                        max_val,
-                        ui_state.min_reaction,
-                        ui_state.max_reaction,
+                        <Geom as UiSelector>::min_value(&ui_state),
+                        <Geom as UiSelector>::max_value(&ui_state),
                     );
                 } else {
                     options.line_width = 10.;
@@ -158,12 +163,12 @@ pub fn plot_arrow_size_dist(
 }
 
 /// Plot Color as numerical variable in arrows.
-pub fn plot_arrow_color(
+pub fn plot_color<T: Tag, Geom: UiSelector>(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut DrawMode, &ArrowTag)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomArrow>, With<Gcolor>)>,
+    mut query: Query<(&mut DrawMode, &T)>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &Geom), With<Gcolor>>,
 ) {
-    for (colors, aes) in aes_query.iter_mut() {
+    for (colors, aes, _) in aes_query.iter_mut() {
         if let Some(condition) = &aes.condition {
             if condition != &ui_state.condition {
                 continue;
@@ -175,12 +180,17 @@ pub fn plot_arrow_color(
             ui_state.zero_white,
             min_val,
             max_val,
-            &ui_state.min_reaction_color,
-            &ui_state.max_reaction_color,
+            <Geom as UiSelector>::min_color(&ui_state),
+            <Geom as UiSelector>::max_color(&ui_state),
         );
-        for (mut draw_mode, arrow) in query.iter_mut() {
-            if let DrawMode::Stroke(StrokeMode { ref mut color, .. }) = *draw_mode {
-                if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
+        for (mut draw_mode, tag) in query.iter_mut() {
+            if let DrawMode::Stroke(StrokeMode { ref mut color, .. })
+            | DrawMode::Outlined {
+                fill_mode: FillMode { ref mut color, .. },
+                ..
+            } = *draw_mode
+            {
+                if let Some(index) = aes.identifiers.iter().position(|r| r == tag.id()) {
                     *color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
                 } else {
                     *color = Color::rgb(0.85, 0.85, 0.85);
@@ -191,12 +201,12 @@ pub fn plot_arrow_color(
 }
 
 /// Plot size as numerical variable in metabolic circles.
-pub fn plot_metabolite_size(
+pub fn plot_metabolite_size<Geom: UiSelector>(
     ui_state: Res<UiState>,
     mut query: Query<(&mut Path, &CircleTag)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomMetabolite>, With<Gsize>)>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &Geom), With<Gsize>>,
 ) {
-    for (sizes, aes) in aes_query.iter_mut() {
+    for (sizes, aes, _geom) in aes_query.iter_mut() {
         if let Some(condition) = &aes.condition {
             if condition != &ui_state.condition {
                 continue;
@@ -210,8 +220,8 @@ pub fn plot_metabolite_size(
                     sizes.0[index],
                     min_val,
                     max_val,
-                    ui_state.min_metabolite,
-                    ui_state.max_metabolite,
+                    <Geom as UiSelector>::min_value(&ui_state),
+                    <Geom as UiSelector>::max_value(&ui_state),
                 )
             } else {
                 20.
@@ -222,43 +232,6 @@ pub fn plot_metabolite_size(
                 ..shapes::RegularPolygon::default()
             };
             *path = ShapePath::build_as(&polygon);
-        }
-    }
-}
-
-/// Plot Color as numerical variable in metabolic circles.
-pub fn plot_metabolite_color(
-    ui_state: Res<UiState>,
-    mut query: Query<(&mut DrawMode, &CircleTag)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<GeomMetabolite>, With<Gcolor>)>,
-) {
-    for (colors, aes) in aes_query.iter_mut() {
-        if let Some(condition) = &aes.condition {
-            if condition != &ui_state.condition {
-                continue;
-            }
-        }
-        let min_val = min_f32(&colors.0);
-        let max_val = max_f32(&colors.0);
-        let grad = build_grad(
-            ui_state.zero_white,
-            min_val,
-            max_val,
-            &ui_state.min_metabolite_color,
-            &ui_state.max_metabolite_color,
-        );
-        for (mut draw_mode, arrow) in query.iter_mut() {
-            if let DrawMode::Outlined {
-                fill_mode: FillMode { ref mut color, .. },
-                ..
-            } = *draw_mode
-            {
-                if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    *color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
-                } else {
-                    *color = Color::rgb(0.85, 0.85, 0.85);
-                }
-            }
         }
     }
 }

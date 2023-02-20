@@ -93,32 +93,8 @@ impl EscherMap {
             .map(|vec| vec[1] - vec[0])
             // avoid zero vectors
             .filter(|vec| vec.max_element() > 1e-5)
-            // .inspect(|vec| info!("{vec}"))
             .max_by(|x, y| {
                 if x.length() - y.length() > 1e-5 {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                }
-            })
-            .unwrap_or(Vec2::Y)
-            .normalize()
-    }
-    pub fn _main_direction(&self, reac: &Reaction) -> Vec2 {
-        reac.segments
-            .values()
-            .filter_map(|seg| {
-                match (
-                    self.met_coords(&seg.from_node_id),
-                    self.met_coords(&seg.to_node_id),
-                ) {
-                    (Some(node), Some(node2)) => Some((node, node2)),
-                    _ => None,
-                }
-            })
-            .map(|(from, to)| Vec2::new(from.x - to.x, from.y - to.y))
-            .max_by(|from, to| {
-                if from.length() - to.length() > 1e-5 {
                     Ordering::Less
                 } else {
                     Ordering::Greater
@@ -241,6 +217,22 @@ pub struct ArrowTag {
     pub direction: Vec2,
     pub node_id: u64,
     pub hists: Option<HashMap<Side, SerTransform>>,
+}
+ 
+pub trait Tag: Component {
+    fn id(&self) -> &str;
+}
+
+impl Tag for CircleTag {
+    fn id(&self) -> &str {
+        &self.id
+    }
+}
+
+impl Tag for ArrowTag {
+    fn id(&self) -> &str {
+        &self.id
+    }
 }
 
 pub trait Labelled {
