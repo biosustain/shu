@@ -188,6 +188,10 @@ fn color_legend_histograms(
     mut text_query: Query<&mut Text, With<Xmin>>,
     mut text_max_query: Query<&mut Text, Without<Xmin>>,
 ) {
+    if !ui_state.is_changed() {
+        // the ui_state always changes on the creation of histograms
+        return;
+    }
     let mut left: Option<((f32, f32), &Side, bool)> = None;
     let mut right: Option<((f32, f32), &Side, bool)> = None;
     // gather axis limits for each axis if they exist
@@ -237,7 +241,7 @@ fn color_legend_histograms(
                                     _ => panic!("unexpected side"),
                                 }
                                 .iter()
-                                .filter(|(k, _v)| k.as_str() != "")
+                                .filter(|(k, _v)| (k.as_str() != "") & (k.as_str() != "ALL"))
                                 .map(|(_k, cl)| {
                                     let c = Color::rgba_linear(cl.r(), cl.g(), cl.b(), cl.a())
                                         .as_rgba();
@@ -249,11 +253,14 @@ fn color_legend_histograms(
                                     ]
                                 })
                                 .collect();
-                                let part = (image.size().y / (colors.len() - 1) as f32).floor();
+                                let part = (image.size().y / colors.len() as f32).floor();
                                 let data =
                                     image.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
                                         let row = i as f32 / width;
-                                        let section = (row / part).floor() as usize;
+                                        let section = usize::min(
+                                            (row / part).floor() as usize,
+                                            colors.len() - 1,
+                                        );
                                         if pixel[3] != 0 {
                                             colors[section]
                                         } else {
