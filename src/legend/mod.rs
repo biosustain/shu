@@ -170,6 +170,7 @@ fn color_legend_circle(
 /// When a new Right or Left histogram `Xaxis` is spawned, add a legend corresponding to that axis.
 fn color_legend_histograms(
     mut ui_state: ResMut<UiState>,
+    mut images: ResMut<Assets<Image>>,
     mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendHist>>,
     // Unscale means would mean that is not a histogram
     axis_query: Query<&Xaxis, Without<Unscale>>,
@@ -183,7 +184,7 @@ fn color_legend_histograms(
             With<Distribution<f32>>,
         ),
     >,
-    mut img_query: Query<&mut BackgroundColor>,
+    mut img_query: Query<(&UiImage, &mut BackgroundColor)>,
     mut text_query: Query<&mut Text, With<Xmin>>,
     mut text_max_query: Query<&mut Text, Without<Xmin>>,
 ) {
@@ -219,19 +220,72 @@ fn color_legend_histograms(
                         text.sections[0].value = format!("{:.2e}", xlimits.0);
                     } else if let Ok(mut text) = text_max_query.get_mut(*child) {
                         text.sections[0].value = format!("{:.2e}", xlimits.1);
-                    } else if let Ok(mut color) = img_query.get_mut(*child) {
+                    } else {
                         style.display = Display::Flex;
-                        color.0 = match side {
-                            Side::Left => {
-                                let color = or_color(&condition, &mut ui_state.color_left);
-                                Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                        if let Ok((img_legend, mut background_color)) = img_query.get_mut(*child) {
+                            // modify the image inplace
+                            let handle = images.get_handle(&img_legend.0);
+                            let image = images.get_mut(&handle).unwrap();
+                            if condition == "ALL" {
+                                // show all conditions laminating the legend
+                                background_color.0 = Color::rgba_linear(1., 1., 1., 1.);
+
+                                let width = image.size().x;
+                                let colors: Vec<_> = match side {
+                                    Side::Left => &ui_state.color_left,
+                                    Side::Right => &ui_state.color_right,
+                                    _ => panic!("unexpected side"),
+                                }
+                                .iter()
+                                .filter(|(k, _v)| k.as_str() != "")
+                                .map(|(_k, cl)| {
+                                    let c = Color::rgba_linear(cl.r(), cl.g(), cl.b(), cl.a())
+                                        .as_rgba();
+                                    [
+                                        (c.r() * 255.) as u8,
+                                        (c.g() * 255.) as u8,
+                                        (c.b() * 255.) as u8,
+                                        (c.a() * 255.) as u8,
+                                    ]
+                                })
+                                .collect();
+                                let part = (image.size().y / (colors.len() - 1) as f32).floor();
+                                let data =
+                                    image.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
+                                        let row = i as f32 / width;
+                                        let section = (row / part).floor() as usize;
+                                        if pixel[3] != 0 {
+                                            colors[section]
+                                        } else {
+                                            [0, 0, 0, 0]
+                                        }
+                                        .into_iter()
+                                    });
+                                image.data = data.collect::<Vec<u8>>();
+                            } else {
+                                if background_color.0 == Color::rgba_linear(1., 1., 1., 1.) {
+                                    // previous condition was ALL (or never changed)
+                                    // reset the image data that was painted with colors
+                                    let data = image.data.chunks(4).flat_map(|pixel| {
+                                        if pixel[3] != 0 {
+                                            [255, 255, 255, 255].into_iter()
+                                        } else {
+                                            [0, 0, 0, 0].into_iter()
+                                        }
+                                    });
+                                    image.data = data.collect::<Vec<u8>>();
+                                }
+                                background_color.0 = {
+                                    let ref_col = match side {
+                                        Side::Left => &mut ui_state.color_left,
+                                        Side::Right => &mut ui_state.color_right,
+                                        _ => panic!("unexpected side"),
+                                    };
+                                    let color = or_color(&condition, ref_col);
+                                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                                };
                             }
-                            Side::Right => {
-                                let color = or_color(&condition, &mut ui_state.color_left);
-                                Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
-                            }
-                            _ => panic!("unexpected side"),
-                        };
+                        }
                     }
                 }
             }
