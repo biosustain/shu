@@ -777,11 +777,15 @@ fn unscale_histogram_children(
 
 /// Fill conditions menu.
 fn fill_conditions(mut ui_state: ResMut<UiState>, aesthetics: Query<&Aesthetics>) {
-    let conditions = aesthetics
-        .iter()
-        .filter_map(|a| a.condition.clone())
-        .unique()
-        .collect::<Vec<String>>();
+    let conditions = {
+        let mut conditions = aesthetics
+            .iter()
+            .filter_map(|a| a.condition.clone())
+            .unique()
+            .collect::<Vec<String>>();
+        conditions.sort();
+        conditions
+    };
     if conditions
         .iter()
         .any(|cond| !ui_state.conditions.contains(cond))
