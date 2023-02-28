@@ -238,24 +238,31 @@ fn color_legend_histograms(
                                 background_color.0 = Color::rgba_linear(1., 1., 1., 1.);
 
                                 let width = image.size().x;
-                                let colors: Vec<_> = match side {
-                                    Side::Left => &ui_state.color_left,
-                                    Side::Right => &ui_state.color_right,
-                                    _ => panic!("unexpected side"),
-                                }
-                                .iter()
-                                .filter(|(k, _v)| (k.as_str() != "") & (k.as_str() != "ALL"))
-                                .map(|(_k, cl)| {
-                                    let c = Color::rgba_linear(cl.r(), cl.g(), cl.b(), cl.a())
-                                        .as_rgba();
-                                    [
-                                        (c.r() * 255.) as u8,
-                                        (c.g() * 255.) as u8,
-                                        (c.b() * 255.) as u8,
-                                        (c.a() * 255.) as u8,
-                                    ]
-                                })
-                                .collect();
+                                let conditions = ui_state.conditions.clone();
+                                let colors: Vec<_> = conditions
+                                    .iter()
+                                    .filter(|k| (k.as_str() != "") & (k.as_str() != "ALL"))
+                                    .map(|k| {
+                                        // depending on the order of execution, the colors
+                                        // might have not been initialized by the histogram plotter
+                                        let cl = or_color(
+                                            k,
+                                            match side {
+                                                Side::Left => &mut ui_state.color_left,
+                                                Side::Right => &mut ui_state.color_right,
+                                                _ => panic!("unexpected side"),
+                                            },
+                                        );
+                                        let c = Color::rgba_linear(cl.r(), cl.g(), cl.b(), cl.a())
+                                            .as_rgba();
+                                        [
+                                            (c.r() * 255.) as u8,
+                                            (c.g() * 255.) as u8,
+                                            (c.b() * 255.) as u8,
+                                            (c.a() * 255.) as u8,
+                                        ]
+                                    })
+                                    .collect();
                                 let part = (image.size().y / colors.len() as f32).floor();
                                 let data =
                                     image.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
