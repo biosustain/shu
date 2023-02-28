@@ -10,7 +10,9 @@ use crate::{
 };
 
 mod setup;
-use setup::{spawn_legend, LegendArrow, LegendBox, LegendCircle, LegendHist, Xmin};
+use setup::{
+    spawn_legend, LegendArrow, LegendBox, LegendCircle, LegendCondition, LegendHist, Xmin,
+};
 
 /// Procedural legend generation.
 pub struct LegendPlugin;
@@ -21,7 +23,8 @@ impl Plugin for LegendPlugin {
             .add_system(color_legend_arrow)
             .add_system(color_legend_circle)
             .add_system(color_legend_histograms)
-            .add_system(color_legend_box);
+            .add_system(color_legend_box)
+            .add_system(display_conditions);
     }
 }
 
@@ -367,5 +370,40 @@ fn color_legend_box(
             }
         }
         style.display = displayed;
+    }
+}
+
+fn display_conditions(
+    ui_state: Res<UiState>,
+    asset_server: Res<AssetServer>,
+    mut legend_query: Query<(&mut Text, &mut Style), With<LegendCondition>>,
+) {
+    if !ui_state.is_changed() {
+        return;
+    } else if (ui_state.condition != "ALL") || ui_state.conditions.is_empty() {
+        for (_, mut style) in &mut legend_query {
+            style.display = Display::None;
+        }
+        return;
+    }
+    let font = asset_server.load("fonts/Assistant-Regular.ttf");
+
+    for (mut text, mut style) in &mut legend_query {
+        style.display = Display::Flex;
+        text.sections = ui_state
+            .conditions
+            .iter()
+            .filter(|k| (k.as_str() != "") & (k.as_str() != "ALL"))
+            .map(|text| {
+                TextSection::new(
+                    format!("{text}\n"),
+                    TextStyle {
+                        font: font.clone(),
+                        font_size: 12.,
+                        color: Color::hex("504d50").unwrap(),
+                    },
+                )
+            })
+            .collect();
     }
 }
