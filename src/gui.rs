@@ -81,7 +81,12 @@ pub struct UiState {
     pub save_path: String,
     pub map_path: String,
     pub data_path: String,
+    // since this type and field are private, Self has to be initialized
+    // with Default::default(), ensuring that the fallbacks for colors (empty string) are set.
+    _init: Init,
 }
+
+struct Init;
 
 impl Default for UiState {
     fn default() -> Self {
@@ -127,6 +132,7 @@ impl Default for UiState {
             save_path: String::from("this_map.json"),
             map_path: String::from("my_map.json"),
             data_path: String::from("my_data.metabolism.json"),
+            _init: Init,
         }
     }
 }
