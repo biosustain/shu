@@ -250,7 +250,7 @@ fn color_legend_histograms(
                                     .map(|k| {
                                         // depending on the order of execution, the colors
                                         // might have not been initialized by the histogram plotter
-                                        let cl = or_color(k, color_ref, false);
+                                        let cl = or_color(k, color_ref, true);
                                         let c = Color::rgba_linear(cl.r(), cl.g(), cl.b(), cl.a())
                                             .as_rgba();
                                         [
@@ -296,7 +296,7 @@ fn color_legend_histograms(
                                         Side::Right => &mut ui_state.color_right,
                                         _ => panic!("unexpected side"),
                                     };
-                                    let color = or_color(&condition, ref_col, false);
+                                    let color = or_color(&condition, ref_col, true);
                                     Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                                 };
                             }
