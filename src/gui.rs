@@ -180,14 +180,16 @@ fn ui_settings(
             });
         }
 
-        ui.label("Histogram scale");
         let condition = state.condition.clone();
-        for side in ["left", "right", "top"] {
-            ui.horizontal(|ui| {
-                let (color, value) = state.get_geom_params_mut(side, &condition);
-                color_edit_button_rgba(ui, color, Alpha::BlendOrAdditive);
-                ui.add(egui::Slider::new(value, 1.0..=300.0).text(side));
-            });
+        if condition != "ALL" {
+            ui.label("Histogram scale");
+            for side in ["left", "right", "top"] {
+                ui.horizontal(|ui| {
+                    let (color, value) = state.get_geom_params_mut(side, &condition);
+                    color_edit_button_rgba(ui, color, Alpha::BlendOrAdditive);
+                    ui.add(egui::Slider::new(value, 1.0..=300.0).text(side));
+                });
+            }
         }
 
         ui.checkbox(&mut state.zero_white, "Zero as white");
