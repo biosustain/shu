@@ -236,23 +236,21 @@ fn color_legend_histograms(
                             if condition == "ALL" {
                                 // show all conditions laminating the legend
                                 background_color.0 = Color::rgba_linear(1., 1., 1., 1.);
+                                let conditions = ui_state.conditions.clone();
+                                let color_ref = match side {
+                                    Side::Left => &mut ui_state.color_left,
+                                    Side::Right => &mut ui_state.color_right,
+                                    _ => panic!("unexpected side"),
+                                };
 
                                 let width = image.size().x;
-                                let conditions = ui_state.conditions.clone();
                                 let colors: Vec<_> = conditions
                                     .iter()
                                     .filter(|k| (k.as_str() != "") & (k.as_str() != "ALL"))
                                     .map(|k| {
                                         // depending on the order of execution, the colors
                                         // might have not been initialized by the histogram plotter
-                                        let cl = or_color(
-                                            k,
-                                            match side {
-                                                Side::Left => &mut ui_state.color_left,
-                                                Side::Right => &mut ui_state.color_right,
-                                                _ => panic!("unexpected side"),
-                                            },
-                                        );
+                                        let cl = or_color(k, color_ref, false);
                                         let c = Color::rgba_linear(cl.r(), cl.g(), cl.b(), cl.a())
                                             .as_rgba();
                                         [
@@ -298,7 +296,7 @@ fn color_legend_histograms(
                                         Side::Right => &mut ui_state.color_right,
                                         _ => panic!("unexpected side"),
                                     };
-                                    let color = or_color(&condition, ref_col);
+                                    let color = or_color(&condition, ref_col, false);
                                     Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
                                 };
                             }

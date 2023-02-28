@@ -708,28 +708,17 @@ fn normalize_histogram_height(
         };
         let ui_condition = ui_state.condition.clone();
         if let DrawMode::Fill(ref mut fill_mode) = *draw_mode {
-            fill_mode.color = match hist.side {
-                Side::Left => {
-                    let color = match condition.condition.as_ref() {
-                        Some(cond) => or_color(cond, &mut ui_state.color_left),
-                        None => or_color(&ui_condition, &mut ui_state.color_left),
-                    };
-                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
-                }
-                Side::Right => {
-                    let color = match condition.condition.as_ref() {
-                        Some(cond) => or_color(cond, &mut ui_state.color_right),
-                        None => or_color(&ui_condition, &mut ui_state.color_right),
-                    };
-                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
-                }
-                Side::Up => {
-                    let color = match condition.condition.as_ref() {
-                        Some(cond) => or_color(cond, &mut ui_state.color_top),
-                        None => or_color(&ui_condition, &mut ui_state.color_top),
-                    };
-                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
-                }
+            fill_mode.color = {
+                let color_ref = match hist.side {
+                    Side::Left => &mut ui_state.color_left,
+                    Side::Right => &mut ui_state.color_right,
+                    Side::Up => &mut ui_state.color_top,
+                };
+                let color = match condition.condition.as_ref() {
+                    Some(cond) => or_color(cond, color_ref, true),
+                    None => or_color(&ui_condition, color_ref, false),
+                };
+                Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
             }
         }
     }
