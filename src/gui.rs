@@ -8,7 +8,6 @@ use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use itertools::Itertools;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 pub struct GuiPlugin;
@@ -47,21 +46,23 @@ const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
 /// * a random color with the alpha that is already in the map at the empty string; or
 /// * the color at the empty string (random = false).
 pub fn or_color<'m>(key: &str, map: &'m mut HashMap<String, Rgba>, random: bool) -> &'m mut Rgba {
-    let color_def = map[""];
-    match map.entry(key.to_string()) {
-        Entry::Occupied(v) => v.into_mut(),
-        Entry::Vacant(v) => {
-            if random {
-                v.insert(Rgba::from_rgba_premultiplied(
-                    fastrand::f32(),
-                    fastrand::f32(),
-                    fastrand::f32(),
-                    color_def.a(),
-                ))
-            } else {
-                v.insert(color_def)
-            }
+    let mut color_def = map[""];
+    if random {
+        map.entry(key.to_string())
+            .or_insert(Rgba::from_rgba_premultiplied(
+                fastrand::f32(),
+                fastrand::f32(),
+                fastrand::f32(),
+                color_def.a(),
+            ))
+    } else {
+        if map.contains_key(key) {
+            color_def = map[key];
+            map.values_mut().for_each(|v| {
+                *v = color_def;
+            });
         }
+        map.entry(key.to_string()).or_insert(color_def)
     }
 }
 
@@ -152,17 +153,14 @@ impl UiState {
             ("min", "Metabolite") => (&mut self.min_metabolite_color, &mut self.min_metabolite),
             ("max", "Metabolite") => (&mut self.max_metabolite_color, &mut self.max_metabolite),
             ("left", _) => (
-                or_color(geom, &mut self.color_left, false),
+                or_color(geom, &mut self.color_left, true),
                 &mut self.max_left,
             ),
             ("right", _) => (
-                or_color(geom, &mut self.color_right, false),
+                or_color(geom, &mut self.color_right, true),
                 &mut self.max_right,
             ),
-            ("top", _) => (
-                or_color(geom, &mut self.color_top, false),
-                &mut self.max_top,
-            ),
+            ("top", _) => (or_color(geom, &mut self.color_top, true), &mut self.max_top),
             _ => panic!("Unknown side"),
         }
     }
