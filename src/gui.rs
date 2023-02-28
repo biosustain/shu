@@ -43,18 +43,25 @@ impl Plugin for GuiPlugin {
 }
 const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
 
-/// Retrieve a mutable reference to the color or insert a random color
-/// wit the alpha that is already in the map at the empty string.
-pub fn or_color<'m>(key: &str, map: &'m mut HashMap<String, Rgba>) -> &'m mut Rgba {
-    let alpha = map.get("").map(|color| color.a()).unwrap_or(1.0);
+/// Retrieve a mutable reference to the color or insert
+/// * a random color with the alpha that is already in the map at the empty string; or
+/// * the color at the empty string (random = false).
+pub fn or_color<'m>(key: &str, map: &'m mut HashMap<String, Rgba>, random: bool) -> &'m mut Rgba {
+    let color_def = map[""];
     match map.entry(key.to_string()) {
         Entry::Occupied(v) => v.into_mut(),
-        Entry::Vacant(v) => v.insert(Rgba::from_rgba_premultiplied(
-            fastrand::f32(),
-            fastrand::f32(),
-            fastrand::f32(),
-            alpha,
-        )),
+        Entry::Vacant(v) => {
+            if random {
+                v.insert(Rgba::from_rgba_premultiplied(
+                    fastrand::f32(),
+                    fastrand::f32(),
+                    fastrand::f32(),
+                    color_def.a(),
+                ))
+            } else {
+                v.insert(color_def)
+            }
+        }
     }
 }
 
@@ -144,9 +151,18 @@ impl UiState {
             ("max", "Reaction") => (&mut self.max_reaction_color, &mut self.max_reaction),
             ("min", "Metabolite") => (&mut self.min_metabolite_color, &mut self.min_metabolite),
             ("max", "Metabolite") => (&mut self.max_metabolite_color, &mut self.max_metabolite),
-            ("left", _) => (or_color(geom, &mut self.color_left), &mut self.max_left),
-            ("right", _) => (or_color(geom, &mut self.color_right), &mut self.max_right),
-            ("top", _) => (or_color(geom, &mut self.color_top), &mut self.max_top),
+            ("left", _) => (
+                or_color(geom, &mut self.color_left, false),
+                &mut self.max_left,
+            ),
+            ("right", _) => (
+                or_color(geom, &mut self.color_right, false),
+                &mut self.max_right,
+            ),
+            ("top", _) => (
+                or_color(geom, &mut self.color_top, false),
+                &mut self.max_top,
+            ),
             _ => panic!("Unknown side"),
         }
     }
