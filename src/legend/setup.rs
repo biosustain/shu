@@ -24,6 +24,8 @@ pub struct LegendArrow;
 #[derive(Component)]
 pub struct LegendCircle;
 #[derive(Component)]
+pub struct LegendCondition;
+#[derive(Component)]
 pub struct LegendHist;
 #[derive(Component)]
 pub struct LegendBox;
@@ -287,20 +289,37 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     max_size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD * 2.0),
                     display: Display::Flex,
                     align_items: AlignItems::Center,
-                    justify_content: JustifyContent::SpaceBetween,
+                    justify_content: JustifyContent::SpaceAround,
                     ..Default::default()
                 },
                 focus_policy: bevy::ui::FocusPolicy::Pass,
                 ..Default::default()
             })
+            // conditions
+            .with_children(|p| {
+                p.spawn((
+                    TextBundle {
+                        text: Text::default().with_alignment(TextAlignment::CENTER),
+                        style: Style {
+                            display: Display::None,
+                            flex_shrink: 3.,
+                            ..Default::default()
+                        },
+                        focus_policy: bevy::ui::FocusPolicy::Pass,
+                        ..default()
+                    },
+                    LegendCondition,
+                ));
+            })
             // container for left histogram side with text tags for axis
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD * 2.0),
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 2.0),
                         display: Display::None,
                         align_items: AlignItems::FlexEnd,
                         flex_direction: FlexDirection::Column,
+                        flex_shrink: 1.,
                         justify_content: JustifyContent::Center,
                         ..Default::default()
                     },
@@ -344,9 +363,10 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.2, HIST_HEIGHT_CHILD * 20.),
+                        size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 20.),
                         display: Display::None,
                         align_items: AlignItems::FlexStart,
+                        flex_shrink: 1.,
                         flex_direction: FlexDirection::Column,
                         justify_content: JustifyContent::Center,
                         ..Default::default()
