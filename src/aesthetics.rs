@@ -326,7 +326,7 @@ fn build_axes(
     }
 }
 
-// Build axis
+/// Build axis.
 fn build_point_axes(
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Path)>,
@@ -391,7 +391,9 @@ fn build_point_axes(
         }
     }
 
-    for (axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
+    for (mut axis, trans) in axes.into_values().flat_map(|side| side.into_values()) {
+        // conditions are sorted everywhere to be consistent across dropdowns, etc
+        axis.conditions.sort();
         commands.spawn((
             axis,
             Drag::default(),
@@ -463,7 +465,7 @@ fn plot_side_hist(
                     None => continue,
                 };
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 30, axis.arrow_size, axis.xlimits),
+                    HistPlot::Hist => plot_hist(this_dist, 55, axis.arrow_size, axis.xlimits),
                     HistPlot::Kde => plot_kde(this_dist, 80, axis.arrow_size, axis.xlimits),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
@@ -633,7 +635,7 @@ fn plot_hover_hist(
                 };
                 let xlimits = hover.xlimits.as_ref().unwrap();
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 30, 600., *xlimits),
+                    HistPlot::Hist => plot_hist(this_dist, 55, 600., *xlimits),
                     HistPlot::Kde => plot_kde(this_dist, 80, 600., *xlimits),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
