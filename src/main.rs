@@ -1,4 +1,4 @@
-#![allow(clippy::type_complexity)]
+#![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;

@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_prototype_lyon::prelude::DrawMode;
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -552,14 +553,11 @@ impl AxisMode {
     }
 }
 
-/// Show/hide axes of histograms when x is pressed.
+/// Show/hide axes of histograms when `s` is pressed.
 fn show_axes(
     key_input: Res<Input<KeyCode>>,
     mut mode: ResMut<AxisMode>,
-    mut axis_query: Query<
-        &mut Visibility,
-        (With<Xaxis>, With<bevy_prototype_lyon::prelude::DrawMode>),
-    >,
+    mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<DrawMode>)>,
 ) {
     if key_input.just_pressed(KeyCode::S) {
         mode.toggle();
