@@ -24,7 +24,10 @@ pub struct LegendArrow;
 #[derive(Component)]
 pub struct LegendCircle;
 #[derive(Component)]
-pub struct LegendCondition;
+pub struct LegendCondition {
+    /// Current conditions for change detection.
+    pub state: Vec<String>,
+}
 #[derive(Component)]
 pub struct LegendHist;
 #[derive(Component)]
@@ -289,37 +292,42 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     max_size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD * 2.0),
                     display: Display::Flex,
                     align_items: AlignItems::Center,
-                    justify_content: JustifyContent::SpaceAround,
+                    justify_content: JustifyContent::Center,
                     ..Default::default()
                 },
                 focus_policy: bevy::ui::FocusPolicy::Pass,
                 ..Default::default()
             })
-            // conditions
+            // condition container
             .with_children(|p| {
                 p.spawn((
-                    TextBundle {
-                        text: Text::default().with_alignment(TextAlignment::CENTER),
+                    NodeBundle {
                         style: Style {
+                            size: Size::new(ARROW_BUNDLE_WIDTH / 6.0, HIST_HEIGHT_CHILD),
                             display: Display::None,
-                            flex_shrink: 3.,
+                            margin: UiRect::right(Val::Px(5.0)),
+                            flex_direction: FlexDirection::Column,
+                            flex_shrink: 1.,
+                            align_items: AlignItems::FlexEnd,
+                            justify_content: JustifyContent::SpaceAround,
                             ..Default::default()
                         },
                         focus_policy: bevy::ui::FocusPolicy::Pass,
                         ..default()
                     },
-                    LegendCondition,
+                    LegendCondition { state: Vec::new() },
                 ));
             })
             // container for left histogram side with text tags for axis
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 2.0),
+                        max_size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 2.0),
                         display: Display::None,
                         align_items: AlignItems::FlexEnd,
                         flex_direction: FlexDirection::Column,
-                        flex_shrink: 1.,
+                        margin: UiRect::right(Val::Px(5.0)),
+                        flex_shrink: 3.,
                         justify_content: JustifyContent::Center,
                         ..Default::default()
                     },
@@ -363,9 +371,10 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 20.),
+                        max_size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 2.),
                         display: Display::None,
                         align_items: AlignItems::FlexStart,
+                        margin: UiRect::left(Val::Px(5.0)),
                         flex_shrink: 1.,
                         flex_direction: FlexDirection::Column,
                         justify_content: JustifyContent::Center,

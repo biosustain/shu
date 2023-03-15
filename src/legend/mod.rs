@@ -379,36 +379,48 @@ fn color_legend_box(
 }
 
 fn display_conditions(
+    mut commands: Commands,
     ui_state: Res<UiState>,
     asset_server: Res<AssetServer>,
-    mut legend_query: Query<(&mut Text, &mut Style), With<LegendCondition>>,
+    mut legend_query: Query<(Entity, &mut Style, &mut LegendCondition)>,
 ) {
     if !ui_state.is_changed() {
         return;
     } else if (ui_state.condition != "ALL") || ui_state.conditions.is_empty() {
-        for (_, mut style) in &mut legend_query {
+        for (_, mut style, _) in &mut legend_query {
             style.display = Display::None;
         }
         return;
     }
     let font = asset_server.load("fonts/Assistant-Regular.ttf");
+    let conditions = ui_state
+        .conditions
+        .iter()
+        .filter(|k| (k.as_str() != "") & (k.as_str() != "ALL"))
+        .cloned()
+        .collect::<Vec<_>>();
 
-    for (mut text, mut style) in &mut legend_query {
+    for (parent, mut style, mut legend) in &mut legend_query {
         style.display = Display::Flex;
-        text.sections = ui_state
-            .conditions
-            .iter()
-            .filter(|k| (k.as_str() != "") & (k.as_str() != "ALL"))
-            .map(|text| {
-                TextSection::new(
-                    format!("{text}\n"),
-                    TextStyle {
-                        font: font.clone(),
-                        font_size: 12.,
-                        color: Color::hex("504d50").unwrap(),
-                    },
-                )
-            })
-            .collect();
+        if legend.state != conditions {
+            commands.entity(parent).despawn_descendants();
+            legend.state = conditions.clone();
+            // commands.entity(parent).remove_children(children);
+            conditions.iter().for_each(|text| {
+                commands.entity(parent).with_children(|p| {
+                    p.spawn(TextBundle {
+                        text: Text::from_section(
+                            text,
+                            TextStyle {
+                                font: font.clone(),
+                                font_size: 12.,
+                                color: Color::hex("504d50").unwrap(),
+                            },
+                        ),
+                        ..Default::default()
+                    });
+                });
+            });
+        }
     }
 }
