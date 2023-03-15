@@ -3,7 +3,7 @@ use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
 use crate::gui::{file_drop, UiState};
 use crate::{data, escher, geom};
 use bevy::prelude::*;
-use bevy_prototype_lyon::prelude::{DrawMode, GeometryBuilder, Path, PathBuilder, StrokeMode};
+use bevy_prototype_lyon::prelude::{GeometryBuilder, Path, PathBuilder, ShapeBundle, Stroke};
 
 use bevy::asset::FileAssetIo;
 use bevy::tasks::IoTaskPool;
@@ -41,14 +41,12 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
     app.world.spawn((
-        GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(
-                Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                10.0,
-            )),
-            Transform::from_xyz(1., 1., 1.),
-        ),
+        ShapeBundle {
+            path: GeometryBuilder::build_as(&line),
+            transform: Transform::from_xyz(1., 1., 1.),
+            ..default()
+        },
+        Stroke::new(Color::rgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
             hists: None,
@@ -106,14 +104,12 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
     app.world.spawn((
-        GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(
-                Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                10.0,
-            )),
-            Transform::from_xyz(1., 1., 1.),
-        ),
+        ShapeBundle {
+            path: GeometryBuilder::build_as(&line),
+            transform: Transform::from_xyz(1., 1., 1.),
+            ..default()
+        },
+        Stroke::new(Color::rgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
             hists: None,
@@ -166,15 +162,10 @@ fn loading_file_drop_does_not_crash() {
         escher_map: escher_handle,
         loaded: false,
     });
-    app.add_stage_before(
-        bevy::app::CoreStage::PreUpdate,
-        bevy::asset::AssetStage::LoadAssets,
-        CoreSet::parallel(),
-    );
-    app.add_stage_after(
-        bevy::app::CoreStage::PostUpdate,
-        bevy::asset::AssetStage::AssetEvents,
-        SystemStage::parallel(),
+    app.configure_set(
+        bevy::asset::AssetSet::LoadAssets
+            .after(bevy::app::CoreSet::PreUpdate)
+            .before(bevy::app::CoreSet::PostUpdate),
     );
     app.add_event::<FileDragAndDrop>();
     app.add_plugin(data::DataPlugin);
