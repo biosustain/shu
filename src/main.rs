@@ -28,7 +28,7 @@ pub struct Example {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     App::new()
-        .insert_resource(Msaa::default())
+        .insert_resource(Msaa::Off)
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -143,7 +143,7 @@ fn main() {
     target_data.set_onchange(Some(data_closure.as_ref().unchecked_ref()));
 
     App::new()
-        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(Msaa::Off)
         .insert_resource(WinitSettings::desktop_app())
         .insert_resource(ReceiverResource { rx: map_receiver })
         .insert_resource(ReceiverResource { rx: data_receiver })
