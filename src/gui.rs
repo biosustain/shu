@@ -4,12 +4,13 @@ use crate::data::{Data, ReactionState};
 use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use bevy::prelude::*;
+use bevy::utils::HashMap;
+use bevy::window::PrimaryWindow;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
-use bevy_egui::egui::epaint::color::Rgba;
-use bevy_egui::{egui, EguiContext, EguiPlugin};
-use bevy_prototype_lyon::prelude::DrawMode;
+use bevy_egui::egui::epaint::Rgba;
+use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy_prototype_lyon::prelude::Path;
 use itertools::Itertools;
-use std::collections::HashMap;
 
 pub struct GuiPlugin;
 
@@ -68,7 +69,6 @@ pub fn or_color<'m>(key: &str, map: &'m mut HashMap<String, Rgba>, random: bool)
 }
 
 /// Global appeareance settings.
-#[derive(Resource)]
 pub struct UiState {
     pub min_reaction: f32,
     pub max_reaction: f32,
@@ -94,6 +94,8 @@ pub struct UiState {
     // with Default::default(), ensuring that the fallbacks for colors (empty string) are set.
     _init: Init,
 }
+
+impl Resource for UiState {}
 
 struct Init;
 
@@ -180,11 +182,11 @@ struct SaveEvent(String);
 /// Settings for appearance of map and plots.
 /// This is managed by [`bevy_egui`] and it is separate from the rest of the GUI.
 fn ui_settings(
-    windows: Res<Windows>,
-    mut egui_context: ResMut<EguiContext>,
+    mut egui_context: EguiContexts,
     mut state: ResMut<UiState>,
     mut save_events: EventWriter<SaveEvent>,
     mut load_events: EventWriter<FileDragAndDrop>,
+    windows: Query<(Entity, &Window), With<PrimaryWindow>>,
 ) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         for (geom, ext) in ["Reaction", "Metabolite"]
@@ -241,14 +243,14 @@ fn ui_settings(
         });
         #[cfg(not(target_arch = "wasm32"))]
         ui.collapsing("Import", |ui| {
-            let win = windows.get_primary().expect("no primary window");
+            let Ok((win, _)) = windows.get_single() else {return};
             for label in ["Map", "Data"] {
                 let path = state.get_mut_paths(label);
                 ui.horizontal(|ui| {
                     if ui.button(label).clicked() {
                         // piggyback on file_drop()
                         load_events.send(FileDragAndDrop::DroppedFile {
-                            id: win.id(),
+                            window: win,
                             path_buf: path.clone().into(),
                         });
                     }
@@ -274,7 +276,7 @@ pub fn file_drop(
 ) {
     for ev in dnd_evr.iter() {
         if let FileDragAndDrop::DroppedFile { path_buf, .. } = ev {
-            println!("Dropped file with path: {:?}", path_buf);
+            debug!("Dropped file with path: {:?}", path_buf);
 
             if path_buf.to_str().unwrap().ends_with("metabolism.json") {
                 let reaction_handle: Handle<Data> = asset_server.load(path_buf.to_str().unwrap());
@@ -314,13 +316,13 @@ fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) ->
 /// Show hovered data on cursor enter.
 fn show_hover(
     ui_state: Res<UiState>,
-    windows: Res<Windows>,
+    windows: Query<&Window, With<PrimaryWindow>>,
     hover_query: Query<(&Transform, &Hover)>,
     mut popup_query: Query<(&mut Visibility, &AnyTag, &VisCondition), With<HistTag>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     let (camera, camera_transform) = q_camera.single();
-    let win = windows.get_primary().expect("no primary window");
+    let Ok(win) = windows.get_single() else {return};
     if let Some(world_pos) = get_pos(win, camera, camera_transform) {
         for (trans, hover) in hover_query.iter() {
             if (world_pos - Vec2::new(trans.translation.x, trans.translation.y)).length_squared()
@@ -333,7 +335,7 @@ fn show_hover(
                         .map(|c| (c == &ui_state.condition) || (ui_state.condition == "ALL"))
                         .unwrap_or(true);
                     if (hover.node_id == tag.id) & cond_if {
-                        *vis = Visibility::VISIBLE;
+                        *vis = Visibility::Visible;
                     }
                 }
             } else {
@@ -344,7 +346,7 @@ fn show_hover(
                         .map(|c| (c != &ui_state.condition) & (ui_state.condition != "ALL"))
                         .unwrap_or(false);
                     if (hover.node_id == tag.id) || cond_if {
-                        *vis = Visibility::INVISIBLE;
+                        *vis = Visibility::Hidden;
                     }
                 }
             }
@@ -354,7 +356,7 @@ fn show_hover(
 
 /// Register an non-UI entity (histogram) as being dragged by center or right button.
 fn mouse_click_system(
-    windows: Res<Windows>,
+    windows: Query<&Window, With<PrimaryWindow>>,
     mouse_button_input: Res<Input<MouseButton>>,
     node_to_text: Res<NodeToText>,
     axis_mode: Res<AxisMode>,
@@ -365,7 +367,7 @@ fn mouse_click_system(
     if mouse_button_input.just_pressed(MouseButton::Middle) {
         for (trans, mut drag, axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
-            let win = windows.get_primary().expect("no primary window");
+            let Ok(win) = windows.get_single() else {return};
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
                 if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
                     .length_squared()
@@ -397,7 +399,7 @@ fn mouse_click_system(
     if mouse_button_input.just_pressed(MouseButton::Right) {
         for (trans, mut drag, axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
-            let win = windows.get_primary().expect("no primary window");
+            let Ok(win) = windows.get_single() else {return};
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
                 if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
                     .length_squared()
@@ -454,14 +456,14 @@ fn mouse_click_ui_system(
 
 /// Move the center-dragged interactable non-UI entities (histograms).
 fn follow_mouse_on_drag(
-    windows: Res<Windows>,
+    windows: Query<&Window, With<PrimaryWindow>>,
     mut drag_query: Query<(&mut Transform, &Drag), Without<Style>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     for (mut trans, drag) in drag_query.iter_mut() {
         if drag.dragged {
             let (camera, camera_transform) = q_camera.single();
-            let win = windows.get_primary().expect("no primary window");
+            let Ok(win) = windows.get_single() else {return};
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
                 trans.translation = Vec3::new(world_pos.x, world_pos.y, trans.translation.z);
             }
@@ -470,10 +472,13 @@ fn follow_mouse_on_drag(
 }
 
 /// Move the center-dragged interactable UI entities.
-fn follow_mouse_on_drag_ui(windows: Res<Windows>, mut drag_query: Query<(&mut Style, &Drag)>) {
+fn follow_mouse_on_drag_ui(
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut drag_query: Query<(&mut Style, &Drag)>,
+) {
     for (mut style, drag) in drag_query.iter_mut() {
         if drag.dragged {
-            let win = windows.get_primary().expect("no primary window");
+            let Ok(win) = windows.get_single() else {return};
             if let Some(screen_pos) = win.cursor_position() {
                 style.position = UiRect {
                     // arbitrary offset to make it feel more natural
@@ -557,11 +562,17 @@ impl AxisMode {
 fn show_axes(
     key_input: Res<Input<KeyCode>>,
     mut mode: ResMut<AxisMode>,
-    mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<DrawMode>)>,
+    mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<Path>)>,
 ) {
     if key_input.just_pressed(KeyCode::S) {
         mode.toggle();
-        axis_query.iter_mut().for_each(|mut v| v.toggle());
+        axis_query.iter_mut().for_each(|mut v| {
+            *v = match *v {
+                Visibility::Inherited => Visibility::Inherited,
+                Visibility::Hidden => Visibility::Visible,
+                Visibility::Visible => Visibility::Hidden,
+            }
+        });
     }
 }
 

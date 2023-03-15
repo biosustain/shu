@@ -28,13 +28,13 @@ pub struct Example {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     App::new()
-        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(Msaa::default())
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
+            primary_window: Some(Window {
                 title: "shu".to_string(),
                 ..default()
-            },
+            }),
             ..default()
         }))
         .add_plugin(PanCamPlugin::default())

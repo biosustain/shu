@@ -134,7 +134,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         },
                         focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage(box_handle.clone()),
+                        image: UiImage::new(box_handle.clone()),
                         ..default()
                     });
                 })
@@ -180,7 +180,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         },
                         focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage(box_handle.clone()),
+                        image: UiImage::new(box_handle.clone()),
                         ..default()
                     });
                 })
@@ -225,7 +225,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ..default()
                     },
                     focus_policy: bevy::ui::FocusPolicy::Pass,
-                    image: UiImage(arrow_handle),
+                    image: UiImage::new(arrow_handle),
                     ..default()
                 });
             })
@@ -269,7 +269,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ..default()
                     },
                     focus_policy: bevy::ui::FocusPolicy::Pass,
-                    image: UiImage(met_handle),
+                    image: UiImage::new(met_handle),
                     ..default()
                 });
             })
@@ -353,7 +353,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         },
                         focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage(hist_left_handle),
+                        image: UiImage::new(hist_left_handle),
                         ..default()
                     });
                 })
@@ -401,7 +401,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                             size: Size::new(HIST_HEIGHT_CHILD * 0.6, HIST_HEIGHT_CHILD),
                             ..default()
                         },
-                        image: UiImage(hist_right_handle),
+                        image: UiImage::new(hist_right_handle),
                         focus_policy: bevy::ui::FocusPolicy::Pass,
                         ..default()
                     });

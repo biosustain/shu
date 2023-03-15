@@ -1,11 +1,11 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
 use crate::geom::{GeomHist, HistTag, Side, Xaxis};
-use bevy::{prelude::*, reflect::TypeUuid};
+use bevy::{prelude::*, reflect::TypeUuid, utils::HashMap};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use std::{cmp::Ordering, collections::HashMap};
+use std::cmp::Ordering;
 
 pub struct EscherPlugin;
 
@@ -346,17 +346,13 @@ pub fn load_map(
             xlimits: None,
         };
         commands.spawn((
-            GeometryBuilder::build_as(
-                &shape,
-                DrawMode::Outlined {
-                    fill_mode: FillMode::color(Color::rgb(224. / 255., 137. / 255., 101. / 255.)),
-                    outline_mode: StrokeMode::new(
-                        Color::rgb(162. / 255., 69. / 255., 16. / 255.),
-                        4.0,
-                    ),
-                },
-                Transform::from_xyz(met.x - center_x, -met.y + center_y, 2.),
-            ),
+            ShapeBundle {
+                path: GeometryBuilder::build_as(&shape),
+                transform: Transform::from_xyz(met.x - center_x, -met.y + center_y, 2.),
+                ..Default::default()
+            },
+            Fill::color(Color::rgb(224. / 255., 137. / 255., 101. / 255.)),
+            Stroke::new(Color::rgb(162. / 255., 69. / 255., 16. / 255.), 4.0),
             circle.clone(),
         ));
         commands.spawn((
@@ -427,11 +423,12 @@ pub fn load_map(
             xlimits: None,
         };
         commands.spawn((
-            GeometryBuilder::build_as(
-                &line,
-                DrawMode::Stroke(StrokeMode::new(ARROW_COLOR, 10.0)),
-                Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 1.),
-            ),
+            ShapeBundle {
+                path: GeometryBuilder::build_as(&line),
+                transform: Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 1.),
+                ..Default::default()
+            },
+            Stroke::new(ARROW_COLOR, 10.0),
             arrow.clone(),
         ));
         // spawn the text and collect its id in the hashmap for hovering.

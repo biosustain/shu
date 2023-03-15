@@ -3,7 +3,6 @@ use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
 use crate::gui::{file_drop, UiState};
 use crate::{data, escher, geom};
 use bevy::prelude::*;
-use bevy::window::WindowId;
 use bevy_prototype_lyon::prelude::{DrawMode, GeometryBuilder, Path, PathBuilder, StrokeMode};
 
 use bevy::asset::FileAssetIo;
@@ -170,7 +169,7 @@ fn loading_file_drop_does_not_crash() {
     app.add_stage_before(
         bevy::app::CoreStage::PreUpdate,
         bevy::asset::AssetStage::LoadAssets,
-        SystemStage::parallel(),
+        CoreSet::parallel(),
     );
     app.add_stage_after(
         bevy::app::CoreStage::PostUpdate,
@@ -184,7 +183,7 @@ fn loading_file_drop_does_not_crash() {
 
     app.update();
     app.world.send_event(FileDragAndDrop::DroppedFile {
-        id: WindowId::new(),
+        window: Entity::from_raw(24),
         path_buf: "assets/ecoli_core_map.json".into(),
     });
     app.update();
