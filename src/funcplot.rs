@@ -57,22 +57,29 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
     if center.is_nan() {
         return None;
     }
+    if samples.is_empty() {
+        return None;
+    }
     let mut path_builder = PathBuilder::new();
-    let mut state = PlottingState::Zero;
-    for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
-        let y = f32::max(kde(*point_x, samples, 1.06), 0.);
-        match state {
-            PlottingState::Zero => {
-                if y > 0. {
-                    path_builder.move_to(Vec2::new(*anchor_x, y));
-                    state = PlottingState::Over { last_x: *anchor_x };
+    if samples.len() == 1 {
+        path_builder = plot_spike(path_builder, samples[0], xlimits);
+    } else {
+        let mut state = PlottingState::Zero;
+        for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
+            let y = f32::max(kde(*point_x, samples, 1.06), 0.);
+            match state {
+                PlottingState::Zero => {
+                    if y > 0. {
+                        path_builder.move_to(Vec2::new(*anchor_x, y));
+                        state = PlottingState::Over { last_x: *anchor_x };
+                    }
                 }
-            }
-            PlottingState::Over { last_x } => {
-                path_builder.line_to(Vec2::new(*anchor_x, y));
-                if y == 0. {
-                    path_builder.line_to(Vec2::new(last_x, 0.));
-                    state = PlottingState::Zero;
+                PlottingState::Over { last_x } => {
+                    path_builder.line_to(Vec2::new(*anchor_x, y));
+                    if y == 0. {
+                        path_builder.line_to(Vec2::new(last_x, 0.));
+                        state = PlottingState::Zero;
+                    }
                 }
             }
         }
@@ -92,31 +99,51 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
     if center.is_nan() {
         return None;
     }
+    // bevy::log::info!("points: {points:?}, xlimits: {xlimits:?}, samples: {samples:?}");
+    if samples.is_empty() {
+        return None;
+    }
 
     let mut path_builder = PathBuilder::new();
-    for ((anchor_a, anchor_b), (point_a, point_b)) in anchors.clone()[0..(anchors.len() - 1)]
-        .iter()
-        .zip(anchors[1..anchors.len()].iter())
-        .zip(
-            [0.].iter()
-                .chain(points.clone()[0..(points.len() - 1)].iter())
-                .zip(points[1..points.len()].iter()),
-        )
-    {
-        // TODO: sort first this and operate over indices
-        let y = samples
+    if samples.len() == 1 {
+        path_builder = plot_spike(path_builder, samples[0], xlimits);
+    } else {
+        for ((anchor_a, anchor_b), (point_a, point_b)) in anchors.clone()[0..(anchors.len() - 1)]
             .iter()
-            .filter(|&&x| (x >= *point_a) & (x < *point_b))
-            .count();
-        if y == 0 {
-            continue;
+            .zip(anchors[1..anchors.len()].iter())
+            .zip(
+                [0.].iter()
+                    .chain(points.clone()[0..(points.len() - 1)].iter())
+                    .zip(points[1..points.len()].iter()),
+            )
+        {
+            // TODO: sort first this and operate over indices
+            let y = samples
+                .iter()
+                .filter(|&&x| (x >= *point_a) & (x < *point_b))
+                .count();
+            if y == 0 {
+                continue;
+            }
+            path_builder.move_to(Vec2::new(*anchor_a, 0.));
+            path_builder.line_to(Vec2::new(*anchor_a, y as f32));
+            path_builder.line_to(Vec2::new(*anchor_b, y as f32));
+            path_builder.line_to(Vec2::new(*anchor_b, 0.));
         }
-        path_builder.move_to(Vec2::new(*anchor_a, 0.));
-        path_builder.line_to(Vec2::new(*anchor_a, y as f32));
-        path_builder.line_to(Vec2::new(*anchor_b, y as f32));
-        path_builder.line_to(Vec2::new(*anchor_b, 0.));
     }
     Some(path_builder.build())
+}
+
+fn plot_spike(mut path_builder: PathBuilder, t: f32, xlimits: (f32, f32)) -> PathBuilder {
+    let x = lerp(t, 0., 1., xlimits.0, xlimits.1);
+    // TODO: not clear how big this should be
+    const EPS: f32 = 1.0;
+
+    path_builder.move_to(Vec2::new(x - EPS, 0.));
+    path_builder.line_to(Vec2::new(x - EPS, 1.0));
+    path_builder.line_to(Vec2::new(x + EPS, 1.0));
+    path_builder.line_to(Vec2::new(x + EPS, 0.));
+    path_builder
 }
 
 /// Plot a box where the color is the mean of the samples.
