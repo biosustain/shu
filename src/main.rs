@@ -5,7 +5,6 @@ use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_prototype_lyon::prelude::*;
-use serde::Deserialize;
 
 mod aesthetics;
 mod data;
@@ -18,12 +17,6 @@ mod legend;
 mod tests;
 
 use escher::{EscherMap, EscherPlugin, MapState};
-
-/// Data sent from callback through the channel.
-#[derive(Deserialize, Debug, Default, Clone, PartialEq)]
-pub struct Example {
-    pub field1: [f32; 4],
-}
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
