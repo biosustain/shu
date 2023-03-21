@@ -53,7 +53,7 @@ enum PlottingState {
 /// path is not closed are avoided.
 pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
     let center = size / 2.;
-    let anchors = linspace(-center, size - center, n);
+    let anchors = linspace(-center, center, n);
     if center.is_nan() {
         return None;
     }
@@ -62,7 +62,7 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
     }
     let mut path_builder = PathBuilder::new();
     if samples.len() == 1 {
-        path_builder = plot_spike(path_builder, samples[0], xlimits);
+        path_builder = plot_spike(path_builder, samples[0], xlimits, center);
     } else {
         let mut state = PlottingState::Zero;
         for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
@@ -95,7 +95,7 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
     // actual x points to be mapped to the KDE
     let points = linspace(xlimits.0, xlimits.1, bins);
     // calculated x positions in the graph
-    let anchors = linspace(-center, size - center, bins);
+    let anchors = linspace(-center, center, bins);
     if center.is_nan() {
         return None;
     }
@@ -106,7 +106,7 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
 
     let mut path_builder = PathBuilder::new();
     if samples.len() == 1 {
-        path_builder = plot_spike(path_builder, samples[0], xlimits);
+        path_builder = plot_spike(path_builder, samples[0], xlimits, center);
     } else {
         for ((anchor_a, anchor_b), (point_a, point_b)) in anchors.clone()[0..(anchors.len() - 1)]
             .iter()
@@ -134,10 +134,15 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
     Some(path_builder.build())
 }
 
-fn plot_spike(mut path_builder: PathBuilder, t: f32, xlimits: (f32, f32)) -> PathBuilder {
-    let x = lerp(t, 0., 1., xlimits.0, xlimits.1);
+fn plot_spike(
+    mut path_builder: PathBuilder,
+    t: f32,
+    xlimits: (f32, f32),
+    center: f32,
+) -> PathBuilder {
+    let x = lerp(t, xlimits.0, xlimits.1, -center, center);
     // TODO: not clear how big this should be
-    const EPS: f32 = 1.0;
+    const EPS: f32 = 2.0;
 
     path_builder.move_to(Vec2::new(x - EPS, 0.));
     path_builder.line_to(Vec2::new(x - EPS, 1.0));
