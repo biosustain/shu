@@ -99,7 +99,6 @@ pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> 
     if center.is_nan() {
         return None;
     }
-    // bevy::log::info!("points: {points:?}, xlimits: {xlimits:?}, samples: {samples:?}");
     if samples.is_empty() {
         return None;
     }
