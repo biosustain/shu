@@ -293,22 +293,16 @@ pub fn file_drop(
     }
 }
 
-/// Cursor to mouse position. Stolen from bevy cheatbook.
+/// Cursor to mouse position. Adapted from bevy cheatbook.
 fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) -> Option<Vec2> {
     // get the size of the window
     let window_size = Vec2::new(win.width(), win.height());
-    if let Some(screen_pos) = win.cursor_position() {
-        // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-        let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
-        // matrix for undoing the projection and camera transform
-        let ndc_to_world = camera_transform.compute_matrix() * camera.projection_matrix().inverse();
-        // use it to convert ndc to world-space coordinates
-        let world_pos = ndc_to_world.project_point3(ndc.extend(-1.0));
-        // reduce it to a 2D value
-        Some(world_pos.truncate())
-    } else {
-        None
-    }
+    let screen_pos = win.cursor_position()?;
+    // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
+    let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
+    let world_pos = camera.ndc_to_world(camera_transform, ndc.extend(1.0))?;
+    // reduce it to a 2D value
+    Some(world_pos.truncate())
 }
 
 /// Show hovered data on cursor enter.
@@ -446,6 +440,7 @@ fn mouse_click_ui_system(
                 *background_color = BackgroundColor(Color::rgba(0.9, 0.9, 0.9, 0.2));
             }
             _ => {
+                drag.dragged &= mouse_button_input.pressed(MouseButton::Middle);
                 *background_color = BackgroundColor(Color::rgba(1.0, 1.0, 1.0, 0.0));
             }
         }
@@ -470,15 +465,20 @@ fn follow_mouse_on_drag(
 }
 
 /// Move the center-dragged interactable UI entities.
-fn follow_mouse_on_drag_ui(windows: Res<Windows>, mut drag_query: Query<(&mut Style, &Drag)>) {
+fn follow_mouse_on_drag_ui(
+    windows: Res<Windows>,
+    mut drag_query: Query<(&mut Style, &Drag)>,
+
+    ui_scale: Res<UiScale>,
+) {
     for (mut style, drag) in drag_query.iter_mut() {
         if drag.dragged {
             let win = windows.get_primary().expect("no primary window");
             if let Some(screen_pos) = win.cursor_position() {
                 style.position = UiRect {
                     // arbitrary offset to make it feel more natural
-                    left: Val::Px(screen_pos.x - 60.),
-                    bottom: Val::Px(screen_pos.y),
+                    left: Val::Px(screen_pos.x - 80. * ui_scale.scale as f32),
+                    bottom: Val::Px(screen_pos.y - 50. * ui_scale.scale as f32),
                     ..Default::default()
                 };
             }
