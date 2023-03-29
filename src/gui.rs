@@ -372,6 +372,8 @@ fn mouse_click_system(
                             text.sections[0].style.color = HIGH_COLOR;
                         })
                     });
+                    // do not move more than one component at the same time
+                    break;
                 }
             }
         }
