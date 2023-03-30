@@ -7,6 +7,10 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, collections::HashMap};
 
+pub const ARROW_COLOR: Color = Color::rgb(95. / 255., 94. / 255., 95. / 255.);
+pub const MET_COLOR: Color = Color::rgb(190. / 255., 185. / 255., 185. / 255.);
+pub const MET_STROK: Color = Color::rgb(95. / 255., 94. / 255., 95. / 255.);
+
 pub struct EscherPlugin;
 
 impl Plugin for EscherPlugin {
@@ -21,8 +25,6 @@ pub struct MapState {
     pub escher_map: Handle<EscherMap>,
     pub loaded: bool,
 }
-
-pub const ARROW_COLOR: Color = Color::rgb(51. / 255., 78. / 255., 101. / 255.);
 
 /// Resource to map arrow ids to their [`Entity`] for hovering purposes.
 #[derive(Resource, Default)]
@@ -349,11 +351,8 @@ pub fn load_map(
             GeometryBuilder::build_as(
                 &shape,
                 DrawMode::Outlined {
-                    fill_mode: FillMode::color(Color::rgb(224. / 255., 137. / 255., 101. / 255.)),
-                    outline_mode: StrokeMode::new(
-                        Color::rgb(162. / 255., 69. / 255., 16. / 255.),
-                        4.0,
-                    ),
+                    fill_mode: FillMode::color(MET_COLOR),
+                    outline_mode: StrokeMode::new(MET_STROK, 4.0),
                 },
                 Transform::from_xyz(met.x - center_x, -met.y + center_y, 2.),
             ),
