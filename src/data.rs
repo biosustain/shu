@@ -275,6 +275,9 @@ fn load_data(
                     for (e, _) in current_hist.iter().filter(|(_e, mark)| mark.pbox) {
                         commands.entity(e).despawn_recursive();
                     }
+                    if data.is_empty() {
+                        continue;
+                    }
                     commands.spawn((
                         aesthetics::Gy {},
                         aesthetics::Point(std::mem::take(&mut data)),
