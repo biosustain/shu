@@ -45,9 +45,9 @@ enum PlottingState {
 
 /// Plot a density with a normal kernel using [`Paths`].
 ///
-/// The path defines a set of positive curves starting when y_0 > 0 at [x_0, y_0]
-/// to n consecutive [x_n, y] KDE evaluations until y == 0 again. The last line
-/// is [x_n, 0] -> [x_0, 0] and the path is closed.
+/// The path defines a set of positive curves starting when `y_0 > 0` at `[x_0, y_0]`
+/// to n consecutive `[x_n, y]` KDE evaluations until `y == 0` again. The last line
+/// is `[x_n, 0]` -> `[x_0, 0]` and the path is closed.
 ///
 /// This way, artifacts produced when tesselating infinitesimal areas or when the
 /// path is not closed are avoided.
@@ -65,6 +65,7 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
         path_builder = plot_spike(path_builder, samples[0], xlimits, center);
     } else {
         let mut state = PlottingState::Zero;
+        path_builder.move_to(Vec2::new(anchors[0], 0.));
         for (point_x, anchor_x) in linspace(xlimits.0, xlimits.1, n).iter().zip(anchors.iter()) {
             let y = f32::max(kde(*point_x, samples, 1.06), 0.);
             match state {
@@ -82,6 +83,10 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
                     }
                 }
             }
+        }
+        if let PlottingState::Over { last_x } = state {
+            path_builder.line_to(Vec2::new(anchors[anchors.len() - 1], 0.));
+            path_builder.line_to(Vec2::new(last_x, 0.));
         }
     }
     Some(path_builder.build())
