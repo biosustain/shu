@@ -1,7 +1,7 @@
 use crate::escher::{load_map, ArrowTag, CircleTag, Hover, Tag};
 use crate::funcplot::{
     build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist,
-    plot_kde, plot_line, plot_scales,
+    plot_kde, plot_line, plot_scales, zero_lerp,
 };
 use crate::geom::{
     AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
@@ -143,7 +143,8 @@ pub fn plot_arrow_size<Geom: UiSelector>(
             {
                 if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
                     let unscaled_width = sizes.0[index];
-                    options.line_width = lerp(
+                    let f = if ui_state.zero_white { zero_lerp } else { lerp };
+                    options.line_width = f(
                         unscaled_width,
                         min_val,
                         max_val,
@@ -465,8 +466,8 @@ fn plot_side_hist(
                     None => continue,
                 };
                 let line = match geom.plot {
-                    HistPlot::Hist => plot_hist(this_dist, 55, axis.arrow_size, axis.xlimits),
-                    HistPlot::Kde => plot_kde(this_dist, 80, axis.arrow_size, axis.xlimits),
+                    HistPlot::Hist => plot_hist(this_dist, 160, axis.arrow_size, axis.xlimits),
+                    HistPlot::Kde => plot_kde(this_dist, 100, axis.arrow_size, axis.xlimits),
                     HistPlot::BoxPoint => {
                         warn!("Tried to plot a BoxPoint from a Distributions. Not Implemented! Consider using a Point as input");
                         None

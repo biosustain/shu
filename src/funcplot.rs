@@ -309,6 +309,18 @@ pub fn lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
     }
 }
 
+/// Three point interpolation, with 0 as middle point.
+pub fn zero_lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 {
+    let (t, min_1, max_1) = if (min_1 * max_1) > 0. {
+        (t, min_1, max_1)
+    } else if t > 0. {
+        (t, 0., max_1)
+    } else {
+        (t.abs(), 0., min_1.abs())
+    };
+    lerp(t, min_1, max_1, min_2, max_2)
+}
+
 fn to_grad(col: &bevy_egui::egui::color::Rgba) -> GradColor {
     GradColor::from_linear_rgba(
         col.r() as f64,
