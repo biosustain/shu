@@ -76,7 +76,10 @@ rigth-top corner button "Data".
 The map should look like this:
 
 .. image:: img/geom_arrow_screen.png
-  :alt: Arrows plotted in shu.
+  :alt: Arrows plotted in shu
+
+.. note::
+  Try tweaking the "Settings" window to achieve the same colors.
 
 Plotting distributions
 ----------------------
@@ -149,7 +152,7 @@ Notice how, there is not enough data to generate a meaningful histogram.
 
 .. note::
 
-   The histograms can be dragged and rotated with the middle and right clicks. Shu tries to fit the best position with an heuristic but it may fail for some reactions.
+   Shu tries to fit the best position with an heuristic but it may fail for some reactions. Try pressing right or middle button in the middle of the a histogram to rotate or move it.
 
 Hover
 -----
