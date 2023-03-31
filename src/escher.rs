@@ -414,18 +414,6 @@ pub fn load_map(
             }
         }
         let line = path_builder.build();
-        // ensure that the scale applied to the arrow axis is
-        // perpendicular to the direction of the arrow
-        if let Some(ref mut hists) = &mut reac.hist_position {
-            hists.iter_mut().for_each(|(_k, v)| {
-                let x = f32::max(v.scale.x, v.scale.y);
-                if direction.x.abs() < direction.y.abs() {
-                    v.scale = Vec3::new(x, 1.0, 1.0);
-                } else {
-                    v.scale = Vec3::new(1.0, x, 1.0);
-                }
-            })
-        };
         let arrow = ArrowTag {
             id: reac.bigg_id.clone(),
             hists: reac.hist_position.clone(),
