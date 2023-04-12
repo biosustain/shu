@@ -13,6 +13,7 @@ mod funcplot;
 mod geom;
 mod gui;
 mod legend;
+mod scale;
 #[cfg(test)]
 mod tests;
 
@@ -23,13 +24,17 @@ fn main() {
     App::new()
         .insert_resource(Msaa { samples: 4 })
         .insert_resource(WinitSettings::desktop_app())
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
-                title: "shu".to_string(),
-                ..default()
-            },
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    window: WindowDescriptor {
+                        title: "shu".to_string(),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .set(ImagePlugin::default_linear()),
+        )
         .add_plugin(PanCamPlugin::default())
         .add_plugin(ShapePlugin)
         .add_plugin(EscherPlugin)
@@ -37,6 +42,7 @@ fn main() {
         .add_plugin(data::DataPlugin)
         .add_startup_system(setup_system)
         .add_plugin(aesthetics::AesPlugin)
+        .add_plugin(scale::ZoomPlugin)
         .add_plugin(legend::LegendPlugin)
         .run();
 }

@@ -1,6 +1,7 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
 use crate::geom::{GeomHist, HistTag, Side, Xaxis};
+use crate::scale::DefaultFontSize;
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
@@ -248,7 +249,7 @@ fn build_text_tag(
     center_x: f32,
     center_y: f32,
     font_size: f32,
-) -> Text2dBundle {
+) -> (Text2dBundle, DefaultFontSize) {
     let pos = node.label_position();
     let text = Text::from_section(
         node.id(),
@@ -259,11 +260,14 @@ fn build_text_tag(
         },
     )
     .with_alignment(TextAlignment::CENTER_LEFT);
-    Text2dBundle {
-        text,
-        transform: Transform::from_xyz(pos.x - center_x, -pos.y + center_y, 4.0),
-        ..default()
-    }
+    (
+        Text2dBundle {
+            text,
+            transform: Transform::from_xyz(pos.x - center_x, -pos.y + center_y, 4.0),
+            ..default()
+        },
+        DefaultFontSize { size: font_size },
+    )
 }
 
 impl Labelled for Metabolite {
