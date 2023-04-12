@@ -257,7 +257,8 @@ fn build_text_tag(
             font_size,
             color: ARROW_COLOR,
         },
-    );
+    )
+    .with_alignment(TextAlignment::CENTER_LEFT);
     Text2dBundle {
         text,
         transform: Transform::from_xyz(pos.x - center_x, -pos.y + center_y, 4.0),
