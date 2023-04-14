@@ -5,14 +5,15 @@
 ## What?
 
 Documentation: https://biosustain.github.io/shu/docs/
+Web deployment: https://biosustain.github.io/shu
 
 App to plot multidimensional data to a metabolic map. Metabolic maps are graphs with metabolites
 as nodes and reactions as edges.
 
 ## Why?
 
-[Escher](https://escher.github.io/#/) is great. In fact, the default look of the map and the format
-of the map are exactly the same as escher's. However, escher only allows for plotting 2 (+2 with tooltips)
+[Escher](https://escher.github.io/#/) is great. In fact, the format
+of the map is exactly the same as escher's. However, escher only allows for plotting 2 (+2 with tooltips)
 kinds of data: reaction data and metabolite data. **Shu** attempts to provide ways of plotting at least
 6:
 

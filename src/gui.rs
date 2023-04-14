@@ -259,8 +259,7 @@ fn ui_settings(
 
         ui.add(egui::Hyperlink::from_label_and_url(
             "How to use?",
-            // "https://shu.readthedocs.io",
-            "https://carrascomj.github.io/shu/docs/plotting.html",
+            "https://biosustain.github.io/shu/docs/plotting.html",
         ));
     });
 }
