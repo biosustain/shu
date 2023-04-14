@@ -2,11 +2,9 @@
 
 <img align="right" width="172" height="228" src="./assets/logo.svg">
 
-Documentation: https://biosustain.github.io/shu/docs/
-
-Web deployment: https://biosustain.github.io/shu
-
-Crate: https://crates.io/crates/shu
+[![my badge](https://badgen.net/badge/docs/latest/blue?icon=book)](https://biosustain.github.io/shu/docs/index.html)
+[![wasm](https://img.shields.io/github/deployments/biosustain/shu/github-pages)](https://biosustain.github.io/shu)
+[![wasm](https://img.shields.io/crates/v/shu.svg)](https://crates.io/crates/shu)
 
 ## What?
 
