@@ -1,0 +1,321 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Plotting &#8212; Shu 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.png"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Map" href="map.html" />
+    <link rel="prev" title="Welcome to shu’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="plotting">
+<h1>Plotting<a class="headerlink" href="#plotting" title="Permalink to this headline">¶</a></h1>
+<p>Drawing from the concepts of the Grammar of Graphics, shu allows to plot data
+from a <em>variable</em> to different <em>geometrical</em> properties in the map. A
+<em>variable</em> here could be the concentration of the metabolites in the cell and
+the geometrical mapping - or <em>geom</em> - could be the size of the metabolite
+nodes.</p>
+<p>The grammar of shu is represented in the following figure:</p>
+<img alt="Shu grammar graphics schema." src="_images/schema.png" />
+<p>To arrange the data in the correct format, a python package called ggshu can be
+used to create the input for shu from a <a class="reference external" href="http://pandas.pydata.org/">pandas</a> dataframe. It can be installed with <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m pip install ggshu
+</pre></div>
+</div>
+<section id="simple-reaction-example">
+<h2>Simple reaction example<a class="headerlink" href="#simple-reaction-example" title="Permalink to this headline">¶</a></h2>
+<p>First, we will use the <a class="reference external" href="http://pandas.pydata.org/">pandas</a> library to create an example dataframe:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;reactions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;PFK&quot;</span><span class="p">,</span> <span class="s2">&quot;ENO&quot;</span><span class="p">,</span> <span class="s2">&quot;PYK&quot;</span><span class="p">,</span> <span class="s2">&quot;GAPD&quot;</span><span class="p">,</span> <span class="s2">&quot;PGI&quot;</span><span class="p">,</span> <span class="s2">&quot;PGK&quot;</span><span class="p">,</span> <span class="s2">&quot;PGM&quot;</span><span class="p">,</span> <span class="s2">&quot;TPI&quot;</span><span class="p">],</span>
+                   <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span>
+                   <span class="s2">&quot;kcat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">120</span><span class="p">]})</span>
+</pre></div>
+</div>
+<p>Now, let’s say we want to plot the flux as the size and colors of the arrows.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ggshu</span> <span class="kn">import</span> <span class="n">aes</span><span class="p">,</span> <span class="n">ggmap</span><span class="p">,</span> <span class="n">geom_arrow</span>
+
+<span class="p">(</span>
+    <span class="n">ggmap</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">))</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>With this we are saying that the column <code class="docutils literal notranslate"><span class="pre">reactions</span></code> in the dataframe identifies the reactions
+in the map, <code class="docutils literal notranslate"><span class="pre">df.flux</span></code> maps to the size and <code class="docutils literal notranslate"><span class="pre">df.kcat</span></code> to the color. Now, we only need to specify
+which geometrical mapping to use; i.e., the size and color of what (histogram, arrow, nodes, etc.).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span>
+    <span class="n">ggmap</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">))</span>
+    <span class="o">+</span> <span class="n">geom_arrow</span><span class="p">()</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Looking at the image at the top of this page, we can see that the arrow aesthetics take the size and color
+as aesthetics, so we only needed to specificy the <code class="docutils literal notranslate"><span class="pre">geom_arrow()</span></code>. Finally, we can export the data as file
+that can be used by shu.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span>
+    <span class="n">ggmap</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">))</span>
+    <span class="o">+</span> <span class="n">geom_arrow</span><span class="p">()</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="s2">&quot;flux_kcat&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The call to <code class="docutils literal notranslate"><span class="pre">to_json</span></code> will generate a file called <cite>flux_kcat.metabolism.json</cite>.</p>
+<p>Now, go to the <a class="reference external" href="https://biosustain.github.io/shu">shu website</a> and upload the file <cite>flux_kcat.metabolism.json</cite> and see the result by clicking on the.
+rigth-top corner button “Data”.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If you are using the native application, you can also drag and drop the file into the application or use the import
+settings dropdown to write the full path manually.</p>
+</div>
+<p>The map should look like this:</p>
+<img alt="Arrows plotted in shu" src="_images/geom_arrow_screen.png" />
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Try tweaking the “Settings” window to achieve the same colors.</p>
+</div>
+</section>
+<section id="plotting-distributions">
+<h2>Plotting distributions<a class="headerlink" href="#plotting-distributions" title="Permalink to this headline">¶</a></h2>
+<p>For the simple example, the shape of the dataframe did not really matter since
+we had one value for each reaction. However, to plot more variables to
+distribution geoms, it is important to understand that ggshu uses a dataframe
+in <a class="reference external" href="https://vita.had.co.nz/papers/tidy-data.html">tidy format</a>.</p>
+<p>The rows are the observations and the columns are the variables or features. This effectively means that a reaction
+can appear in more than one row. Let’s now plot some distributions.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># the reactions do not need to be ordered!</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;reactions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;PFK&quot;</span><span class="p">,</span> <span class="s2">&quot;PFK&quot;</span><span class="p">,</span> <span class="s2">&quot;PFK&quot;</span><span class="p">,</span> <span class="s2">&quot;PFK&quot;</span><span class="p">,</span> <span class="s2">&quot;PFK&quot;</span><span class="p">,</span> <span class="s2">&quot;TPI&quot;</span><span class="p">,</span> <span class="s2">&quot;TPI&quot;</span><span class="p">,</span> <span class="s2">&quot;TPI&quot;</span><span class="p">,</span> <span class="s2">&quot;TPI&quot;</span><span class="p">,</span> <span class="s2">&quot;TPI&quot;</span><span class="p">],</span>
+                   <span class="s2">&quot;flux&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
+                   <span class="s2">&quot;kcat&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">120</span><span class="p">]})</span>
+</pre></div>
+</div>
+<p>Since we now have distributions, plotting the data as the color would allow only to use the mean or any other
+summary statistics per reaction. This loses a lot of information. Luckily, we can use an histogram or a density instead!</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ggshu</span> <span class="kn">import</span> <span class="n">aes</span><span class="p">,</span> <span class="n">ggmap</span><span class="p">,</span> <span class="n">geom_hist</span>
+
+<span class="p">(</span>
+    <span class="c1"># notice the change in the aesthetics!</span>
+    <span class="n">ggmap</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">))</span>
+    <span class="c1"># plot kcats as the y-axis of the histograms</span>
+    <span class="o">+</span> <span class="n">geom_hist</span><span class="p">()</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>But we have not plotted the flux! We can plot them as, for instance, a density on the left side of the reactions.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ggshu</span> <span class="kn">import</span> <span class="n">geom_kde</span>
+
+<span class="p">(</span>
+    <span class="n">ggmap</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">))</span>
+    <span class="o">+</span> <span class="n">geom_hist</span><span class="p">()</span>
+    <span class="c1"># by default, side is &quot;right&quot;</span>
+    <span class="o">+</span> <span class="n">geom_kde</span><span class="p">(</span><span class="n">aes</span><span class="o">=</span><span class="n">aes</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Notice how, instead of using (inheriting) the initial aesthetics, we are overwriting them for the <code class="docutils literal notranslate"><span class="pre">geom_kde</span></code> mapping.
+Still, to give an impression of the mean, we can plot the color and size of the arrows as the flux.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span>
+    <span class="c1"># notice the change in the aesthetics!</span>
+    <span class="n">ggmap</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">))</span>
+    <span class="o">+</span> <span class="n">geom_hist</span><span class="p">()</span>
+    <span class="o">+</span> <span class="n">geom_arrow</span><span class="p">()</span>
+    <span class="o">+</span> <span class="n">geom_kde</span><span class="p">(</span><span class="n">aes</span><span class="o">=</span><span class="n">aes</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">),</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="s2">&quot;flux_kcat_dist&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Distribution data (where one reaction/metabolite appears more than once in the column) will be coerced to the mean when used with a <cite>geom_arrow</cite> or a <cite>geom_metabolite</cite>.</p>
+</div>
+<p>The generated file <cite>flux_kcat_dist.metabolism.json</cite> can be used like before at <a class="reference external" href="https://biosustain.github.io/shu">shu website</a>.</p>
+<img alt="Distributions plotted in shu." src="_images/geom_dist_screen.png" />
+<p>Notice how, there is not enough data to generate a meaningful histogram.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Shu tries to fit the best position with an heuristic but it may fail for some reactions. Try pressing right or middle button in the middle of the a histogram to rotate or move it.</p>
+</div>
+</section>
+<section id="hover">
+<h2>Hover<a class="headerlink" href="#hover" title="Permalink to this headline">¶</a></h2>
+<p>Instead of plotting a distribution on the right or the left side we can put the plot
+on a popup that appears when hovering over the name of the reaction or a metabolite.</p>
+<p>Try the example from before but change the side in the kde or in the histogram. For instance:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">+</span> <span class="n">geom_hist</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;hover&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="plotting-metabolites-and-conditions">
+<h2>Plotting metabolites and conditions<a class="headerlink" href="#plotting-metabolites-and-conditions" title="Permalink to this headline">¶</a></h2>
+<p>So far we have been plotting only reactions, but the nodes on the map (i.e., metabolites)
+can be used to map the data too! For instance:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span>
+    <span class="n">ggmap</span><span class="p">(</span>
+        <span class="n">df_cond</span><span class="p">,</span>
+        <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s2">&quot;cond&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="c1"># plot flux to color and size of reactions</span>
+    <span class="o">+</span> <span class="n">geom_arrow</span><span class="p">()</span>
+    <span class="c1"># plot kcat as histogram shows on left side of reactions</span>
+    <span class="o">+</span> <span class="n">geom_hist</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+    <span class="c1"># plot conc to color of metabolites</span>
+    <span class="o">+</span> <span class="n">geom_metabolite</span><span class="p">(</span><span class="n">aes</span><span class="o">=</span><span class="n">aes</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;conc&quot;</span><span class="p">,</span> <span class="n">metabolite</span><span class="o">=</span><span class="s2">&quot;m&quot;</span><span class="p">))</span>
+    <span class="c1"># plot km as density plots shows on hover on metabolites</span>
+    <span class="o">+</span> <span class="n">geom_kde</span><span class="p">(</span><span class="n">aes</span><span class="o">=</span><span class="n">aes</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="s2">&quot;km&quot;</span><span class="p">),</span> <span class="n">mets</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="s2">&quot;shu_data&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Notice that now we have specified a new aesthetics: <cite>condition</cite>. Shu will show a dropdown in settings to plot this kind of data.</p>
+</section>
+<section id="using-two-dataframes">
+<h2>Using two dataframes<a class="headerlink" href="#using-two-dataframes" title="Permalink to this headline">¶</a></h2>
+<p>In the previous section, we used a dataframe called <code class="docutils literal notranslate"><span class="pre">df_cond</span></code>. To make it work like that,
+<code class="docutils literal notranslate"><span class="pre">df_cond.conditions</span></code> has to be aligned with both reactions and metabolites. Usually, this is not easy, so ggshu provides a way to generate the reaction mapping and metabolite mapping separetely and then merge it by using the division <code class="docutils literal notranslate"><span class="pre">/</span></code> operator.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reaction_map</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">ggmap</span><span class="p">(</span>
+        <span class="n">df_reactions</span><span class="p">,</span>
+        <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s2">&quot;cond&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="c1"># plot flux to color and size of reactions</span>
+    <span class="o">+</span> <span class="n">geom_arrow</span><span class="p">()</span>
+    <span class="c1"># plot kcat as histogram shows on left side of reactions</span>
+    <span class="o">+</span> <span class="n">geom_hist</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">))</span>
+<span class="p">)</span>
+<span class="n">metabolite_map</span> <span class="o">=</span> <span class="p">(</span><span class="n">ggmap</span><span class="p">(</span>
+        <span class="n">df_metabolites</span><span class="p">,</span>
+        <span class="n">aes</span><span class="p">(</span><span class="n">metabolite</span><span class="o">=</span><span class="s2">&quot;m&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;conc&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;km&quot;</span><span class="p">,</span> <span class="n">condition</span><span class="o">=</span><span class="s2">&quot;cond&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="c1"># plot conc to color of metabolites</span>
+    <span class="o">+</span> <span class="n">geom_metabolite</span><span class="p">(</span><span class="n">aes</span><span class="o">=</span><span class="n">aes</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;conc&quot;</span><span class="p">,</span> <span class="n">metabolite</span><span class="o">=</span><span class="s2">&quot;m&quot;</span><span class="p">))</span>
+    <span class="c1"># plot km as density plots shows on hover on metabolites</span>
+    <span class="o">+</span> <span class="n">geom_kde</span><span class="p">(</span><span class="n">aes</span><span class="o">=</span><span class="n">aes</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="s2">&quot;km&quot;</span><span class="p">),</span> <span class="n">mets</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="p">)</span>
+<span class="p">(</span><span class="n">reaction_map</span> <span class="o">/</span> <span class="n">metabolite_map</span><span class="p">)</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="s2">&quot;shu_data&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="point-estimates-on-the-sides">
+<h2>Point estimates on the sides<a class="headerlink" href="#point-estimates-on-the-sides" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes distributed data is not available but we have different variables that we want to plot into a reaction. We can use <code class="docutils literal notranslate"><span class="pre">geom_boxpoint()</span></code> to plot this kind of data (also works with conditions):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ggshu</span> <span class="kn">import</span> <span class="n">geom_boxpoint</span>
+
+<span class="p">(</span>
+   <span class="c1"># this is the same dataframe as in the distribution example</span>
+    <span class="n">ggmap</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">aes</span><span class="p">(</span><span class="n">reaction</span><span class="o">=</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">&quot;flux&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;kcat&quot;</span><span class="p">))</span>
+    <span class="o">+</span> <span class="n">geom_kde</span><span class="p">(</span><span class="n">side</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+    <span class="c1"># instead of geom_arrow, use a boxpoint</span>
+    <span class="o">+</span> <span class="n">geom_boxpoint</span><span class="p">()</span>
+<span class="p">)</span><span class="o">.</span><span class="n">to_json</span><span class="p">(</span><span class="s2">&quot;flux_kcat_dist&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="Distributions and point estimates plotted in shu." src="_images/geom_boxpoint_screen.png" />
+</section>
+<section id="data-format">
+<h2>Data Format<a class="headerlink" href="#data-format" title="Permalink to this headline">¶</a></h2>
+<p>If <cite>ggshu</cite> is not enough, you can check the lower level data format that shu uses (the ouput that <cite>ggshu</cite> generates) in the <a class="reference external" href="https://docs.rs/shu/latest/shu/data/struct.Data.html">API documentation</a>.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Shu</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Plotting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#simple-reaction-example">Simple reaction example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plotting-distributions">Plotting distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hover">Hover</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#plotting-metabolites-and-conditions">Plotting metabolites and conditions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-two-dataframes">Using two dataframes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#point-estimates-on-the-sides">Point estimates on the sides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-format">Data Format</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="map.html">Map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers.html">For developers</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to shu’s documentation!</a></li>
+      <li>Next: <a href="map.html" title="next chapter">Map</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.5.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/plotting.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

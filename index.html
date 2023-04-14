@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <style>
+  .buttons {
+    position: absolute;
+    top: 2vh;
+    right: 1vh;
+  }
+  .filelabel {
+    display: inline-block;
+    background: -webkit-linear-gradient(top, #f9f9f9, #e3e3e3);
+    border: 1px solid #999;
+    border-radius: 3px;
+    padding: 5px 8px;
+    outline: none;
+    text-shadow: 1px 1px #fff;
+    font-weight: 700;
+    font-size: 10pt;
+  }
+  .filelabel:hover {
+    border-color: black;
+  }
+  .filelabel:active {
+    background: -webkit-linear-gradient(top, #e3e3e3, #f9f9f9);
+  }
+  .fileb {
+    display: none;
+  }
+  .fileData {
+    display: none;
+  }
+  </style>
+</head>
+<body style="margin: 0vh; height: 100vh">
+    <canvas id="bevy"></canvas>
+    <script type="module">
+        import init from "./pkg/shu.js";
+        init();
+    </script>
+    <div class="buttons">
+      <label class="filelabel" for="fileb">Map</label>
+      <label class="filelabel" for="fileData">Data</label>
+    </div>
+</body>
+
+</html>
