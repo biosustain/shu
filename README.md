@@ -2,10 +2,13 @@
 
 <img align="right" width="172" height="228" src="./assets/logo.svg">
 
-## What?
-
 Documentation: https://biosustain.github.io/shu/docs/
+
 Web deployment: https://biosustain.github.io/shu
+
+Crate: https://crates.io/crates/shu
+
+## What?
 
 App to plot multidimensional data to a metabolic map. Metabolic maps are graphs with metabolites
 as nodes and reactions as edges.

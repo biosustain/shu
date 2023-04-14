@@ -2,6 +2,11 @@
 name = "shu"
 version = "0.5.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "High-dimensional metabolic maps."
+categories = ["visualization", "science"]
+repository = "https://github.com/biosustain/shu"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
