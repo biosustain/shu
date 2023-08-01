@@ -13,7 +13,17 @@ impl Plugin for InfoPlugin {
 #[derive(Resource)]
 /// information about IO.
 pub struct Info {
-    pub msg: Option<&'static str>,
+    msg: Option<&'static str>,
+}
+
+impl Info {
+    pub fn notify(&mut self, msg: &'static str) {
+        info!(msg);
+        self.msg = Some(msg);
+    }
+    pub fn close(&mut self) {
+        self.msg = None;
+    }
 }
 
 #[derive(Component)]
@@ -56,12 +66,7 @@ fn display_information(
         for child in children.iter() {
             if let Ok(mut info_box) = text_query.get_mut(*child) {
                 let font = asset_server.load("fonts/Assistant-Regular.ttf");
-                let msg = if let Some(msg) = info_state.msg {
-                    info!(msg);
-                    msg
-                } else {
-                    ""
-                };
+                let msg = info_state.msg.unwrap_or_default();
                 *info_box = Text::from_section(
                     msg.to_string(),
                     TextStyle {

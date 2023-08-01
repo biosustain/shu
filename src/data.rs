@@ -164,8 +164,8 @@ fn load_data(
 ) {
     let custom_asset = if let Some(reac_handle) = &mut state.reaction_data {
         if asset_server.get_load_state(&*reac_handle) == bevy::asset::LoadState::Failed {
-            info_state.msg =
-                Some("Failed loading data! Check if your metabolism.json is in correct format.");
+            info_state
+                .notify("Failed loading data! Check if your metabolism.json is in correct format.");
             return;
         }
         custom_assets.get_mut(reac_handle)
@@ -175,7 +175,7 @@ fn load_data(
     if state.reac_loaded || custom_asset.is_none() {
         return;
     }
-    info_state.msg = Some("Loading data...");
+    info_state.notify("Loading data...");
 
     let data = custom_asset.unwrap();
     let conditions = data
@@ -309,7 +309,7 @@ fn load_data(
         }
     }
 
-    info_state.msg = Some("Loading Metabolite data!");
+    info_state.notify("Loading Metabolite data!");
     let conditions = data
         .met_conditions
         .clone()
@@ -395,7 +395,7 @@ fn load_data(
 
     state.met_loaded = true;
     state.reac_loaded = true;
-    info_state.msg = None;
+    info_state.close();
 }
 
 fn insert_geom_map<F, Aes: Component, Geom: Component>(
