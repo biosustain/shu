@@ -1,7 +1,7 @@
 use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, Unscale};
 use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
 use crate::gui::{file_drop, UiState};
-use crate::{data, escher, geom};
+use crate::{data, escher, geom, info};
 use bevy::prelude::*;
 use bevy::window::WindowId;
 use bevy_prototype_lyon::prelude::{DrawMode, GeometryBuilder, Path, PathBuilder, StrokeMode};
@@ -163,6 +163,7 @@ fn loading_file_drop_does_not_crash() {
         met_loaded: false,
     });
     app.insert_resource(asset_server);
+    app.insert_resource(Time::default());
     app.insert_resource(escher::MapState {
         escher_map: escher_handle,
         loaded: false,
@@ -177,6 +178,7 @@ fn loading_file_drop_does_not_crash() {
         bevy::asset::AssetStage::AssetEvents,
         SystemStage::parallel(),
     );
+    app.add_plugin(info::InfoPlugin);
     app.add_event::<FileDragAndDrop>();
     app.add_plugin(data::DataPlugin);
     app.add_plugin(escher::EscherPlugin);
