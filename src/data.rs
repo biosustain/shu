@@ -166,6 +166,7 @@ fn load_data(
         if asset_server.get_load_state(&*reac_handle) == bevy::asset::LoadState::Failed {
             info_state
                 .notify("Failed loading data! Check if your metabolism.json is in correct format.");
+            state.reaction_data = None;
             return;
         }
         custom_assets.get_mut(reac_handle)
@@ -395,7 +396,7 @@ fn load_data(
 
     state.met_loaded = true;
     state.reac_loaded = true;
-    info_state.close();
+    info_state.close()
 }
 
 fn insert_geom_map<F, Aes: Component, Geom: Component>(

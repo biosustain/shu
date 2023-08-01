@@ -311,18 +311,21 @@ pub fn load_map(
     existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>, With<HistTag>, With<Xaxis>)>>,
     mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
-    if asset_server.get_load_state(&state.escher_map) == bevy::asset::LoadState::Failed {
+    let custom_asset = custom_assets.get_mut(&state.escher_map);
+    if (asset_server.get_load_state(&state.escher_map) == bevy::asset::LoadState::Failed)
+        & !state.loaded
+    {
         info_state.notify("Failed loading map! Check that you JSON is correct.");
+        state.loaded = true;
         return;
     }
-    let custom_asset = custom_assets.get_mut(&state.escher_map);
     if state.loaded || custom_asset.is_none() {
         return;
     }
     let node_to_text = &mut node_to_text.inner;
 
     // previous arrows and circles are despawned.
-    // HistTags has to be despawned too because they are spawned when painted,
+    // HistTags has to be despawned too because they are spawned when painted
     // but they will be repainted at the end of loading the amp
     for e in existing_map.iter() {
         commands.entity(e).despawn_recursive();
