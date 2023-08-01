@@ -3,6 +3,7 @@
 use crate::data::{Data, ReactionState};
 use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
+use crate::info::Info;
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
@@ -267,6 +268,7 @@ fn ui_settings(
 /// Open `.metabolism.json` and `.reactions.json` files when dropped on the window.
 pub fn file_drop(
     mut dnd_evr: EventReader<FileDragAndDrop>,
+    mut info: ResMut<Info>,
     asset_server: Res<AssetServer>,
     mut reaction_resource: ResMut<ReactionState>,
     mut escher_resource: ResMut<MapState>,
@@ -280,13 +282,14 @@ pub fn file_drop(
                 reaction_resource.reaction_data = Some(reaction_handle);
                 reaction_resource.reac_loaded = false;
                 reaction_resource.met_loaded = false;
-                info! {"Reactions dropped!"};
+                info.msg = Some("Loading data...");
             } else {
                 //an escher map
                 let escher_handle: Handle<EscherMap> =
                     asset_server.load(path_buf.to_str().unwrap());
                 escher_resource.escher_map = escher_handle;
                 escher_resource.loaded = false;
+                info.msg = Some("Loading map...");
             }
         }
     }
@@ -569,6 +572,7 @@ fn show_axes(
 /// Save map to arbitrary place, including (non-hover) hist transforms.
 fn save_file(
     mut assets: ResMut<Assets<EscherMap>>,
+    mut info_state: ResMut<Info>,
     state: ResMut<MapState>,
     mut save_events: EventReader<SaveEvent>,
     hist_query: Query<(&Transform, &Xaxis), Without<AnyTag>>,
@@ -586,8 +590,10 @@ fn save_file(
                     .insert(axis.side.clone(), (*trans).into());
             }
         }
-        safe_json_write(&save_event.0, escher_map)
-            .unwrap_or_else(|e| warn!("Could not write the file: {}.", e));
+        safe_json_write(&save_event.0, escher_map).unwrap_or_else(|e| {
+            warn!("Could not write the file: {}.", e);
+            info_state.msg = Some("File could not be written!\nCheck that path exists.")
+        });
     }
 }
 
