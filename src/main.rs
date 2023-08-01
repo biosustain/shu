@@ -12,6 +12,7 @@ mod escher;
 mod funcplot;
 mod geom;
 mod gui;
+mod info;
 mod legend;
 mod scale;
 #[cfg(test)]
@@ -36,6 +37,7 @@ fn main() {
                 .set(ImagePlugin::default_linear()),
         )
         .add_plugin(PanCamPlugin::default())
+        .add_plugin(info::InfoPlugin)
         .add_plugin(ShapePlugin)
         .add_plugin(EscherPlugin)
         .add_plugin(gui::GuiPlugin)
@@ -157,6 +159,7 @@ fn main() {
         }))
         .add_plugin(PanCamPlugin::default())
         .add_plugin(ShapePlugin)
+        .add_plugin(info::InfoPlugin)
         .add_plugin(EscherPlugin)
         .add_plugin(gui::GuiPlugin)
         .add_plugin(data::DataPlugin)

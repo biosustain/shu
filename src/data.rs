@@ -6,6 +6,7 @@ use crate::aesthetics;
 use crate::escher::EscherMap;
 use crate::geom;
 use crate::geom::{AesFilter, GeomHist, HistPlot};
+use crate::info::Info;
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
 use bevy::ecs::query::ReadOnlyWorldQuery;
 use bevy::prelude::*;
@@ -152,7 +153,9 @@ struct GgPair<'a, Aes, Geom> {
 fn load_data(
     mut commands: Commands,
     mut state: ResMut<ReactionState>,
+    mut info_state: ResMut<Info>,
     mut custom_assets: ResMut<Assets<Data>>,
+    asset_server: Res<AssetServer>,
     current_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomArrow>)>,
     current_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomArrow>)>,
     current_hist: Query<(Entity, &AesFilter), Or<(With<GeomHist>, With<geom::HistTag>)>>,
@@ -160,6 +163,11 @@ fn load_data(
     current_met_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomMetabolite>)>,
 ) {
     let custom_asset = if let Some(reac_handle) = &mut state.reaction_data {
+        if asset_server.get_load_state(&*reac_handle) == bevy::asset::LoadState::Failed {
+            info_state.msg =
+                Some("Failed loading data! Check if your metabolism.json is in correct format.");
+            return;
+        }
         custom_assets.get_mut(reac_handle)
     } else {
         return;
@@ -167,7 +175,8 @@ fn load_data(
     if state.reac_loaded || custom_asset.is_none() {
         return;
     }
-    info!("Loading Reaction data!");
+    info_state.msg = Some("Loading data...");
+
     let data = custom_asset.unwrap();
     let conditions = data
         .conditions
@@ -300,7 +309,7 @@ fn load_data(
         }
     }
 
-    info!("Loading Metabolite data!");
+    info_state.msg = Some("Loading Metabolite data!");
     let conditions = data
         .met_conditions
         .clone()
@@ -386,6 +395,7 @@ fn load_data(
 
     state.met_loaded = true;
     state.reac_loaded = true;
+    info_state.msg = None;
 }
 
 fn insert_geom_map<F, Aes: Component, Geom: Component>(

@@ -1,6 +1,7 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
 use crate::geom::{GeomHist, HistTag, Side, Xaxis};
+use crate::info::Info;
 use crate::scale::DefaultFontSize;
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
@@ -303,12 +304,17 @@ pub struct Hover {
 pub fn load_map(
     mut commands: Commands,
     mut state: ResMut<MapState>,
+    mut info_state: ResMut<Info>,
     mut node_to_text: ResMut<NodeToText>,
     asset_server: Res<AssetServer>,
     mut custom_assets: ResMut<Assets<EscherMap>>,
     existing_map: Query<Entity, Or<(With<CircleTag>, With<ArrowTag>, With<HistTag>, With<Xaxis>)>>,
     mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
+    if asset_server.get_load_state(&state.escher_map) == bevy::asset::LoadState::Failed {
+        info_state.msg = Some("Failed loading map! Check that you JSON is correct.");
+        return;
+    }
     let custom_asset = custom_assets.get_mut(&state.escher_map);
     if state.loaded || custom_asset.is_none() {
         return;
@@ -455,6 +461,6 @@ pub fn load_map(
         geom.rendered = false;
         geom.in_axis = false;
     }
-    info!("Map loaded!");
+    info_state.msg = None;
     state.loaded = true;
 }
