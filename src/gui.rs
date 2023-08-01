@@ -268,7 +268,7 @@ fn ui_settings(
 /// Open `.metabolism.json` and `.reactions.json` files when dropped on the window.
 pub fn file_drop(
     mut dnd_evr: EventReader<FileDragAndDrop>,
-    mut info: ResMut<Info>,
+    mut info_state: ResMut<Info>,
     asset_server: Res<AssetServer>,
     mut reaction_resource: ResMut<ReactionState>,
     mut escher_resource: ResMut<MapState>,
@@ -282,14 +282,14 @@ pub fn file_drop(
                 reaction_resource.reaction_data = Some(reaction_handle);
                 reaction_resource.reac_loaded = false;
                 reaction_resource.met_loaded = false;
-                info.msg = Some("Loading data...");
+                info_state.notify("Loading data...");
             } else {
                 //an escher map
                 let escher_handle: Handle<EscherMap> =
                     asset_server.load(path_buf.to_str().unwrap());
                 escher_resource.escher_map = escher_handle;
                 escher_resource.loaded = false;
-                info.msg = Some("Loading map...");
+                info_state.notify("Loading map...");
             }
         }
     }
@@ -592,7 +592,7 @@ fn save_file(
         }
         safe_json_write(&save_event.0, escher_map).unwrap_or_else(|e| {
             warn!("Could not write the file: {}.", e);
-            info_state.msg = Some("File could not be written!\nCheck that path exists.")
+            info_state.notify("File could not be written!\nCheck that path exists.");
         });
     }
 }

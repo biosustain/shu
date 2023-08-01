@@ -312,7 +312,7 @@ pub fn load_map(
     mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
     if asset_server.get_load_state(&state.escher_map) == bevy::asset::LoadState::Failed {
-        info_state.msg = Some("Failed loading map! Check that you JSON is correct.");
+        info_state.notify("Failed loading map! Check that you JSON is correct.");
         return;
     }
     let custom_asset = custom_assets.get_mut(&state.escher_map);
@@ -461,6 +461,6 @@ pub fn load_map(
         geom.rendered = false;
         geom.in_axis = false;
     }
-    info_state.msg = None;
+    info_state.close();
     state.loaded = true;
 }
