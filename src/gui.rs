@@ -39,7 +39,8 @@ impl Plugin for GuiPlugin {
         #[cfg(target_arch = "wasm32")]
         building
             .add_system(listen_js_escher)
-            .add_system(listen_js_data);
+            .add_system(listen_js_data)
+            .add_system(listen_js_info);
     }
 }
 const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
@@ -635,5 +636,12 @@ fn listen_js_data(
         data_resource.reaction_data = Some(data_asset.add(escher_map));
         data_resource.reac_loaded = false;
         data_resource.met_loaded = false;
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn listen_js_info(receiver: Res<ReceiverResource<&'static str>>, mut info_box: ResMut<Info>) {
+    if let Ok(msg) = receiver.rx.try_recv() {
+        info_box.notify(msg);
     }
 }

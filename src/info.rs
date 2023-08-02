@@ -7,13 +7,20 @@ use bevy::prelude::*;
 pub struct InfoPlugin;
 impl Plugin for InfoPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Info {
-            msg: None,
-            timer: Timer::new(Duration::from_secs(3), TimerMode::Once),
-        })
-        .add_startup_system(spawn_info_box)
-        .add_system(pop_infobox)
-        .add_system(display_information);
+        let app = app
+            .insert_resource(Info {
+                msg: None,
+                timer: Timer::new(Duration::from_secs(3), TimerMode::Once),
+            })
+            .add_system(pop_infobox)
+            .add_system(display_information);
+
+        // display the info messages in different positions for native and WASM
+        #[cfg(not(target_arch = "wasm32"))]
+        app.add_startup_system(|commands: Commands| spawn_info_box(commands, 2.0, 1.0));
+
+        #[cfg(target_arch = "wasm32")]
+        app.add_startup_system(|commands: Commands| spawn_info_box(commands, 6.5, 0.5));
     }
 }
 
@@ -25,6 +32,7 @@ pub struct Info {
 }
 
 impl Info {
+    /// Sends a message to be logged in the CLI and displayed in the GUI.
     pub fn notify(&mut self, msg: &'static str) {
         info!(msg);
         self.msg = Some(msg);
@@ -41,14 +49,17 @@ impl Info {
 #[derive(Component)]
 pub struct InfoBox;
 
-fn spawn_info_box(mut commands: Commands) {
+/// Spawn the UI components to show I/O feedback to the user.
+/// The top argument is the top of the screen in percent to allow for different
+/// positioning on WASM (would collide with the buttons otherwise).
+fn spawn_info_box(mut commands: Commands, top: f32, right: f32) {
     commands
         .spawn(NodeBundle {
             style: Style {
                 position_type: PositionType::Absolute,
                 position: UiRect {
-                    right: Val::Px(10.),
-                    top: Val::Px(10.),
+                    right: Val::Percent(right),
+                    top: Val::Percent(top),
                     ..Default::default()
                 },
                 padding: UiRect {
