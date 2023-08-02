@@ -64,7 +64,7 @@ that can be used by shu.
        + geom_arrow()
    ).to_json("flux_kcat")
 
-The call to ``to_json`` will generate a file called `flux_kcat.metabolism.json`.
+The call to ``to_json`` will generate a file called `flux_kcat.metabolism.json` (which should look like this `data example`_).
 
 Now, go to the `shu website`_ and upload the file `flux_kcat.metabolism.json` and see the result by clicking on the.
 rigth-top corner button "Data".
@@ -242,9 +242,9 @@ Sometimes distributed data is not available but we have different variables that
 Data Format
 -----------
 
-If `ggshu` is not enough, you can check the lower level data format that shu uses (the ouput that `ggshu` generates) in the `API documentation`_.
+If `ggshu` is not enough, you can check the lower level data format that shu uses (the ouput that `ggshu` generates) in the :doc:`file_formats` section.
 
 .. _pandas: http://pandas.pydata.org/
 .. _tidy format: https://vita.had.co.nz/papers/tidy-data.html 
+.. _data example: https://github.com/biosustain/shu/blob/master/assets/flux_kcat.metabolism.json 
 .. _shu website: https://biosustain.github.io/shu
-.. _API documentation: https://docs.rs/shu/latest/shu/data/struct.Data.html

@@ -8,8 +8,8 @@ Shu is available as a web application at https://biosustain.github.io/shu or as 
 application (see `releases`_).
 
 Check out the :doc:`plotting` section for an overview on how to generate and plot data
-into the map. The :doc:`map` explains the map especification (with is fully compatible
-with `escher`_).
+into the map. The :doc:`file_formats` explains the map (with is fully compatible
+with `escher`_) and data especification.
 
 Controls
 --------
@@ -29,7 +29,7 @@ Contents
 .. toctree::
 
    plotting
-   map
+   file_formats
    developers
 
 .. _releases: https://github.com/biosustain/shu/releases/latest
