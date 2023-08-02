@@ -67,6 +67,11 @@ fn main() {
     let (map_sender, map_receiver): (Sender<EscherMap>, Receiver<EscherMap>) = unbounded();
     let (data_sender, data_receiver): (Sender<data::Data>, Receiver<data::Data>) = unbounded();
 
+    // I/O feedback
+    // there are two senders, one for the map and one for the data
+    let (info_sender, info_receiver): (Sender<&'static str>, Receiver<&'static str>) = unbounded();
+    let info_log1 = info_sender.clone();
+
     // When building for WASM, print panics to the browser console
     console_error_panic_hook::set_once();
     let document = web_sys::window().unwrap().document().unwrap();
@@ -97,6 +102,7 @@ fn main() {
 
     let map_closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
         let s = map_sender.clone();
+        let info_log = info_log1.clone();
         spawn_local(async move {
             console::log_1(&"checking closure".into());
             if let Some(Some(file_list)) = event.target().map(|t| {
@@ -112,13 +118,18 @@ fn main() {
                 if let Ok(escher_map) = serde_json::from_str(&text) {
                     s.send(escher_map).await.unwrap();
                 } else {
-                    console::warn_1(&"Provided file does not have right shape".into())
+                    console::warn_1(&"Provided map does not have right shape".into());
+                    info_log
+                        .send("Failed loading map! Check that you JSON is correct.")
+                        .await
+                        .unwrap();
                 }
             }
         })
     }) as Box<dyn FnMut(_)>);
     let data_closure = Closure::wrap(Box::new(move |event: web_sys::Event| {
         let s = data_sender.clone();
+        let info_log = info_sender.clone();
         spawn_local(async move {
             console::log_1(&"checking closure".into());
             if let Some(Some(file_list)) = event.target().map(|t| {
@@ -131,10 +142,14 @@ fn main() {
                     .unwrap()
                     .as_string()
                     .unwrap();
-                if let Ok(escher_map) = serde_json::from_str(&text) {
-                    s.send(escher_map).await.unwrap();
+                if let Ok(data) = serde_json::from_str(&text) {
+                    s.send(data).await.unwrap();
                 } else {
-                    console::warn_1(&"Provided file does not have right shape".into())
+                    console::warn_1(&"Provided file does not have right shape".into());
+                    info_log
+                        .send("Failed loading data! Check that you metabolism.json is correct.")
+                        .await
+                        .unwrap();
                 }
             }
         })
@@ -148,6 +163,7 @@ fn main() {
         .insert_resource(WinitSettings::desktop_app())
         .insert_resource(ReceiverResource { rx: map_receiver })
         .insert_resource(ReceiverResource { rx: data_receiver })
+        .insert_resource(ReceiverResource { rx: info_receiver })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             window: WindowDescriptor {
                 title: "shu".to_string(),
