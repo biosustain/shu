@@ -7,7 +7,7 @@ use crate::info::Info;
 use bevy::prelude::*;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::color::Rgba;
-use bevy_egui::{egui, EguiContext, EguiPlugin};
+use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
 use bevy_prototype_lyon::prelude::DrawMode;
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -535,11 +535,20 @@ fn follow_mouse_on_scale(
 }
 
 /// Change size of UI on +/-.
-fn scale_ui(key_input: Res<Input<KeyCode>>, mut ui_scale: ResMut<UiScale>) {
+fn scale_ui(
+    key_input: Res<Input<KeyCode>>,
+    mut ui_scale: ResMut<UiScale>,
+    mut egui_settings: ResMut<EguiSettings>,
+) {
+    let scale = if key_input.pressed(KeyCode::LControl) {
+        &mut egui_settings.scale_factor
+    } else {
+        &mut ui_scale.scale
+    };
     if key_input.just_pressed(KeyCode::Plus) {
-        ui_scale.scale += 0.1;
+        *scale += 0.1;
     } else if key_input.just_pressed(KeyCode::Minus) {
-        ui_scale.scale -= 0.1;
+        *scale = 0.1;
     }
 }
 

@@ -20,7 +20,8 @@ Controls
   the button to zoom in/out to rotate it. On axis mode, scale the axis instead.
 * **Middle click** on a histogram or the legend (on its center) and drag the mouse while holding
   the button to move it.
-* :code:`+` and :code:`-` keys to scale up and down the legend.
+* :code:`+` and :code:`-` keys to scale up and down the legend. If :code:`Control` is pressed,
+  the Settings are scale
 * :code:`s` to toggle axis mode, which shows the histogram axes and allows for scaling them.
 
 Contents
