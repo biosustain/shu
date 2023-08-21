@@ -11,6 +11,12 @@
 App to plot multidimensional data to a metabolic map. Metabolic maps are graphs with metabolites
 as nodes and reactions as edges.
 
+For a **quick start**, we provide a web application at https://biosustain.github.io/shu. There
+are example maps and data available at https://github.com/biosustain/shu_case_studies, that
+can be load with the buttons at the top-right.
+
+For a more comprehensive guide, visit the [documentation](https://biosustain.github.io/shu/docs/plotting.html).
+
 ## Why?
 
 [Escher](https://escher.github.io/#/) is great. In fact, the format
