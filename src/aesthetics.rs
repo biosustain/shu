@@ -759,9 +759,13 @@ fn unscale_histogram_children(
     mut query: Query<&mut Transform>,
 ) {
     for (parent, children) in parents.iter() {
-        let Ok(scale) = query.get_mut(parent).map(|trans| trans.scale.y) else {continue;};
+        let Ok(scale) = query.get_mut(parent).map(|trans| trans.scale.y) else {
+            continue;
+        };
         for child in children {
-            let Ok(mut trans) = query.get_mut(*child) else {continue;};
+            let Ok(mut trans) = query.get_mut(*child) else {
+                continue;
+            };
             trans.scale.y = 1. / scale;
         }
     }

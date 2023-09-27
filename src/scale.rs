@@ -21,7 +21,9 @@ fn zoom_fonts(
     mut text_query: Query<(&mut Text, &DefaultFontSize)>,
     proj_query: Query<&OrthographicProjection, (Changed<Transform>, Without<DefaultFontSize>)>,
 ) {
-    let Ok(proj) = proj_query.get_single() else {return};
+    let Ok(proj) = proj_query.get_single() else {
+        return;
+    };
     for (mut text, def) in text_query.iter_mut() {
         for mut section in text.sections.iter_mut() {
             let new_font_size = lerp(proj.scale, 1., 40., def.size, def.size * 10.);
