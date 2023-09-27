@@ -548,7 +548,7 @@ fn scale_ui(
     if key_input.just_pressed(KeyCode::Plus) {
         *scale += 0.1;
     } else if key_input.just_pressed(KeyCode::Minus) {
-        *scale = 0.1;
+        *scale -= 0.1;
     }
 }
 
