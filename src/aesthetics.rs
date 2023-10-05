@@ -822,7 +822,7 @@ pub fn filter_histograms(
 
 /// Coordinate the position of histograms with their hovers.
 fn follow_the_axes(
-    axes: Query<(&Transform, &Xaxis), Changed<Transform>>,
+    axes: Query<(&Transform, &Xaxis)>,
     mut hists: Query<(&mut Transform, &HistTag), (Without<AnyTag>, Without<Xaxis>)>,
 ) {
     for (axis_trans, axis) in axes.iter() {
