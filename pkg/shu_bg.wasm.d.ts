@@ -49,11 +49,11 @@ export function wgpu_render_pass_begin_pipeline_statistics_query(a: number, b: n
 export function wgpu_render_pass_end_pipeline_statistics_query(a: number): void;
 export function wgpu_render_pass_execute_bundles(a: number, b: number, c: number): void;
 export function wgpu_render_bundle_push_debug_group(a: number, b: number): void;
-export function __wbindgen_malloc(a: number): number;
-export function __wbindgen_realloc(a: number, b: number, c: number): number;
+export function __wbindgen_malloc(a: number, b: number): number;
+export function __wbindgen_realloc(a: number, b: number, c: number, d: number): number;
 export const __wbindgen_export_2: WebAssembly.Table;
-export function _dyn_core__ops__function__FnMut__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h240b4b26133d0df3(a: number, b: number, c: number): void;
-export function _dyn_core__ops__function__FnMut_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h89a36ebaa47cb048(a: number, b: number): void;
-export function __wbindgen_free(a: number, b: number): void;
+export function wasm_bindgen__convert__closures__invoke1_mut__h176916116ee94950(a: number, b: number, c: number): void;
+export function wasm_bindgen__convert__closures__invoke0_mut__h371cbaa8fce6512e(a: number, b: number): void;
+export function __wbindgen_free(a: number, b: number, c: number): void;
 export function __wbindgen_exn_store(a: number): void;
 export function __wbindgen_start(): void;

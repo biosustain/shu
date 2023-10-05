@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>File Formats &#8212; Shu 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b3523f8e" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=e031e9a9"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="icon" href="_static/favicon.png"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="For developers" href="developers.html" />
+    <link rel="prev" title="Plotting" href="plotting.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="file-formats">
+<h1>File Formats<a class="headerlink" href="#file-formats" title="Permalink to this heading">¶</a></h1>
+<p>For a quick start, see the <a class="reference external" href="https://github.com/biosustain/shu/blob/master/assets/ecoli_core_map.json">map example</a> (or any escher map at
+<a class="reference external" href="https://escher.github.io/">https://escher.github.io/</a>) and the <a class="reference external" href="https://github.com/biosustain/shu/blob/master/assets/flux_kcat.metabolism.json">data example</a>.</p>
+<section id="map">
+<h2>Map<a class="headerlink" href="#map" title="Permalink to this heading">¶</a></h2>
+<p>Shu uses the same format as escher for the maps. Maps from escher can be imported
+using the Map button (web app) or with drag and drop (native app).</p>
+<p>The only difference is that the histogram position, rotation and scale (which
+does not exist in escher) can be exported to the map (only native app for now)
+using the <cite>Export</cite> drop down on the <cite>Settings</cite> window. This allows to save a
+map with the correct manually fixed positions where different data can be
+plotted for the same or different projects.</p>
+<p>For the full JSON specification (ending with the extension “.json”), please refer
+to the source code represented by the <cite>EscherMap</cite> struct found at <a class="reference external" href="https://github.com/biosustain/shu/blob/master/src/escher.rs">the map source code</a>.</p>
+</section>
+<section id="data">
+<h2>Data<a class="headerlink" href="#data" title="Permalink to this heading">¶</a></h2>
+<p>The input data that contains the variables to be plotted in the map is a JSON ending withe “.metabolism.json” extension. The full specification is the following struct (source code at <a class="reference external" href="https://github.com/biosustain/shu/blob/master/src/data.rs">the data source code</a>):</p>
+<div class="highlight-rust notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nc">Data</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="sd">/// Vector of reactions&#39; identifiers</span>
+<span class="w">    </span><span class="n">reactions</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as reaction arrow colors.</span>
+<span class="w">    </span><span class="n">colors</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as reaction arrow sizes.</span>
+<span class="w">    </span><span class="n">sizes</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as KDE.</span>
+<span class="w">    </span><span class="n">y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as KDE.</span>
+<span class="w">    </span><span class="n">left_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot on a hovered popup.</span>
+<span class="w">    </span><span class="n">hover_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as KDE.</span>
+<span class="w">    </span><span class="n">kde_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as KDE.</span>
+<span class="w">    </span><span class="n">kde_left_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot on a hovered popup.</span>
+<span class="w">    </span><span class="n">kde_hover_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as KDE.</span>
+<span class="w">    </span><span class="n">box_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as KDE.</span>
+<span class="w">    </span><span class="n">box_left_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Categorical values to be associated with conditions.</span>
+<span class="w">    </span><span class="n">conditions</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Categorical values to be associated with conditions.</span>
+<span class="w">    </span><span class="n">met_conditions</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Vector of metabolites&#39; identifiers</span>
+<span class="w">    </span><span class="n">metabolites</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">String</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as metabolite circle colors.</span>
+<span class="w">    </span><span class="n">met_colors</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as metabolite circle sizes.</span>
+<span class="w">    </span><span class="n">met_sizes</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as histogram on hover.</span>
+<span class="w">    </span><span class="n">met_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="w">    </span><span class="sd">/// Numeric values to plot as density on hover.</span>
+<span class="w">    </span><span class="n">kde_met_y</span>: <span class="nb">Option</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="nb">Vec</span><span class="o">&lt;</span><span class="n">Number</span><span class="o">&gt;&gt;&gt;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Shu</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">Plotting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">File Formats</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#map">Map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data">Data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developers.html">For developers</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="plotting.html" title="previous chapter">Plotting</a></li>
+      <li>Next: <a href="developers.html" title="next chapter">For developers</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/file_formats.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
