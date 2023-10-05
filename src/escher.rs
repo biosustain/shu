@@ -448,6 +448,7 @@ pub fn load_map(
         let ori: Vec2 = Vec2::new(ori.x, -ori.y);
         let direction = my_map.main_direction(&reac);
         let mut products = reac.get_products(&my_map.metabolism);
+        let mut arrow_heads = ShapePath::new();
         for (_, segment) in reac.segments.iter_mut() {
             if let (Some(from), Some(to)) = (
                 my_map.met_coords(&segment.from_node_id),
@@ -480,10 +481,11 @@ pub fn load_map(
                 if let Some((drawn, importance)) = products.get_mut(&segment.to_node_id) {
                     if !*drawn {
                         let offset = match importance {
-                            MetImportance::Primary => 20.0,
-                            MetImportance::Secondary => 12.0,
+                            MetImportance::Primary => 22.0,
+                            MetImportance::Secondary => 14.0,
                         };
-                        draw_arrow(&mut path_builder, last_from - ori, re_to - ori, offset);
+                        arrow_heads =
+                            arrow_heads.add(&draw_arrow(last_from - ori, re_to - ori, offset));
                         *drawn = true;
                     }
                 }
@@ -501,9 +503,11 @@ pub fn load_map(
             node_id,
             xlimits: None,
         };
+        let mut builder = GeometryBuilder::new();
+        builder = builder.add(&line);
+        builder = builder.add(&arrow_heads.build());
         commands.spawn((
-            GeometryBuilder::build_as(
-                &line,
+            builder.build(
                 DrawMode::Stroke(StrokeMode::new(ARROW_COLOR, 10.0)),
                 Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1.),
             ),

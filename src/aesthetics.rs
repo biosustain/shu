@@ -287,7 +287,7 @@ fn build_axes(
                     transform.translation.y += arrow.direction.perp().y * away;
                     transform
                 };
-                let mut axis_entry = axes
+                let axis_entry = axes
                     .entry(arrow.id.clone())
                     .or_insert(HashMap::new())
                     .entry(geom.side.clone())

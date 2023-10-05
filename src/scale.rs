@@ -25,7 +25,7 @@ fn zoom_fonts(
         return;
     };
     for (mut text, def) in text_query.iter_mut() {
-        for mut section in text.sections.iter_mut() {
+        for section in text.sections.iter_mut() {
             let new_font_size = lerp(proj.scale, 1., 40., def.size, def.size * 10.);
             // step update to enhance perfomance
             if (new_font_size - section.style.font_size).abs() > 1.0 {
