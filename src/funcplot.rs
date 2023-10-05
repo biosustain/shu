@@ -364,3 +364,25 @@ pub fn build_grad(
     .build()
     .expect("no gradient")
 }
+
+fn arrow_head(from: Vec2, to: Vec2) -> (Vec2, Vec2) {
+    // triangle shape; hardcoded for now
+    const HEIGHT: f32 = 1.0;
+    const HALF_W: f32 = 14.0;
+    let u = (to - from) / (to - from).length();
+    let v = Vec2::new(-u.y, u.x);
+    (
+        (to - HEIGHT * u + HALF_W * v),
+        (to - HEIGHT * u - HALF_W * v),
+    )
+}
+
+pub fn draw_arrow(path: &mut PathBuilder, from: Vec2, to: Vec2, offset: f32) {
+    // with an offset to avoid being hidden by metabolites
+    let u = (to - from) / (to - from).length();
+    let to = to - offset * u;
+    let (left, right) = arrow_head(from, to);
+    path.move_to(right);
+    // path.line_to(to);
+    path.line_to(left);
+}

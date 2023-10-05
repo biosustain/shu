@@ -1,5 +1,6 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
+use crate::funcplot::draw_arrow;
 use crate::geom::{GeomHist, HistTag, Side, Xaxis};
 use crate::info::Info;
 use crate::scale::DefaultFontSize;
@@ -166,6 +167,53 @@ pub struct Reaction {
     // genes: Vec<HashMap<String, String>>,
     metabolites: Vec<MetRef>,
     pub segments: HashMap<u32, Segment>,
+}
+
+#[derive(Clone, Copy)]
+enum MetImportance {
+    Primary,
+    Secondary,
+}
+
+impl Reaction {
+    fn get_products(&self, metab: &Metabolism) -> HashMap<String, (bool, MetImportance)> {
+        let met_to_node_id: HashMap<&str, (&str, MetImportance)> = self
+            .segments
+            .iter()
+            .flat_map(|(_, seg)| [&seg.from_node_id, &seg.to_node_id])
+            .filter_map(|node| metab.nodes.get(&node.parse().unwrap()).map(|x| (x, node)))
+            .filter_map(|(met, x)| match met {
+                Node::Metabolite(Metabolite {
+                    bigg_id,
+                    node_is_primary,
+                    ..
+                }) => Some((
+                    bigg_id.as_str(),
+                    (
+                        x.as_str(),
+                        if *node_is_primary {
+                            MetImportance::Primary
+                        } else {
+                            MetImportance::Secondary
+                        },
+                    ),
+                )),
+                _ => None,
+            })
+            .collect();
+        info!("Products for {}", self.bigg_id);
+        self.metabolites
+            .iter()
+            .filter(|met| met.coefficient > 1e-6)
+            .inspect(|m| info!("{}", m.bigg_id))
+            .map(|met| {
+                (
+                    met_to_node_id[met.bigg_id.as_str()].0.to_string(),
+                    (false, met_to_node_id[met.bigg_id.as_str()].1),
+                )
+            })
+            .collect()
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -396,33 +444,47 @@ pub fn load_map(
             })
             .sum::<Vec2>()
             / (2. * reac.segments.len() as f32);
+        // escher and bevy defines "y" in the opposite direction
+        let ori: Vec2 = Vec2::new(ori.x, -ori.y);
         let direction = my_map.main_direction(&reac);
+        let mut products = reac.get_products(&my_map.metabolism);
         for (_, segment) in reac.segments.iter_mut() {
             if let (Some(from), Some(to)) = (
                 my_map.met_coords(&segment.from_node_id),
                 my_map.met_coords(&segment.to_node_id),
             ) {
-                path_builder.move_to(Vec2::new(from.x - ori.x, -from.y + ori.y));
+                let re_from = Vec2::new(from.x, -from.y);
+                let re_to = Vec2::new(to.x, -to.y);
+                // to draw the arrows
+                let mut last_from = Vec2::new(from.x, -from.y);
+                path_builder.move_to(re_from - ori);
                 match (
                     std::mem::take(&mut segment.b1),
                     std::mem::take(&mut segment.b2),
                 ) {
                     (Some(BezierHandle { x, y }), None) | (None, Some(BezierHandle { x, y })) => {
-                        path_builder.quadratic_bezier_to(
-                            Vec2::new(x - ori.x, -y + ori.y),
-                            Vec2::new(to.x - ori.x, -to.y + ori.y),
-                        );
+                        last_from = Vec2::new(x, -y);
+                        path_builder.quadratic_bezier_to(last_from - ori, re_to - ori);
+                        last_from = last_from - (re_to - re_from) / 2.;
                     }
                     (Some(BezierHandle { x: x1, y: y1 }), Some(BezierHandle { x: x2, y: y2 })) => {
-                        path_builder.cubic_bezier_to(
-                            Vec2::new(x1 - ori.x, -y1 + ori.y),
-                            Vec2::new(x2 - ori.x, -y2 + ori.y),
-                            Vec2::new(to.x - ori.x, -to.y + ori.y),
-                        );
+                        let prev_from = Vec2::new(x1, -y1);
+                        last_from = Vec2::new(x2, -y2);
+                        path_builder.cubic_bezier_to(prev_from - ori, last_from - ori, re_to - ori);
+                        last_from = last_from - (re_to - prev_from) / 2.;
                     }
                     (None, None) => {
-                        let v = Vec2::new(to.x - ori.x, -to.y + ori.y);
-                        path_builder.line_to(v);
+                        path_builder.line_to(re_to - ori);
+                    }
+                }
+                if let Some((drawn, importance)) = products.get_mut(&segment.to_node_id) {
+                    if !*drawn {
+                        let offset = match importance {
+                            MetImportance::Primary => 20.0,
+                            MetImportance::Secondary => 12.0,
+                        };
+                        draw_arrow(&mut path_builder, last_from - ori, re_to - ori, offset);
+                        *drawn = true;
                     }
                 }
             }
@@ -443,7 +505,7 @@ pub fn load_map(
             GeometryBuilder::build_as(
                 &line,
                 DrawMode::Stroke(StrokeMode::new(ARROW_COLOR, 10.0)),
-                Transform::from_xyz(ori.x - center_x, -ori.y + center_y, 1.),
+                Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1.),
             ),
             arrow.clone(),
         ));
