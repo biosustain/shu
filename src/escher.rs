@@ -201,11 +201,9 @@ impl Reaction {
                 _ => None,
             })
             .collect();
-        info!("Products for {}", self.bigg_id);
         self.metabolites
             .iter()
             .filter(|met| met.coefficient > 1e-6)
-            .inspect(|m| info!("{}", m.bigg_id))
             .map(|met| {
                 (
                     met_to_node_id[met.bigg_id.as_str()].0.to_string(),

@@ -81,6 +81,7 @@ pub struct GeomMetabolite {
 pub struct HistTag {
     pub side: Side,
     pub node_id: u64,
+    pub follow_scale: bool,
 }
 
 #[derive(Component)]
