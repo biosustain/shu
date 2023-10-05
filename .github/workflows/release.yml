@@ -27,7 +27,7 @@ jobs:
           targets: wasm32-unknown-unknown
       - name: install wasm-bindgen-cli
         run: |
-          cargo install wasm-bindgen-cli --version 0.2.84
+          cargo install wasm-bindgen-cli --version 0.2.87
 
       - name: Build
         run: |
