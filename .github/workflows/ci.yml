@@ -46,7 +46,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd ggshu
-          python -m pip install .
+          python -m pip install ".[dev]"
       - name: Functional test
         run: |
           cd ggshu
