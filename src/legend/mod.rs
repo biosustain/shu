@@ -19,12 +19,16 @@ pub struct LegendPlugin;
 
 impl Plugin for LegendPlugin {
     fn build(&self, app: &mut App) {
-        app.add_startup_system(spawn_legend)
-            .add_system(color_legend_arrow)
-            .add_system(color_legend_circle)
-            .add_system(color_legend_histograms)
-            .add_system(color_legend_box)
-            .add_system(display_conditions);
+        app.add_systems(Startup, spawn_legend).add_systems(
+            Update,
+            (
+                color_legend_arrow,
+                color_legend_circle,
+                color_legend_histograms,
+                color_legend_box,
+                display_conditions,
+            ),
+        );
     }
 }
 
@@ -77,7 +81,7 @@ fn color_legend_arrow(
                     text.sections[0].value = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let handle = images.get_handle(&img_legend.0);
+                    let handle = images.get_handle(&img_legend.texture);
                     let image = images.get_mut(&handle).unwrap();
 
                     let width = image.size().x as f64;
@@ -147,7 +151,7 @@ fn color_legend_circle(
                     text.sections[0].value = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let handle = images.get_handle(&img_legend.0);
+                    let handle = images.get_handle(&img_legend.texture);
                     let image = images.get_mut(&handle).unwrap();
 
                     let width = image.size().x as f64;
@@ -231,7 +235,7 @@ fn color_legend_histograms(
                         style.display = Display::Flex;
                         if let Ok((img_legend, mut background_color)) = img_query.get_mut(*child) {
                             // modify the image inplace
-                            let handle = images.get_handle(&img_legend.0);
+                            let handle = images.get_handle(&img_legend.texture);
                             let image = images.get_mut(&handle).unwrap();
                             if condition == "ALL" {
                                 // show all conditions laminating the legend
@@ -355,7 +359,7 @@ fn color_legend_box(
                     text.sections[0].value = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let handle = images.get_handle(&img_legend.0);
+                    let handle = images.get_handle(&img_legend.texture);
                     let image = images.get_mut(&handle).unwrap();
 
                     let width = image.size().x as f64;

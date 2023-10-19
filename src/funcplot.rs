@@ -3,7 +3,7 @@
 use bevy::prelude::{Color, Font, Handle, Text, Text2dBundle, TextStyle, Transform, Vec2};
 use bevy_prototype_lyon::{
     entity::ShapeBundle,
-    prelude::{DrawMode, GeometryBuilder, Path, PathBuilder, StrokeMode},
+    prelude::{GeometryBuilder, Path, PathBuilder, Stroke},
     shapes,
 };
 use colorgrad::{Color as GradColor, CustomGradient, Gradient};
@@ -236,17 +236,19 @@ impl ScaleBundle {
     }
 }
 
-pub fn plot_line(size: f32, transform: Transform) -> ShapeBundle {
+pub fn plot_line(size: f32, transform: Transform) -> (ShapeBundle, Stroke) {
     let mut path_builder = PathBuilder::new();
     path_builder.move_to(Vec2::new(-size / 2., 0.));
     path_builder.line_to(Vec2::new(size / 2., 0.));
-    let mut geom = GeometryBuilder::build_as(
-        &path_builder.build(),
-        DrawMode::Stroke(StrokeMode::color(Color::BLACK)),
-        transform,
-    );
-    geom.visibility = bevy::prelude::Visibility::INVISIBLE;
-    geom
+    (
+        ShapeBundle {
+            path: GeometryBuilder::build_as(&path_builder.build()),
+            visibility: bevy::prelude::Visibility::Hidden,
+            transform,
+            ..Default::default()
+        },
+        Stroke::color(Color::BLACK),
+    )
 }
 
 /// Build and position text tags to indicate the scale of thethe  x-axis.
@@ -322,7 +324,7 @@ pub fn zero_lerp(t: f32, min_1: f32, max_1: f32, min_2: f32, max_2: f32) -> f32 
     lerp(t, min_1, max_1, min_2, max_2)
 }
 
-fn to_grad(col: &bevy_egui::egui::color::Rgba) -> GradColor {
+fn to_grad(col: &bevy_egui::egui::Rgba) -> GradColor {
     GradColor::from_linear_rgba(
         col.r() as f64,
         col.g() as f64,
@@ -345,14 +347,14 @@ pub fn build_grad(
     zero: bool,
     min_val: f32,
     max_val: f32,
-    min_color: &bevy_egui::egui::color::Rgba,
-    max_color: &bevy_egui::egui::color::Rgba,
+    min_color: &bevy_egui::egui::Rgba,
+    max_color: &bevy_egui::egui::Rgba,
 ) -> colorgrad::Gradient {
     let mut grad = CustomGradient::new();
     if zero & ((min_val * max_val) < 0.) {
         grad.colors(&[
             to_grad(min_color),
-            to_grad(&bevy_egui::egui::color::Rgba::from_rgb(0.83, 0.83, 0.89)),
+            to_grad(&bevy_egui::egui::Rgba::from_rgb(0.83, 0.83, 0.89)),
             to_grad(max_color),
         ])
         .domain(&[min_val as f64, 0., max_val as f64])
