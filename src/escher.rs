@@ -470,13 +470,13 @@ pub fn load_map(
                     (Some(BezierHandle { x, y }), None) | (None, Some(BezierHandle { x, y })) => {
                         last_from = Vec2::new(x, -y);
                         path_builder.quadratic_bezier_to(last_from - ori, re_to - ori);
-                        last_from = last_from - (re_to - re_from) / 2.;
+                        last_from -= (re_to - re_from) / 2.;
                     }
                     (Some(BezierHandle { x: x1, y: y1 }), Some(BezierHandle { x: x2, y: y2 })) => {
                         let prev_from = Vec2::new(x1, -y1);
                         last_from = Vec2::new(x2, -y2);
                         path_builder.cubic_bezier_to(prev_from - ori, last_from - ori, re_to - ori);
-                        last_from = last_from - (re_to - prev_from) / 2.;
+                        last_from -= (re_to - prev_from) / 2.;
                     }
                     (None, None) => {
                         path_builder.line_to(re_to - ori);

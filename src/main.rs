@@ -36,7 +36,7 @@ fn main() {
                 })
                 .set(ImagePlugin::default_linear()),
         )
-        .add_plugin(PanCamPlugin::default())
+        .add_plugin(PanCamPlugin)
         .add_plugin(info::InfoPlugin)
         .add_plugin(ShapePlugin)
         .add_plugin(EscherPlugin)
@@ -173,7 +173,7 @@ fn main() {
             },
             ..default()
         }))
-        .add_plugin(PanCamPlugin::default())
+        .add_plugin(PanCamPlugin)
         .add_plugin(ShapePlugin)
         .add_plugin(info::InfoPlugin)
         .add_plugin(EscherPlugin)
