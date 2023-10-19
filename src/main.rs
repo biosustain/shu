@@ -23,29 +23,29 @@ use escher::{EscherMap, EscherPlugin, MapState};
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     App::new()
-        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(Msaa::Sample4)
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(
             DefaultPlugins
                 .set(WindowPlugin {
-                    window: WindowDescriptor {
+                    primary_window: Some(Window {
                         title: "shu".to_string(),
                         ..default()
-                    },
+                    }),
                     ..default()
                 })
                 .set(ImagePlugin::default_linear()),
         )
-        .add_plugin(PanCamPlugin)
-        .add_plugin(info::InfoPlugin)
-        .add_plugin(ShapePlugin)
-        .add_plugin(EscherPlugin)
-        .add_plugin(gui::GuiPlugin)
-        .add_plugin(data::DataPlugin)
-        .add_startup_system(setup_system)
-        .add_plugin(aesthetics::AesPlugin)
-        .add_plugin(scale::ZoomPlugin)
-        .add_plugin(legend::LegendPlugin)
+        .add_plugins(PanCamPlugin)
+        .add_plugins(info::InfoPlugin)
+        .add_plugins(ShapePlugin)
+        .add_plugins(EscherPlugin)
+        .add_plugins(gui::GuiPlugin)
+        .add_plugins(data::DataPlugin)
+        .add_systems(Startup, setup_system)
+        .add_plugins(aesthetics::AesPlugin)
+        .add_plugins(scale::ZoomPlugin)
+        .add_plugins(legend::LegendPlugin)
         .run();
 }
 
@@ -159,7 +159,7 @@ fn main() {
     target_data.set_onchange(Some(data_closure.as_ref().unchecked_ref()));
 
     App::new()
-        .insert_resource(Msaa { samples: 4 })
+        .insert_resource(Msaa::Sample4)
         .insert_resource(WinitSettings::desktop_app())
         .insert_resource(ReceiverResource { rx: map_receiver })
         .insert_resource(ReceiverResource { rx: data_receiver })
@@ -173,15 +173,15 @@ fn main() {
             },
             ..default()
         }))
-        .add_plugin(PanCamPlugin)
-        .add_plugin(ShapePlugin)
-        .add_plugin(info::InfoPlugin)
-        .add_plugin(EscherPlugin)
-        .add_plugin(gui::GuiPlugin)
-        .add_plugin(data::DataPlugin)
-        .add_startup_system(setup_system)
-        .add_plugin(aesthetics::AesPlugin)
-        .add_plugin(legend::LegendPlugin)
+        .add_plugins(PanCamPlugin)
+        .add_plugins(ShapePlugin)
+        .add_plugins(info::InfoPlugin)
+        .add_plugins(EscherPlugin)
+        .add_plugins(gui::GuiPlugin)
+        .add_plugins(data::DataPlugin)
+        .add_systems(Startup, setup_system)
+        .add_plugins(aesthetics::AesPlugin)
+        .add_plugins(legend::LegendPlugin)
         .run();
 }
 

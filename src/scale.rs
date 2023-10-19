@@ -7,7 +7,7 @@ pub struct ZoomPlugin;
 
 impl Plugin for ZoomPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(zoom_fonts);
+        app.add_systems(Update, zoom_fonts);
     }
 }
 

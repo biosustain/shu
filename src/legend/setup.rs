@@ -72,15 +72,13 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn(NodeBundle {
             style: Style {
-                max_size: Size::new(WIDTH, HEIGHT),
+                max_width: WIDTH,
+                max_height: HEIGHT,
                 flex_direction: FlexDirection::ColumnReverse,
                 align_items: AlignItems::Center,
                 position_type: PositionType::Absolute,
-                position: UiRect {
-                    left: Val::Px(10.),
-                    bottom: Val::Px(10.),
-                    ..Default::default()
-                },
+                left: Val::Px(10.),
+                bottom: Val::Px(10.),
                 ..Default::default()
             },
             focus_policy: bevy::ui::FocusPolicy::Block,
@@ -93,7 +91,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             // container for both box sides
             p.spawn(NodeBundle {
                 style: Style {
-                    max_size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD / 2.0),
+                    max_width: ARROW_BUNDLE_WIDTH,
+                    max_height: HIST_HEIGHT_CHILD / 2.0,
                     display: Display::Flex,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceEvenly,
@@ -106,7 +105,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.3, HIST_HEIGHT_CHILD / 2.0),
+                        width: ARROW_BUNDLE_WIDTH,
+                        height: HIST_HEIGHT_CHILD / 2.0,
                         display: Display::None,
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::SpaceBetween,
@@ -130,11 +130,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_children(|p| {
                     p.spawn(ImageBundle {
                         style: Style {
-                            size: Size::new(CIRCLE_DIAM * 0.5, CIRCLE_DIAM * 0.5),
+                            width: CIRCLE_DIAM * 0.5,
+                            height: CIRCLE_DIAM * 0.5,
                             ..default()
                         },
                         focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage(box_handle.clone()),
+                        image: UiImage::new(box_handle.clone()),
                         ..default()
                     });
                 })
@@ -152,7 +153,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        size: Size::new(ARROW_BUNDLE_WIDTH / 2.3, HIST_HEIGHT_CHILD / 2.0),
+                        width: ARROW_BUNDLE_WIDTH / 2.3,
+                        height: HIST_HEIGHT_CHILD / 2.0,
                         display: Display::None,
                         align_items: AlignItems::Center,
                         justify_content: JustifyContent::SpaceBetween,
@@ -176,11 +178,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_children(|p| {
                     p.spawn(ImageBundle {
                         style: Style {
-                            size: Size::new(CIRCLE_DIAM * 0.5, CIRCLE_DIAM * 0.5),
+                            width: CIRCLE_DIAM * 0.5,
+                            height: CIRCLE_DIAM * 0.5,
                             ..default()
                         },
                         focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage(box_handle.clone()),
+                        image: UiImage::new(box_handle.clone()),
                         ..default()
                     });
                 })
@@ -200,7 +203,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             p.spawn(NodeBundle {
                 style: Style {
                     display: Display::None,
-                    size: Size::new(ARROW_BUNDLE_WIDTH, HEIGHT_CHILD),
+                    width: ARROW_BUNDLE_WIDTH,
+                    height: HEIGHT_CHILD,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceBetween,
                     ..Default::default()
@@ -221,11 +225,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(ImageBundle {
                     style: Style {
-                        size: Size::new(ARROW_WIDTH, ARROW_HEIGHT),
+                        width: ARROW_WIDTH,
+                        height: ARROW_HEIGHT,
                         ..default()
                     },
                     focus_policy: bevy::ui::FocusPolicy::Pass,
-                    image: UiImage(arrow_handle),
+                    image: UiImage::new(arrow_handle),
                     ..default()
                 });
             })
@@ -243,7 +248,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|p| {
             p.spawn(NodeBundle {
                 style: Style {
-                    size: Size::new(CIRCLE_BUNDLE_WIDTH, HEIGHT_CHILD),
+                    width: CIRCLE_BUNDLE_WIDTH,
+                    height: HEIGHT_CHILD,
                     display: Display::None,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceBetween,
@@ -265,11 +271,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(ImageBundle {
                     style: Style {
-                        size: Size::new(CIRCLE_DIAM, CIRCLE_DIAM * 0.8),
+                        width: CIRCLE_DIAM,
+                        height: CIRCLE_DIAM * 0.8,
                         ..default()
                     },
                     focus_policy: bevy::ui::FocusPolicy::Pass,
-                    image: UiImage(met_handle),
+                    image: UiImage::new(met_handle),
                     ..default()
                 });
             })
@@ -288,8 +295,9 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             // container for both histogram sides
             p.spawn(NodeBundle {
                 style: Style {
-                    min_size: Size::new(ARROW_BUNDLE_WIDTH, Val::Px(0.0)),
-                    max_size: Size::new(ARROW_BUNDLE_WIDTH, HIST_HEIGHT_CHILD * 2.0),
+                    width: ARROW_BUNDLE_WIDTH,
+                    min_height: Val::Px(0.0),
+                    max_height: HIST_HEIGHT_CHILD * 2.0,
                     display: Display::Flex,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
@@ -303,7 +311,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 p.spawn((
                     NodeBundle {
                         style: Style {
-                            size: Size::new(ARROW_BUNDLE_WIDTH / 6.0, HIST_HEIGHT_CHILD),
+                            width: ARROW_BUNDLE_WIDTH / 6.0,
+                            height: HIST_HEIGHT_CHILD,
                             display: Display::None,
                             margin: UiRect::right(Val::Px(5.0)),
                             flex_direction: FlexDirection::Column,
@@ -322,7 +331,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        max_size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 2.0),
+                        max_width: ARROW_BUNDLE_WIDTH / 3.0,
+                        max_height: HIST_HEIGHT_CHILD * 2.0,
                         display: Display::None,
                         align_items: AlignItems::FlexEnd,
                         flex_direction: FlexDirection::Column,
@@ -349,11 +359,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_children(|p| {
                     p.spawn(ImageBundle {
                         style: Style {
-                            size: Size::new(HIST_HEIGHT_CHILD * 0.6, HIST_HEIGHT_CHILD),
+                            width: HIST_HEIGHT_CHILD * 0.6,
+                            height: HIST_HEIGHT_CHILD,
                             ..default()
                         },
                         focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage(hist_left_handle),
+                        image: UiImage::new(hist_left_handle),
                         ..default()
                     });
                 })
@@ -371,7 +382,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             .with_children(|p| {
                 p.spawn(NodeBundle {
                     style: Style {
-                        max_size: Size::new(ARROW_BUNDLE_WIDTH / 3.0, HIST_HEIGHT_CHILD * 2.),
+                        max_width: ARROW_BUNDLE_WIDTH / 3.0,
+                        max_height: HIST_HEIGHT_CHILD * 2.,
                         display: Display::None,
                         align_items: AlignItems::FlexStart,
                         margin: UiRect::left(Val::Px(5.0)),
@@ -398,10 +410,11 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_children(|p| {
                     p.spawn(ImageBundle {
                         style: Style {
-                            size: Size::new(HIST_HEIGHT_CHILD * 0.6, HIST_HEIGHT_CHILD),
+                            width: HIST_HEIGHT_CHILD * 0.6,
+                            height: HIST_HEIGHT_CHILD,
                             ..default()
                         },
-                        image: UiImage(hist_right_handle),
+                        image: UiImage::new(hist_right_handle),
                         focus_policy: bevy::ui::FocusPolicy::Pass,
                         ..default()
                     });

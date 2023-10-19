@@ -9,7 +9,7 @@ use crate::geom::{AesFilter, GeomHist, HistPlot};
 use crate::info::Info;
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
 use bevy::prelude::*;
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypePath, TypeUuid};
 use bevy::utils::BoxedFuture;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -22,7 +22,7 @@ impl Plugin for DataPlugin {
             .add_asset::<Data>()
             .add_asset_loader(CustomAssetLoader::<EscherMap>::new(vec!["json"]))
             .add_asset_loader(CustomAssetLoader::<Data>::new(vec!["metabolism.json"]))
-            .add_system(load_data);
+            .add_systems(PostUpdate, load_data);
     }
 }
 
@@ -89,7 +89,7 @@ impl Number {
 }
 
 /// Metabolic data from the user that can be read from a `file.metabolism.json`.
-#[derive(Deserialize, TypeUuid, Default)]
+#[derive(Deserialize, TypeUuid, Default, TypePath)]
 #[uuid = "413be529-bfeb-41a3-8db0-4b8b382a2c46"]
 pub struct Data {
     /// Vector of reactions' identifiers

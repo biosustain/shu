@@ -5,10 +5,11 @@ use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLO
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use crate::info::Info;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
-use bevy_egui::egui::epaint::color::Rgba;
-use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSettings};
-use bevy_prototype_lyon::prelude::DrawMode;
+use bevy_egui::egui::epaint::Rgba;
+use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSettings};
+use bevy_prototype_lyon::prelude::Path;
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -17,30 +18,26 @@ pub struct GuiPlugin;
 impl Plugin for GuiPlugin {
     fn build(&self, app: &mut App) {
         let building = app
-            .add_plugin(EguiPlugin)
+            .add_plugins(EguiPlugin)
             .insert_resource(UiState::default())
             .insert_resource(AxisMode::Hide)
             .add_event::<SaveEvent>()
-            .add_system(ui_settings)
-            .add_system(show_hover)
-            .add_system(follow_mouse_on_drag)
-            .add_system(follow_mouse_on_drag_ui)
-            .add_system(follow_mouse_on_rotate)
-            .add_system(follow_mouse_on_scale)
-            .add_system(scale_ui)
-            .add_system(show_axes)
-            .add_system(mouse_click_system)
-            .add_system(mouse_click_ui_system);
+            .add_systems(Update, ui_settings)
+            .add_systems(Update, show_hover)
+            .add_systems(Update, follow_mouse_on_drag)
+            .add_systems(Update, follow_mouse_on_drag_ui)
+            .add_systems(Update, follow_mouse_on_rotate)
+            .add_systems(Update, follow_mouse_on_scale)
+            .add_systems(Update, scale_ui)
+            .add_systems(Update, show_axes)
+            .add_systems(Update, (mouse_click_system, mouse_click_ui_system));
 
         // file drop and file system does not work in WASM
         #[cfg(not(target_arch = "wasm32"))]
-        building.add_system(file_drop).add_system(save_file);
+        building.add_systems(Update, (file_drop, save_file));
 
         #[cfg(target_arch = "wasm32")]
-        building
-            .add_system(listen_js_escher)
-            .add_system(listen_js_data)
-            .add_system(listen_js_info);
+        building.add_systems(Update, (listen_js_escher, listen_js_data, listen_js_info));
     }
 }
 const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
@@ -177,16 +174,17 @@ impl UiState {
     }
 }
 
+#[derive(Event)]
 struct SaveEvent(String);
 
 /// Settings for appearance of map and plots.
 /// This is managed by [`bevy_egui`] and it is separate from the rest of the GUI.
 fn ui_settings(
-    windows: Res<Windows>,
-    mut egui_context: ResMut<EguiContext>,
+    mut egui_context: EguiContexts,
     mut state: ResMut<UiState>,
     mut save_events: EventWriter<SaveEvent>,
     mut load_events: EventWriter<FileDragAndDrop>,
+    windows: Query<(Entity, &Window), With<PrimaryWindow>>,
 ) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         for (geom, ext) in ["Reaction", "Metabolite"]
@@ -243,14 +241,16 @@ fn ui_settings(
         });
         #[cfg(not(target_arch = "wasm32"))]
         ui.collapsing("Import", |ui| {
-            let win = windows.get_primary().expect("no primary window");
+            let Ok((win, _)) = windows.get_single() else {
+                return;
+            };
             for label in ["Map", "Data"] {
                 let path = state.get_mut_paths(label);
                 ui.horizontal(|ui| {
                     if ui.button(label).clicked() {
                         // piggyback on file_drop()
                         load_events.send(FileDragAndDrop::DroppedFile {
-                            id: win.id(),
+                            window: win,
                             path_buf: path.clone().into(),
                         });
                     }
@@ -310,13 +310,15 @@ fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) ->
 /// Show hovered data on cursor enter.
 fn show_hover(
     ui_state: Res<UiState>,
-    windows: Res<Windows>,
+    windows: Query<&Window, With<PrimaryWindow>>,
     hover_query: Query<(&Transform, &Hover)>,
     mut popup_query: Query<(&mut Visibility, &AnyTag, &VisCondition), With<HistTag>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     let (camera, camera_transform) = q_camera.single();
-    let win = windows.get_primary().expect("no primary window");
+    let Ok(win) = windows.get_single() else {
+        return;
+    };
     if let Some(world_pos) = get_pos(win, camera, camera_transform) {
         for (trans, hover) in hover_query.iter() {
             if (world_pos - Vec2::new(trans.translation.x, trans.translation.y)).length_squared()
@@ -329,7 +331,7 @@ fn show_hover(
                         .map(|c| (c == &ui_state.condition) || (ui_state.condition == "ALL"))
                         .unwrap_or(true);
                     if (hover.node_id == tag.id) & cond_if {
-                        *vis = Visibility::VISIBLE;
+                        *vis = Visibility::Visible;
                     }
                 }
             } else {
@@ -340,7 +342,7 @@ fn show_hover(
                         .map(|c| (c != &ui_state.condition) & (ui_state.condition != "ALL"))
                         .unwrap_or(false);
                     if (hover.node_id == tag.id) || cond_if {
-                        *vis = Visibility::INVISIBLE;
+                        *vis = Visibility::Hidden;
                     }
                 }
             }
@@ -350,18 +352,20 @@ fn show_hover(
 
 /// Register an non-UI entity (histogram) as being dragged by center or right button.
 fn mouse_click_system(
-    windows: Res<Windows>,
     mouse_button_input: Res<Input<MouseButton>>,
     node_to_text: Res<NodeToText>,
     axis_mode: Res<AxisMode>,
     mut drag_query: Query<(&Transform, &mut Drag, &Xaxis), Without<Style>>,
     mut text_query: Query<&mut Text, With<ArrowTag>>,
+    windows: Query<(Entity, &Window), With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Middle) {
         for (trans, mut drag, axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
-            let win = windows.get_primary().expect("no primary window");
+            let Ok((_, win)) = windows.get_single() else {
+                return;
+            };
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
                 if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
                     .length_squared()
@@ -395,7 +399,9 @@ fn mouse_click_system(
     if mouse_button_input.just_pressed(MouseButton::Right) {
         for (trans, mut drag, axis) in drag_query.iter_mut() {
             let (camera, camera_transform) = q_camera.single();
-            let win = windows.get_primary().expect("no primary window");
+            let Ok((_, win)) = windows.get_single() else {
+                return;
+            };
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
                 if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
                     .length_squared()
@@ -438,7 +444,7 @@ fn mouse_click_ui_system(
 ) {
     for (mut drag, interaction, mut background_color) in drag_query.iter_mut() {
         match interaction {
-            Interaction::Hovered | Interaction::Clicked => {
+            Interaction::Hovered | Interaction::Pressed => {
                 drag.dragged = mouse_button_input.pressed(MouseButton::Middle);
                 drag.rotating = mouse_button_input.pressed(MouseButton::Right);
                 *background_color = BackgroundColor(Color::rgba(0.9, 0.9, 0.9, 0.2));
@@ -453,14 +459,16 @@ fn mouse_click_ui_system(
 
 /// Move the center-dragged interactable non-UI entities (histograms).
 fn follow_mouse_on_drag(
-    windows: Res<Windows>,
+    windows: Query<(Entity, &Window), With<PrimaryWindow>>,
     mut drag_query: Query<(&mut Transform, &Drag), Without<Style>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     for (mut trans, drag) in drag_query.iter_mut() {
         if drag.dragged {
             let (camera, camera_transform) = q_camera.single();
-            let win = windows.get_primary().expect("no primary window");
+            let Ok((_, win)) = windows.get_single() else {
+                return;
+            };
             if let Some(world_pos) = get_pos(win, camera, camera_transform) {
                 trans.translation = Vec3::new(world_pos.x, world_pos.y, trans.translation.z);
             }
@@ -470,21 +478,20 @@ fn follow_mouse_on_drag(
 
 /// Move the center-dragged interactable UI entities.
 fn follow_mouse_on_drag_ui(
-    windows: Res<Windows>,
+    windows: Query<(Entity, &Window), With<PrimaryWindow>>,
     mut drag_query: Query<(&mut Style, &Drag)>,
 
     ui_scale: Res<UiScale>,
 ) {
     for (mut style, drag) in drag_query.iter_mut() {
         if drag.dragged {
-            let win = windows.get_primary().expect("no primary window");
+            let Ok((_, win)) = windows.get_single() else {
+                return;
+            };
             if let Some(screen_pos) = win.cursor_position() {
-                style.position = UiRect {
-                    // arbitrary offset to make it feel more natural
-                    left: Val::Px(screen_pos.x - 80. * ui_scale.scale as f32),
-                    bottom: Val::Px(screen_pos.y - 50. * ui_scale.scale as f32),
-                    ..Default::default()
-                };
+                // arbitrary offset to make it feel more natural
+                style.left = Val::Px(screen_pos.x - 80. * ui_scale.scale as f32);
+                style.bottom = Val::Px(screen_pos.y - 50. * ui_scale.scale as f32);
             }
         }
     }
@@ -539,7 +546,7 @@ fn scale_ui(
     mut ui_scale: ResMut<UiScale>,
     mut egui_settings: ResMut<EguiSettings>,
 ) {
-    let scale = if key_input.pressed(KeyCode::LControl) {
+    let scale = if key_input.pressed(KeyCode::ControlLeft) {
         &mut egui_settings.scale_factor
     } else {
         &mut ui_scale.scale
@@ -570,11 +577,17 @@ impl AxisMode {
 fn show_axes(
     key_input: Res<Input<KeyCode>>,
     mut mode: ResMut<AxisMode>,
-    mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<DrawMode>)>,
+    mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<Path>)>,
 ) {
     if key_input.just_pressed(KeyCode::S) {
         mode.toggle();
-        axis_query.iter_mut().for_each(|mut v| v.toggle());
+        axis_query.iter_mut().for_each(|mut v| {
+            *v = match *v {
+                Visibility::Inherited => Visibility::Inherited,
+                Visibility::Hidden => Visibility::Visible,
+                Visibility::Visible => Visibility::Hidden,
+            }
+        });
     }
 }
 
@@ -642,8 +655,7 @@ fn listen_js_data(
 ) {
     if let Ok(escher_map) = receiver.rx.try_recv() {
         data_resource.reaction_data = Some(data_asset.add(escher_map));
-        data_resource.reac_loaded = false;
-        data_resource.met_loaded = false;
+        data_resource.loaded = false;
     }
 }
 
