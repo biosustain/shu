@@ -21,13 +21,13 @@ jobs:
     steps:
       - uses: little-core-labs/get-git-tag@v3.0.1
         id: get_version
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly
         with:
           targets: wasm32-unknown-unknown
       - name: install wasm-bindgen-cli
         run: |
-          cargo install wasm-bindgen-cli --version 0.2.84
+          cargo install wasm-bindgen-cli
 
       - name: Build
         run: |
@@ -162,8 +162,8 @@ jobs:
         run: |
           export CFLAGS="-fno-stack-check"
           export MACOSX_DEPLOYMENT_TARGET="10.9"
-      - name: Install zld
-        run: brew install michaeleisel/zld/zld
+      - name: Install lld (included in llvm)
+        run: brew install llvm
       - name: Build
         run: |
           cargo build --release --target x86_64-apple-darwin
