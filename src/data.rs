@@ -421,7 +421,7 @@ fn load_data(
 fn insert_geom_map<Aes: Component, Geom: Component>(
     commands: &mut Commands,
     indices: &HashSet<usize>,
-    aes_data: &mut [Number],
+    aes_data: &[Number],
     identifiers: &[String],
     ggcomp: GgPair<Aes, Geom>,
 ) {
