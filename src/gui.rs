@@ -297,14 +297,9 @@ pub fn file_drop(
 
 /// Cursor to mouse position. Adapted from bevy cheatbook.
 fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) -> Option<Vec2> {
-    // get the size of the window
-    let window_size = Vec2::new(win.width(), win.height());
-    let screen_pos = win.cursor_position()?;
-    // convert screen position [0..resolution] to ndc [-1..1] (gpu coordinates)
-    let ndc = (screen_pos / window_size) * 2.0 - Vec2::ONE;
-    let world_pos = camera.ndc_to_world(camera_transform, ndc.extend(1.0))?;
-    // reduce it to a 2D value
-    Some(world_pos.truncate())
+    win.cursor_position()
+        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
+        .map(|ray| ray.origin.truncate())
 }
 
 /// Show hovered data on cursor enter.
