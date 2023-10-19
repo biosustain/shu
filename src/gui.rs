@@ -11,6 +11,7 @@ use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::Rgba;
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSettings};
 use bevy_prototype_lyon::prelude::Path;
+use chrono::offset::Utc;
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -139,10 +140,10 @@ impl Default for UiState {
             },
             condition: String::from(""),
             conditions: vec![String::from("")],
-            save_path: String::from("this_map.json"),
+            save_path: format!("this_map-{}.json", Utc::now().format("%T-%Y")),
+            screen_path: format!("screenshot-{}.png", Utc::now().format("%T-%Y")),
             map_path: String::from("my_map.json"),
             data_path: String::from("my_data.metabolism.json"),
-            screen_path: String::from("screeshot.png"),
             _init: Init,
         }
     }
