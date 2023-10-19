@@ -281,9 +281,8 @@ pub fn file_drop(
             if path_buf.to_str().unwrap().ends_with("metabolism.json") {
                 let reaction_handle: Handle<Data> = asset_server.load(path_buf.to_str().unwrap());
                 reaction_resource.reaction_data = Some(reaction_handle);
-                reaction_resource.reac_loaded = false;
-                reaction_resource.met_loaded = false;
-                info_state.notify("Loading data...");
+                reaction_resource.loaded = false;
+                info_state.notify("(gui) Loading data...");
             } else {
                 //an escher map
                 let escher_handle: Handle<EscherMap> =

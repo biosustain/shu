@@ -4,11 +4,10 @@ use std::collections::HashSet;
 
 use crate::aesthetics;
 use crate::escher::EscherMap;
-use crate::geom;
+use crate::geom::{self, HistTag, Xaxis};
 use crate::geom::{AesFilter, GeomHist, HistPlot};
 use crate::info::Info;
 use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
-use bevy::ecs::query::ReadOnlyWorldQuery;
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use bevy::utils::BoxedFuture;
@@ -133,12 +132,37 @@ pub struct Data {
     kde_met_y: Option<Vec<Vec<Number>>>,
 }
 
+trait IsEmpty {
+    fn is_empty(&self) -> bool;
+}
+
+impl<T> IsEmpty for Option<Vec<T>> {
+    fn is_empty(&self) -> bool {
+        self.as_ref().map(|x| x.is_empty()).unwrap_or(true)
+    }
+}
+
+impl IsEmpty for Data {
+    #[rustfmt::skip]
+    /// [`Data`] is empty if no identifiers are passed or no numeric data is passed.
+    fn is_empty(&self) -> bool {
+        if self.reactions.is_empty() & self.metabolites.is_empty()
+        {
+            return true;
+        }
+        self.colors.is_empty() & self.sizes.is_empty() & self.y.is_empty() &
+        self.left_y.is_empty() & self.hover_y.is_empty() & self.kde_y.is_empty() &
+        self.kde_left_y.is_empty() & self.kde_hover_y.is_empty() & self.box_y.is_empty() &
+        self.box_left_y.is_empty() & self.conditions.is_empty() & self.met_conditions.is_empty() &
+        self.met_colors.is_empty() & self.met_sizes.is_empty() & self.met_y.is_empty() & self.kde_met_y.is_empty()
+    }
+}
+
 /// Resource that contains a [`Handle`] to user data. Modified when new datas comes in.
 #[derive(Resource)]
 pub struct ReactionState {
     pub reaction_data: Option<Handle<Data>>,
-    pub reac_loaded: bool,
-    pub met_loaded: bool,
+    pub loaded: bool,
 }
 
 struct GgPair<'a, Aes, Geom> {
@@ -156,11 +180,9 @@ fn load_data(
     mut info_state: ResMut<Info>,
     mut custom_assets: ResMut<Assets<Data>>,
     asset_server: Res<AssetServer>,
-    current_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomArrow>)>,
-    current_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomArrow>)>,
-    current_hist: Query<(Entity, &AesFilter), Or<(With<GeomHist>, With<geom::HistTag>)>>,
-    current_met_sizes: Query<Entity, (With<aesthetics::Gsize>, With<geom::GeomMetabolite>)>,
-    current_met_colors: Query<Entity, (With<aesthetics::Gcolor>, With<geom::GeomMetabolite>)>,
+    mut restore_event: EventWriter<aesthetics::RestoreEvent>,
+    // remove data to be plotted, axes and histograms
+    to_remove: Query<Entity, Or<(With<aesthetics::Aesthetics>, With<HistTag>, With<Xaxis>)>>,
 ) {
     let custom_asset = if let Some(reac_handle) = &mut state.reaction_data {
         if asset_server.get_load_state(&*reac_handle) == bevy::asset::LoadState::Failed {
@@ -173,12 +195,20 @@ fn load_data(
     } else {
         return;
     };
-    if state.reac_loaded || custom_asset.is_none() {
+    if state.loaded || custom_asset.is_none() {
+        return;
+    }
+
+    let data = custom_asset.unwrap();
+    if data.is_empty() {
         return;
     }
     info_state.notify("Loading data...");
-
-    let data = custom_asset.unwrap();
+    // remove all previous plotted data
+    for e in to_remove.iter() {
+        commands.entity(e).despawn_recursive();
+    }
+    restore_event.send(aesthetics::RestoreEvent {});
     let conditions = data
         .conditions
         .clone()
@@ -210,7 +240,6 @@ fn load_data(
                     &indices,
                     point_data,
                     &identifiers,
-                    &current_colors,
                     GgPair {
                         aes_component: aesthetics::Gcolor {},
                         geom_component: geom::GeomArrow { plotted: false },
@@ -228,7 +257,6 @@ fn load_data(
                         &indices,
                         point_data,
                         &identifiers,
-                        &current_sizes,
                         GgPair {
                             aes_component: aesthetics::Gsize {},
                             geom_component: geom::GeomArrow { plotted: false },
@@ -256,7 +284,6 @@ fn load_data(
                         dist_data,
                         &indices,
                         &identifiers,
-                        &current_hist,
                         GgPair {
                             aes_component: aesthetics::Gy {},
                             geom_component,
@@ -281,10 +308,6 @@ fn load_data(
                         // filter values that are NaN
                         .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
                         .unzip();
-                    // remove existing sizes geoms
-                    for (e, _) in current_hist.iter().filter(|(_e, mark)| mark.pbox) {
-                        commands.entity(e).despawn_recursive();
-                    }
                     if data.is_empty() {
                         continue;
                     }
@@ -342,7 +365,6 @@ fn load_data(
                     &indices,
                     color_data,
                     &identifiers,
-                    &current_met_colors,
                     GgPair {
                         aes_component: aesthetics::Gcolor {},
                         geom_component: geom::GeomMetabolite { plotted: false },
@@ -358,7 +380,6 @@ fn load_data(
                     &indices,
                     size_data,
                     &identifiers,
-                    &current_met_sizes,
                     GgPair {
                         aes_component: aesthetics::Gsize {},
                         geom_component: geom::GeomMetabolite { plotted: false },
@@ -380,7 +401,6 @@ fn load_data(
                         dist_data,
                         &indices,
                         &identifiers,
-                        &current_hist,
                         GgPair {
                             aes_component: aesthetics::Gy {},
                             geom_component,
@@ -394,21 +414,17 @@ fn load_data(
         }
     }
 
-    state.met_loaded = true;
-    state.reac_loaded = true;
+    state.loaded = true;
     info_state.close()
 }
 
-fn insert_geom_map<F, Aes: Component, Geom: Component>(
+fn insert_geom_map<Aes: Component, Geom: Component>(
     commands: &mut Commands,
     indices: &HashSet<usize>,
     aes_data: &mut [Number],
     identifiers: &[String],
-    to_remove: &Query<Entity, F>,
     ggcomp: GgPair<Aes, Geom>,
-) where
-    F: ReadOnlyWorldQuery,
-{
+) {
     let (mut data, ids): (Vec<f32>, Vec<String>) = indices
         .iter()
         .map(|i| &aes_data[*i])
@@ -418,9 +434,6 @@ fn insert_geom_map<F, Aes: Component, Geom: Component>(
         .unzip();
     if data.is_empty() {
         return;
-    }
-    for e in to_remove.iter() {
-        commands.entity(e).despawn_recursive();
     }
     commands
         .spawn(aesthetics::Aesthetics {
@@ -436,16 +449,13 @@ fn insert_geom_map<F, Aes: Component, Geom: Component>(
         .insert(ggcomp.geom_component);
 }
 
-fn insert_geom_hist<F, Aes: Component, Geom: Component>(
+fn insert_geom_hist<Aes: Component, Geom: Component>(
     commands: &mut Commands,
     dist_data: &mut [Vec<Number>],
     indices: &HashSet<usize>,
     identifiers: &[String],
-    to_remove: &Query<(Entity, &AesFilter), F>,
     ggcomp: GgPair<Aes, Geom>,
-) where
-    F: ReadOnlyWorldQuery,
-{
+) {
     let (mut data, ids): (Vec<Vec<f32>>, Vec<String>) = indices
         .iter()
         .map(|i| std::mem::take(&mut dist_data[*i]))
@@ -465,12 +475,6 @@ fn insert_geom_hist<F, Aes: Component, Geom: Component>(
         .filter(|(c, _)| !c.is_empty())
         .unzip();
     if !data.is_empty() {
-        // remove existing sizes geoms
-        for (e, aes_filter) in to_remove.iter() {
-            if aes_filter.met == ggcomp.met & !aes_filter.pbox {
-                commands.entity(e).despawn_recursive();
-            }
-        }
         let mut ent_commands = commands.spawn(ggcomp.geom_component);
         ent_commands
             .insert(aesthetics::Aesthetics {
