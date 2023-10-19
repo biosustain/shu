@@ -332,7 +332,7 @@ fn build_axes(
                 };
                 let axis_entry = axes
                     .entry(arrow.id.clone())
-                    .or_insert(HashMap::new())
+                    .or_default()
                     .entry(geom.side.clone())
                     .or_insert((
                         Xaxis {
@@ -413,7 +413,7 @@ fn build_point_axes(
                 };
                 let axis_entry = axes
                     .entry(arrow.id.clone())
-                    .or_insert(HashMap::new())
+                    .or_default()
                     .entry(geom.side.clone())
                     .or_insert((
                         Xaxis {
