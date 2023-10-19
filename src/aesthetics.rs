@@ -20,10 +20,13 @@ pub struct AesPlugin;
 
 impl Plugin for AesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(plot_arrow_size::<GeomArrow>)
+        app.add_event::<RestoreEvent>()
+            .add_system(plot_arrow_size::<GeomArrow>)
             .add_system(plot_metabolite_size::<GeomMetabolite>)
             .add_system(plot_color::<ArrowTag, GeomArrow>)
             .add_system(plot_color::<CircleTag, GeomMetabolite>)
+            .add_system(restore_geoms::<CircleTag>)
+            .add_system(restore_geoms::<ArrowTag>)
             .add_system(build_axes.before(load_map))
             .add_system(build_hover_axes.before(load_map))
             .add_system(build_point_axes.before(load_map))
@@ -121,6 +124,10 @@ struct ColorListener {
     min_val: f32,
     max_val: f32,
 }
+
+/// Everytime this is sent, all data and plots are removed, leaving
+/// the map as default. This is triggered when new data is added.
+pub struct RestoreEvent;
 
 /// Plot arrow size.
 pub fn plot_arrow_size<Geom: UiSelector>(
@@ -229,6 +236,42 @@ pub fn plot_metabolite_size<Geom: UiSelector>(
                 ..shapes::RegularPolygon::default()
             };
             *path = ShapePath::build_as(&polygon);
+        }
+    }
+}
+
+/// Remove colors and sizes from circles and arrows after new data is dropped.
+fn restore_geoms<T: Tag>(
+    mut restore_event: EventReader<RestoreEvent>,
+    mut query: Query<(&mut DrawMode, &mut Path), With<T>>,
+) {
+    for _ in restore_event.iter() {
+        for (mut draw_mode, mut path) in query.iter_mut() {
+            // colors
+            if let DrawMode::Stroke(StrokeMode { ref mut color, .. })
+            | DrawMode::Outlined {
+                fill_mode: FillMode { ref mut color, .. },
+                ..
+            } = *draw_mode
+            {
+                *color = T::default_color();
+            }
+            // arrow size
+            if let DrawMode::Stroke(StrokeMode {
+                ref mut options, ..
+            }) = *draw_mode
+            {
+                options.line_width = 10.0;
+            }
+            // met size
+            else if let DrawMode::Outlined { .. } = *draw_mode {
+                let polygon = shapes::RegularPolygon {
+                    sides: 6,
+                    feature: shapes::RegularPolygonFeature::Radius(20.),
+                    ..shapes::RegularPolygon::default()
+                };
+                *path = ShapePath::build_as(&polygon);
+            }
         }
     }
 }
