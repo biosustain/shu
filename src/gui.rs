@@ -4,6 +4,7 @@ use crate::data::{Data, ReactionState};
 use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use crate::info::Info;
+use crate::screenshot::ScreenshotEvent;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
@@ -89,6 +90,7 @@ pub struct UiState {
     pub save_path: String,
     pub map_path: String,
     pub data_path: String,
+    pub screen_path: String,
     // since this type and field are private, Self has to be initialized
     // with Default::default(), ensuring that the fallbacks for colors (empty string) are set.
     _init: Init,
@@ -140,6 +142,7 @@ impl Default for UiState {
             save_path: String::from("this_map.json"),
             map_path: String::from("my_map.json"),
             data_path: String::from("my_data.metabolism.json"),
+            screen_path: String::from("screeshot.png"),
             _init: Init,
         }
     }
@@ -184,6 +187,7 @@ fn ui_settings(
     mut state: ResMut<UiState>,
     mut save_events: EventWriter<SaveEvent>,
     mut load_events: EventWriter<FileDragAndDrop>,
+    mut screen_events: EventWriter<ScreenshotEvent>,
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
 ) {
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
@@ -230,13 +234,22 @@ fn ui_settings(
         }
         // direct interactions with the file system are not supported in WASM
         // for loading, direct wasm bindings are being used.
-        #[cfg(not(target_arch = "wasm32"))]
         ui.collapsing("Export", |ui| {
+            #[cfg(not(target_arch = "wasm32"))]
             ui.horizontal(|ui| {
-                if ui.button("Save").clicked() {
+                if ui.button("Save map").clicked() {
                     save_events.send(SaveEvent(state.save_path.clone()))
                 }
                 ui.text_edit_singleline(&mut state.save_path);
+            });
+
+            ui.horizontal(|ui| {
+                if ui.button("PNG").clicked() {
+                    screen_events.send(ScreenshotEvent {
+                        path: state.screen_path.clone(),
+                    })
+                }
+                ui.text_edit_singleline(&mut state.screen_path);
             })
         });
         #[cfg(not(target_arch = "wasm32"))]

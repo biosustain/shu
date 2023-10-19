@@ -15,6 +15,7 @@ mod gui;
 mod info;
 mod legend;
 mod scale;
+mod screenshot;
 #[cfg(test)]
 mod tests;
 
@@ -36,9 +37,11 @@ fn main() {
                 })
                 .set(ImagePlugin::default_linear()),
         )
-        .add_plugins(PanCamPlugin)
+        // plugins from dependencies
+        .add_plugins((PanCamPlugin, ShapePlugin))
+        // internal plugins
+        .add_plugins(screenshot::ScreenShotPlugin)
         .add_plugins(info::InfoPlugin)
-        .add_plugins(ShapePlugin)
         .add_plugins(EscherPlugin)
         .add_plugins(gui::GuiPlugin)
         .add_plugins(data::DataPlugin)
