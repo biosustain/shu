@@ -1,4 +1,4 @@
-use crate::escher::{load_map, ArrowTag, CircleTag, Hover, Tag};
+use crate::escher::{ArrowTag, CircleTag, Hover, Tag};
 use crate::funcplot::{
     build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist,
     plot_kde, plot_line, plot_scales, zero_lerp,
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{
-    shapes, DrawMode, FillMode, GeometryBuilder, Path, ShapePath, StrokeMode,
+    shapes, Fill, GeometryBuilder, Path, ShapeBundle, ShapePath, Stroke,
 };
 
 pub struct AesPlugin;
@@ -21,67 +21,24 @@ pub struct AesPlugin;
 impl Plugin for AesPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<RestoreEvent>()
-            .add_system(plot_arrow_size::<GeomArrow>)
-            .add_system(plot_metabolite_size::<GeomMetabolite>)
-            .add_system(plot_color::<ArrowTag, GeomArrow>)
-            .add_system(plot_color::<CircleTag, GeomMetabolite>)
-            .add_system(restore_geoms::<CircleTag>)
-            .add_system(restore_geoms::<ArrowTag>)
-            .add_system(build_axes.before(load_map))
-            .add_system(build_hover_axes.before(load_map))
-            .add_system(build_point_axes.before(load_map))
-            .add_system(plot_side_hist.before(load_map))
-            .add_system(plot_side_box.before(load_map))
-            .add_system(plot_hover_hist.before(load_map))
-            .add_system(change_color.before(plot_side_box))
-            .add_system(normalize_histogram_height)
-            .add_system(unscale_histogram_children)
-            .add_system(fill_conditions)
-            .add_system(filter_histograms)
-            .add_system(follow_the_axes);
-    }
-}
-
-pub trait UiSelector: Component {
-    fn min_value(ui: &UiState) -> f32;
-    fn max_value(ui: &UiState) -> f32;
-    fn min_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba;
-    fn max_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba;
-}
-
-impl UiSelector for GeomArrow {
-    fn min_value(ui: &UiState) -> f32 {
-        ui.min_reaction
-    }
-
-    fn max_value(ui: &UiState) -> f32 {
-        ui.max_reaction
-    }
-
-    fn min_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
-        &ui.min_reaction_color
-    }
-
-    fn max_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
-        &ui.max_reaction_color
-    }
-}
-
-impl UiSelector for GeomMetabolite {
-    fn min_value(ui: &UiState) -> f32 {
-        ui.min_metabolite
-    }
-
-    fn max_value(ui: &UiState) -> f32 {
-        ui.max_metabolite
-    }
-
-    fn min_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
-        &ui.min_metabolite_color
-    }
-
-    fn max_color(ui: &UiState) -> &bevy_egui::egui::color::Rgba {
-        &ui.max_metabolite_color
+            .add_systems(Update, plot_arrow_size)
+            .add_systems(Update, plot_metabolite_size)
+            .add_systems(Update, plot_arrow_color)
+            .add_systems(Update, plot_metabolite_color)
+            .add_systems(Update, restore_geoms::<CircleTag>)
+            .add_systems(Update, restore_geoms::<ArrowTag>)
+            .add_systems(Update, normalize_histogram_height)
+            .add_systems(Update, unscale_histogram_children)
+            .add_systems(Update, fill_conditions)
+            .add_systems(Update, filter_histograms)
+            .add_systems(Update, follow_the_axes)
+            // TODO: check since these were before load_map
+            .add_systems(Update, build_axes)
+            .add_systems(Update, build_hover_axes)
+            .add_systems(Update, build_point_axes)
+            .add_systems(Update, plot_side_hist)
+            .add_systems(Update, plot_hover_hist)
+            .add_systems(Update, (plot_side_box, change_color.before(plot_side_box)));
     }
 }
 
@@ -127,13 +84,14 @@ struct ColorListener {
 
 /// Everytime this is sent, all data and plots are removed, leaving
 /// the map as default. This is triggered when new data is added.
+#[derive(Event)]
 pub struct RestoreEvent;
 
 /// Plot arrow size.
-pub fn plot_arrow_size<Geom: UiSelector>(
+pub fn plot_arrow_size(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut DrawMode, &ArrowTag)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics, &Geom), With<Gsize>>,
+    mut query: Query<(&mut Stroke, &ArrowTag)>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &GeomArrow), With<Gsize>>,
 ) {
     for (sizes, aes, _geom) in aes_query.iter_mut() {
         if let Some(condition) = &aes.condition {
@@ -143,34 +101,29 @@ pub fn plot_arrow_size<Geom: UiSelector>(
         }
         let min_val = min_f32(&sizes.0);
         let max_val = max_f32(&sizes.0);
-        for (mut draw_mode, arrow) in query.iter_mut() {
-            if let DrawMode::Stroke(StrokeMode {
-                ref mut options, ..
-            }) = *draw_mode
-            {
-                if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
-                    let unscaled_width = sizes.0[index];
-                    let f = if ui_state.zero_white { zero_lerp } else { lerp };
-                    options.line_width = f(
-                        unscaled_width,
-                        min_val,
-                        max_val,
-                        <Geom as UiSelector>::min_value(&ui_state),
-                        <Geom as UiSelector>::max_value(&ui_state),
-                    );
-                } else {
-                    options.line_width = 10.;
-                }
+        for (mut stroke, arrow) in query.iter_mut() {
+            if let Some(index) = aes.identifiers.iter().position(|r| r == &arrow.id) {
+                let unscaled_width = sizes.0[index];
+                let f = if ui_state.zero_white { zero_lerp } else { lerp };
+                stroke.options.line_width = f(
+                    unscaled_width,
+                    min_val,
+                    max_val,
+                    ui_state.min_reaction,
+                    ui_state.max_reaction,
+                );
+            } else {
+                stroke.options.line_width = 10.;
             }
         }
     }
 }
 
-/// Plot Color as numerical variable in arrows.
-pub fn plot_color<T: Tag, Geom: UiSelector>(
+/// Plot Color as numerical variable in circles.
+pub fn plot_arrow_color(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut DrawMode, &T)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics, &Geom), With<Gcolor>>,
+    mut query: Query<(&mut Stroke, &ArrowTag), Without<Fill>>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &GeomArrow), With<Gcolor>>,
 ) {
     for (colors, aes, _) in aes_query.iter_mut() {
         if let Some(condition) = &aes.condition {
@@ -184,31 +137,55 @@ pub fn plot_color<T: Tag, Geom: UiSelector>(
             ui_state.zero_white,
             min_val,
             max_val,
-            <Geom as UiSelector>::min_color(&ui_state),
-            <Geom as UiSelector>::max_color(&ui_state),
+            &ui_state.min_reaction_color,
+            &ui_state.max_reaction_color,
         );
-        for (mut draw_mode, tag) in query.iter_mut() {
-            if let DrawMode::Stroke(StrokeMode { ref mut color, .. })
-            | DrawMode::Outlined {
-                fill_mode: FillMode { ref mut color, .. },
-                ..
-            } = *draw_mode
-            {
-                if let Some(index) = aes.identifiers.iter().position(|r| r == tag.id()) {
-                    *color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
-                } else {
-                    *color = Color::rgb(0.85, 0.85, 0.85);
-                }
+        for (mut stroke, tag) in query.iter_mut() {
+            if let Some(index) = aes.identifiers.iter().position(|r| r == tag.id()) {
+                stroke.color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
+            } else {
+                stroke.color = Color::rgb(0.85, 0.85, 0.85);
+            }
+        }
+    }
+}
+
+/// Plot Color as numerical variable in Circles.
+pub fn plot_metabolite_color(
+    ui_state: Res<UiState>,
+    mut query: Query<(&mut Fill, &CircleTag)>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &GeomMetabolite), With<Gcolor>>,
+) {
+    for (colors, aes, _) in aes_query.iter_mut() {
+        if let Some(condition) = &aes.condition {
+            if condition != &ui_state.condition {
+                continue;
+            }
+        }
+        let min_val = min_f32(&colors.0);
+        let max_val = max_f32(&colors.0);
+        let grad = build_grad(
+            ui_state.zero_white,
+            min_val,
+            max_val,
+            &ui_state.min_metabolite_color,
+            &ui_state.max_metabolite_color,
+        );
+        for (mut fill, tag) in query.iter_mut() {
+            if let Some(index) = aes.identifiers.iter().position(|r| r == tag.id()) {
+                fill.color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
+            } else {
+                fill.color = Color::rgb(0.85, 0.85, 0.85);
             }
         }
     }
 }
 
 /// Plot size as numerical variable in metabolic circles.
-pub fn plot_metabolite_size<Geom: UiSelector>(
+pub fn plot_metabolite_size(
     ui_state: Res<UiState>,
     mut query: Query<(&mut Path, &CircleTag)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics, &Geom), With<Gsize>>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics, &GeomArrow), With<Gsize>>,
 ) {
     for (sizes, aes, _geom) in aes_query.iter_mut() {
         if let Some(condition) = &aes.condition {
@@ -224,8 +201,8 @@ pub fn plot_metabolite_size<Geom: UiSelector>(
                     sizes.0[index],
                     min_val,
                     max_val,
-                    <Geom as UiSelector>::min_value(&ui_state),
-                    <Geom as UiSelector>::max_value(&ui_state),
+                    ui_state.min_metabolite,
+                    ui_state.max_metabolite,
                 )
             } else {
                 20.
@@ -243,35 +220,26 @@ pub fn plot_metabolite_size<Geom: UiSelector>(
 /// Remove colors and sizes from circles and arrows after new data is dropped.
 fn restore_geoms<T: Tag>(
     mut restore_event: EventReader<RestoreEvent>,
-    mut query: Query<(&mut DrawMode, &mut Path), With<T>>,
+    mut query: ParamSet<(
+        Query<(&mut Fill, &mut Path), With<T>>,
+        Query<&mut Stroke, (With<T>, Without<Fill>)>,
+    )>,
 ) {
     for _ in restore_event.iter() {
-        for (mut draw_mode, mut path) in query.iter_mut() {
-            // colors
-            if let DrawMode::Stroke(StrokeMode { ref mut color, .. })
-            | DrawMode::Outlined {
-                fill_mode: FillMode { ref mut color, .. },
-                ..
-            } = *draw_mode
-            {
-                *color = T::default_color();
-            }
-            // arrow size
-            if let DrawMode::Stroke(StrokeMode {
-                ref mut options, ..
-            }) = *draw_mode
-            {
-                options.line_width = 10.0;
-            }
+        for (mut fill, mut path) in query.p0().iter_mut() {
+            // met colors
+            fill.color = T::default_color();
+            let polygon = shapes::RegularPolygon {
+                sides: 6,
+                feature: shapes::RegularPolygonFeature::Radius(20.),
+                ..shapes::RegularPolygon::default()
+            };
             // met size
-            else if let DrawMode::Outlined { .. } = *draw_mode {
-                let polygon = shapes::RegularPolygon {
-                    sides: 6,
-                    feature: shapes::RegularPolygonFeature::Radius(20.),
-                    ..shapes::RegularPolygon::default()
-                };
-                *path = ShapePath::build_as(&polygon);
-            }
+            *path = ShapePath::build_as(&polygon);
+        }
+        for mut stroke in query.p1().iter_mut() {
+            stroke.color = T::default_color();
+            stroke.options.line_width = 10.0;
         }
     }
 }
@@ -528,11 +496,12 @@ fn plot_side_hist(
                 };
 
                 commands.spawn((
-                    GeometryBuilder::build_as(
-                        &line,
-                        DrawMode::Fill(FillMode::color(Color::hex(hex).unwrap())),
-                        *trans,
-                    ),
+                    ShapeBundle {
+                        path: GeometryBuilder::build_as(&line),
+                        transform: *trans,
+                        ..default()
+                    },
+                    Fill::color(Color::hex(hex).unwrap()),
                     VisCondition {
                         condition: aes.condition.clone(),
                     },
@@ -596,13 +565,14 @@ fn plot_side_box(
                             .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
                             .unwrap_or(0),
                     );
-                    GeometryBuilder::build_as(
-                        &line_box,
-                        DrawMode::Outlined {
-                            fill_mode: FillMode::color(color),
-                            outline_mode: StrokeMode::new(Color::BLACK, 2.),
+                    (
+                        ShapeBundle {
+                            path: GeometryBuilder::build_as(&line_box),
+                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
+                            ..default()
                         },
-                        trans.with_scale(Vec3::new(1., 1., 1.)),
+                        Fill::color(color),
+                        Stroke::new(Color::BLACK, 2.),
                     )
                 } else {
                     let circle_center = if axis.conditions.is_empty() {
@@ -621,13 +591,14 @@ fn plot_side_box(
                         radius: 10.,
                         center: Vec2::new(circle_center, 20.),
                     };
-                    GeometryBuilder::build_as(
-                        &shape,
-                        DrawMode::Outlined {
-                            fill_mode: FillMode::color(color),
-                            outline_mode: StrokeMode::new(Color::BLACK, 2.),
+                    (
+                        ShapeBundle {
+                            path: GeometryBuilder::build_as(&shape),
+                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
+                            ..default()
                         },
-                        trans.with_scale(Vec3::new(1., 1., 1.)),
+                        Fill::color(color),
+                        Stroke::new(Color::BLACK, 2.),
                     )
                 };
                 commands.spawn((
@@ -687,14 +658,18 @@ fn plot_hover_hist(
                     }
                 };
                 let Some(line) = line else { continue 'outer };
-                let transform =
-                    Transform::from_xyz(trans.translation.x + 150., trans.translation.y + 150., 5.);
-                let mut geometry = GeometryBuilder::build_as(
-                    &line,
-                    DrawMode::Fill(FillMode::color(Color::hex("ffb73388").unwrap())),
-                    transform,
+                let transform = Transform::from_xyz(
+                    trans.translation.x + 150.,
+                    trans.translation.y + 150.,
+                    10.,
                 );
-                geometry.visibility = Visibility::INVISIBLE;
+                let geometry = ShapeBundle {
+                    path: GeometryBuilder::build_as(&line),
+                    transform,
+                    visibility: Visibility::Hidden,
+                    ..default()
+                };
+                let fill = Fill::color(Color::hex("ffb73388").unwrap());
                 let scales = plot_scales(this_dist, 600., font.clone(), 12.);
                 commands
                     .spawn((
@@ -706,7 +681,7 @@ fn plot_hover_hist(
                             condition: aes.condition.clone(),
                         },
                     ))
-                    .insert(geometry)
+                    .insert((geometry, fill))
                     .with_children(|p| {
                         p.spawn(SpriteBundle {
                             texture: asset_server.load("hover.png"),
@@ -738,14 +713,14 @@ fn normalize_histogram_height(
         (
             &mut Transform,
             &mut Path,
-            &mut DrawMode,
+            &mut Fill,
             &HistTag,
             &VisCondition,
         ),
         Without<Unscale>,
     >,
 ) {
-    for (mut trans, path, mut draw_mode, hist, condition) in query.iter_mut() {
+    for (mut trans, path, mut fill, hist, condition) in query.iter_mut() {
         let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
         trans.scale.y = match hist.side {
             Side::Left => ui_state.max_left / height,
@@ -753,19 +728,17 @@ fn normalize_histogram_height(
             Side::Up => ui_state.max_top / height,
         };
         let ui_condition = ui_state.condition.clone();
-        if let DrawMode::Fill(ref mut fill_mode) = *draw_mode {
-            fill_mode.color = {
-                let color_ref = match hist.side {
-                    Side::Left => &mut ui_state.color_left,
-                    Side::Right => &mut ui_state.color_right,
-                    Side::Up => &mut ui_state.color_top,
-                };
-                let color = match condition.condition.as_ref() {
-                    Some(cond) => or_color(cond, color_ref, true),
-                    None => or_color(&ui_condition, color_ref, false),
-                };
-                Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
-            }
+        fill.color = {
+            let color_ref = match hist.side {
+                Side::Left => &mut ui_state.color_left,
+                Side::Right => &mut ui_state.color_right,
+                Side::Up => &mut ui_state.color_top,
+            };
+            let color = match condition.condition.as_ref() {
+                Some(cond) => or_color(cond, color_ref, true),
+                None => or_color(&ui_condition, color_ref, false),
+            };
+            Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
         }
     }
 }
@@ -773,11 +746,11 @@ fn normalize_histogram_height(
 /// Propagate color from Ui to color component.
 fn change_color(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut DrawMode, &HistTag, &ColorListener)>,
+    mut query: Query<(&mut Fill, &HistTag, &ColorListener), With<Stroke>>,
 ) {
     let mut gradients: HashMap<Side, colorgrad::Gradient> = HashMap::new();
     if ui_state.is_changed() {
-        for (mut draw_mode, hist, color) in query.iter_mut() {
+        for (mut fill, hist, color) in query.iter_mut() {
             let grad = gradients.entry(hist.side.clone()).or_insert(build_grad(
                 ui_state.zero_white,
                 color.min_val,
@@ -785,13 +758,7 @@ fn change_color(
                 &ui_state.min_reaction_color,
                 &ui_state.max_reaction_color,
             ));
-            if let DrawMode::Outlined {
-                ref mut fill_mode, ..
-            } = *draw_mode
-            {
-                fill_mode.color =
-                    from_grad_clamped(grad, color.value, color.min_val, color.max_val);
-            }
+            fill.color = from_grad_clamped(grad, color.value, color.min_val, color.max_val);
         }
     }
 }
@@ -852,9 +819,9 @@ pub fn filter_histograms(
     for (mut vis, cond) in query.iter_mut() {
         if let Some(condition) = &cond.condition {
             if (condition != &ui_state.condition) & (ui_state.condition != "ALL") {
-                *vis = Visibility::INVISIBLE;
+                *vis = Visibility::Hidden;
             } else {
-                *vis = Visibility::VISIBLE;
+                *vis = Visibility::Visible;
             }
         }
     }

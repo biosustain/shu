@@ -12,15 +12,18 @@ impl Plugin for InfoPlugin {
                 msg: None,
                 timer: Timer::new(Duration::from_secs(3), TimerMode::Once),
             })
-            .add_system(pop_infobox)
-            .add_system(display_information);
+            .add_systems(Update, (pop_infobox, display_information));
 
         // display the info messages in different positions for native and WASM
         #[cfg(not(target_arch = "wasm32"))]
-        app.add_startup_system(|commands: Commands| spawn_info_box(commands, 2.0, 1.0));
+        app.add_systems(Startup, |commands: Commands| {
+            spawn_info_box(commands, 2.0, 1.0)
+        });
 
         #[cfg(target_arch = "wasm32")]
-        app.add_startup_system(|commands: Commands| spawn_info_box(commands, 6.5, 0.5));
+        app.add_systems(Startup, |commands: Commands| {
+            spawn_info_box(commands, 6.5, 0.5)
+        });
     }
 }
 
@@ -57,11 +60,8 @@ fn spawn_info_box(mut commands: Commands, top: f32, right: f32) {
         .spawn(NodeBundle {
             style: Style {
                 position_type: PositionType::Absolute,
-                position: UiRect {
-                    right: Val::Percent(right),
-                    top: Val::Percent(top),
-                    ..Default::default()
-                },
+                right: Val::Percent(right),
+                top: Val::Percent(top),
                 padding: UiRect {
                     right: Val::Px(8.),
                     left: Val::Px(8.),

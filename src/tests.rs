@@ -3,8 +3,7 @@ use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
 use crate::gui::{file_drop, UiState};
 use crate::{data, escher, geom, info};
 use bevy::prelude::*;
-use bevy::window::WindowId;
-use bevy_prototype_lyon::prelude::{DrawMode, GeometryBuilder, Path, PathBuilder, StrokeMode};
+use bevy_prototype_lyon::prelude::{GeometryBuilder, Path, PathBuilder, ShapeBundle, Stroke};
 
 use bevy::asset::FileAssetIo;
 use bevy::tasks::IoTaskPool;
@@ -14,7 +13,7 @@ use bevy::tasks::IoTaskPool;
 fn setup(asset_path: impl AsRef<std::path::Path>) -> AssetServer {
     IoTaskPool::init(Default::default);
 
-    AssetServer::new(FileAssetIo::new(asset_path, false))
+    AssetServer::new(FileAssetIo::new(asset_path, &None))
 }
 
 #[test]
@@ -42,14 +41,12 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
     app.world.spawn((
-        GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(
-                Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                10.0,
-            )),
-            Transform::from_xyz(1., 1., 1.),
-        ),
+        ShapeBundle {
+            path: GeometryBuilder::build_as(&line),
+            transform: Transform::from_xyz(1., 1., 1.),
+            ..default()
+        },
+        Stroke::new(Color::rgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
             hists: None,
@@ -65,7 +62,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     let asset_server = setup("assets");
     app.insert_resource(asset_server);
     app.insert_resource(UiState::default());
-    app.add_plugin(AesPlugin);
+    app.add_plugins(AesPlugin);
     app.update();
 
     // one update for xaxis creation
@@ -107,14 +104,12 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
     app.world.spawn((
-        GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(
-                Color::rgb(51. / 255., 78. / 255., 101. / 255.),
-                10.0,
-            )),
-            Transform::from_xyz(1., 1., 1.),
-        ),
+        ShapeBundle {
+            path: GeometryBuilder::build_as(&line),
+            transform: Transform::from_xyz(1., 1., 1.),
+            ..default()
+        },
+        Stroke::new(Color::rgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
             hists: None,
@@ -128,8 +123,8 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     ));
 
     app.insert_resource(UiState::default());
-    app.insert_resource(AssetServer::new(FileAssetIo::new("asset1", false)));
-    app.add_plugin(AesPlugin);
+    app.insert_resource(AssetServer::new(FileAssetIo::new("asset1", &None)));
+    app.add_plugins(AesPlugin);
     app.update();
 
     assert!(app
@@ -159,8 +154,7 @@ fn loading_file_drop_does_not_crash() {
     let escher_handle: Handle<escher::EscherMap> = asset_server.load("ecoli_core_map.json");
     app.insert_resource(data::ReactionState {
         reaction_data: None,
-        reac_loaded: false,
-        met_loaded: false,
+        loaded: false,
     });
     app.insert_resource(asset_server);
     app.insert_resource(Time::default());
@@ -168,25 +162,16 @@ fn loading_file_drop_does_not_crash() {
         escher_map: escher_handle,
         loaded: false,
     });
-    app.add_stage_before(
-        bevy::app::CoreStage::PreUpdate,
-        bevy::asset::AssetStage::LoadAssets,
-        SystemStage::parallel(),
-    );
-    app.add_stage_after(
-        bevy::app::CoreStage::PostUpdate,
-        bevy::asset::AssetStage::AssetEvents,
-        SystemStage::parallel(),
-    );
-    app.add_plugin(info::InfoPlugin);
+    app.init_schedule(bevy::asset::LoadAssets);
+    app.add_plugins(info::InfoPlugin);
     app.add_event::<FileDragAndDrop>();
-    app.add_plugin(data::DataPlugin);
-    app.add_plugin(escher::EscherPlugin);
-    app.add_system(file_drop);
+    app.add_plugins(data::DataPlugin);
+    app.add_plugins(escher::EscherPlugin);
+    app.add_systems(Update, file_drop);
 
     app.update();
     app.world.send_event(FileDragAndDrop::DroppedFile {
-        id: WindowId::new(),
+        window: Entity::from_raw(24),
         path_buf: "assets/ecoli_core_map.json".into(),
     });
     app.update();

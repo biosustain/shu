@@ -4,13 +4,14 @@ use crate::funcplot::draw_arrow;
 use crate::geom::{GeomHist, HistTag, Side, Xaxis};
 use crate::info::Info;
 use crate::scale::DefaultFontSize;
+use bevy::reflect::TypePath;
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, collections::HashMap};
 
-pub const ARROW_COLOR: Color = Color::rgb(95. / 255., 94. / 255., 95. / 255.);
+pub const ARROW_COLOR: Color = Color::rgba(95. / 255., 94. / 255., 95. / 255., 1.0);
 pub const MET_COLOR: Color = Color::rgb(190. / 255., 185. / 255., 185. / 255.);
 pub const MET_STROK: Color = Color::rgb(95. / 255., 94. / 255., 95. / 255.);
 
@@ -19,7 +20,7 @@ pub struct EscherPlugin;
 impl Plugin for EscherPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(NodeToText::default())
-            .add_system(load_map);
+            .add_systems(Update, load_map);
     }
 }
 
@@ -35,7 +36,7 @@ pub struct NodeToText {
     pub inner: HashMap<u64, Entity>,
 }
 
-#[derive(Deserialize, TypeUuid, Default, Serialize)]
+#[derive(Deserialize, TypeUuid, Default, Serialize, TypePath)]
 #[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
 pub struct EscherMap {
     #[allow(dead_code)]
@@ -312,11 +313,12 @@ fn build_text_tag(
             color: ARROW_COLOR,
         },
     )
-    .with_alignment(TextAlignment::CENTER_LEFT);
+    .with_alignment(TextAlignment::Center);
     (
         Text2dBundle {
             text,
             transform: Transform::from_xyz(pos.x - center_x, -pos.y + center_y, 4.0),
+            text_anchor: bevy::sprite::Anchor::CenterLeft,
             ..default()
         },
         DefaultFontSize { size: font_size },
@@ -395,6 +397,9 @@ pub fn load_map(
         total_x / metabolites.len() as f32,
         total_y / metabolites.len() as f32,
     );
+    // add infinitesimal epsilon to each arrow so they don't flicker because of z-ordering
+    // metabolites are not expected to occupy the same space, but better to be safe
+    let mut z_eps = 1e-6;
     for (node_id, mut met) in metabolites {
         let shape = shapes::RegularPolygon {
             sides: 6,
@@ -413,15 +418,15 @@ pub fn load_map(
             node_id,
             xlimits: None,
         };
+        z_eps += 1e-6;
         commands.spawn((
-            GeometryBuilder::build_as(
-                &shape,
-                DrawMode::Outlined {
-                    fill_mode: FillMode::color(MET_COLOR),
-                    outline_mode: StrokeMode::new(MET_STROK, 4.0),
-                },
-                Transform::from_xyz(met.x - center_x, -met.y + center_y, 2.),
-            ),
+            ShapeBundle {
+                path: GeometryBuilder::build_as(&shape),
+                transform: Transform::from_xyz(met.x - center_x, -met.y + center_y, 2. + z_eps),
+                ..Default::default()
+            },
+            Fill::color(MET_COLOR),
+            Stroke::new(MET_STROK, 4.0),
             circle.clone(),
         ));
         commands.spawn((
@@ -430,6 +435,8 @@ pub fn load_map(
             circle,
         ));
     }
+    // add infinitesimal epsilon to each arrow so they don't flicker because of z-ordering
+    let mut z_eps = 1e-6;
     for (node_id, mut reac) in reactions {
         let mut path_builder = PathBuilder::new();
         // origin of the figure as the center of mass
@@ -510,11 +517,14 @@ pub fn load_map(
         let mut builder = GeometryBuilder::new();
         builder = builder.add(&line);
         builder = builder.add(&arrow_heads.build());
+        z_eps += 1e-6;
         commands.spawn((
-            builder.build(
-                DrawMode::Stroke(StrokeMode::new(ARROW_COLOR, 10.0)),
-                Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1.),
-            ),
+            ShapeBundle {
+                path: builder.build(),
+                transform: Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1. + z_eps),
+                ..Default::default()
+            },
+            Stroke::new(ARROW_COLOR, 10.0),
             arrow.clone(),
         ));
         // spawn the text and collect its id in the hashmap for hovering.
