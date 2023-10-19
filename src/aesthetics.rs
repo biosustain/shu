@@ -505,6 +505,7 @@ fn plot_side_hist(
                     HistTag {
                         side: geom.side.clone(),
                         node_id: axis.node_id,
+                        follow_scale: true,
                     },
                     (*is_met).clone(),
                 ));
@@ -606,6 +607,7 @@ fn plot_side_box(
                     HistTag {
                         side: geom.side.clone(),
                         node_id: axis.node_id,
+                        follow_scale: false,
                     },
                     ColorListener {
                         value: colors.0[index],
@@ -673,6 +675,7 @@ fn plot_hover_hist(
                         HistTag {
                             side: geom.side.clone(),
                             node_id: hover.node_id,
+                            follow_scale: false,
                         },
                         VisCondition {
                             condition: aes.condition.clone(),
@@ -834,6 +837,9 @@ fn follow_the_axes(
             if (axis.node_id == hist.node_id) & (hist.side == axis.side) {
                 trans.translation = axis_trans.translation;
                 trans.rotation = axis_trans.rotation;
+                if hist.follow_scale {
+                    trans.scale.x = axis_trans.scale.x;
+                }
             }
         }
     }
