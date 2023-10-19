@@ -1,4 +1,4 @@
-use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, Unscale};
+use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, RestoreEvent, Unscale};
 use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
 use crate::gui::{file_drop, UiState};
 use crate::{data, escher, geom, info};
@@ -150,6 +150,7 @@ fn loading_file_drop_does_not_crash() {
     // Setup app
     let mut app = App::new();
     app.insert_resource(UiState::default());
+    app.add_event::<RestoreEvent>();
     let asset_server = setup("assets");
     let escher_handle: Handle<escher::EscherMap> = asset_server.load("ecoli_core_map.json");
     app.insert_resource(data::ReactionState {
