@@ -245,7 +245,7 @@ fn ui_settings(
             });
 
             ui.horizontal(|ui| {
-                if ui.button("PNG").clicked() {
+                if ui.button("Image").clicked() {
                     screen_events.send(ScreenshotEvent {
                         path: state.screen_path.clone(),
                     })
