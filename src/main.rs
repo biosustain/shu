@@ -62,7 +62,6 @@ fn main() {
     use async_std::channel::{unbounded, Receiver, Sender};
     use gui::ReceiverResource;
     use wasm_bindgen::prelude::*;
-    use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::{spawn_local, JsFuture};
     use web_sys::console;
     use web_sys::HtmlInputElement;
@@ -168,16 +167,18 @@ fn main() {
         .insert_resource(ReceiverResource { rx: data_receiver })
         .insert_resource(ReceiverResource { rx: info_receiver })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
+            primary_window: Some(Window {
                 title: "shu".to_string(),
                 fit_canvas_to_parent: true,
                 canvas: Some("#bevy".to_string()),
                 ..default()
-            },
+            }),
             ..default()
         }))
-        .add_plugins(PanCamPlugin)
-        .add_plugins(ShapePlugin)
+        // plugins from dependencies
+        .add_plugins((PanCamPlugin, ShapePlugin))
+        // internal plugins
+        .add_plugins(screenshot::ScreenShotPlugin)
         .add_plugins(info::InfoPlugin)
         .add_plugins(EscherPlugin)
         .add_plugins(gui::GuiPlugin)
