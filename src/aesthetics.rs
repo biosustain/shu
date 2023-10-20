@@ -33,7 +33,7 @@ impl Plugin for AesPlugin {
             .add_systems(Update, filter_histograms)
             .add_systems(Update, follow_the_axes)
             // TODO: check since these were before load_map
-            .add_systems(Update, (build_axes, build_hover_axes, build_point_axes))
+            .add_systems(PostUpdate, (build_axes, build_hover_axes, build_point_axes))
             .add_systems(Update, (plot_side_hist, plot_hover_hist))
             .add_systems(Update, (plot_side_box, change_color.before(plot_side_box)));
     }
