@@ -453,6 +453,7 @@ fn build_hover_axes(
 /// Plot histogram as numerical variable next to arrows.
 fn plot_side_hist(
     mut commands: Commands,
+    mut z_eps: Local<f32>,
     mut aes_query: Query<
         (&Distribution<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
         (With<Gy>, Without<PopUp>),
@@ -463,6 +464,9 @@ fn plot_side_hist(
         if geom.rendered {
             continue;
         }
+        // we only need to differentiate the z-index between aes with different
+        // conditions that could appear in the same axis
+        *z_eps += 1e-6;
         for (trans, axis) in query.iter() {
             if let Some(index) = aes
                 .identifiers
@@ -495,7 +499,9 @@ fn plot_side_hist(
                 commands.spawn((
                     ShapeBundle {
                         path: GeometryBuilder::build_as(&line),
-                        transform: *trans,
+                        // increment z to avoid flickering problems
+                        transform: trans
+                            .with_translation(trans.translation + Vec3::new(0., 0., *z_eps)),
                         ..default()
                     },
                     Fill::color(Color::hex(hex).unwrap()),
@@ -627,6 +633,7 @@ fn plot_side_box(
 fn plot_hover_hist(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut z_eps: Local<f32>,
     mut query: Query<(&Transform, &Hover)>,
     mut aes_query: Query<
         (&Distribution<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
@@ -637,6 +644,9 @@ fn plot_hover_hist(
         if geom.rendered {
             continue;
         }
+        // we only need to differentiate the z-index between aes with different
+        // conditions that could appear in the same axis
+        *z_eps += 1e-6;
         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         for (trans, hover) in query.iter_mut() {
             if hover.xlimits.is_none() {
@@ -660,7 +670,7 @@ fn plot_hover_hist(
                 let transform = Transform::from_xyz(
                     trans.translation.x + 150.,
                     trans.translation.y + 150.,
-                    10.,
+                    10. + *z_eps,
                 );
                 let geometry = ShapeBundle {
                     path: GeometryBuilder::build_as(&line),
