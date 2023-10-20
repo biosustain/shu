@@ -31,9 +31,8 @@ fn screenshot_on_event(
         };
         let path = format!("{path}{suffix}");
         *counter += 1;
-        match screenshot_manager.save_screenshot_to_disk(main_window.single(), path) {
-            Err(e) => error!("Format not supported, try PNG: {e}"),
-            _ => (),
+        if let Err(e) = screenshot_manager.save_screenshot_to_disk(main_window.single(), path) {
+            error!("Format not supported, try PNG, JPEG, BMP or TGA: {e}")
         }
     }
 }
