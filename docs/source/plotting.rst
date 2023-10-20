@@ -150,9 +150,23 @@ The generated file `flux_kcat_dist.metabolism.json` can be used like before at `
 
 Notice how, there is not enough data to generate a meaningful histogram.
 
-.. note::
+Histogram position
+------------------
 
-   Shu tries to fit the best position with an heuristic but it may fail for some reactions. Try pressing right or middle button in the middle of the a histogram to rotate or move it.
+Shu tries to fit the best plotting position next to the arrows with an heuristic
+but it may fail for some reactions. 
+
+Try pressing right or middle mouse button in the middle of a histogram to
+*rotate* or *move* it. If an x-axis of the side plots is too big or too small, press
+`s` and the x-axes will be displayed. In this mode, the behavior of right clicks
+is changed to now *scale* the axes.
+
+After moving, rotating and scaling the axes as desired, all these new coordinates
+can be saved to a new map in the settings window (only available for the desktop
+app) for futures shu sessions.
+
+A PNG/JPEG/BMP/TGA image of the map can also be exported through the settings
+window (for all platforms and web).
 
 Hover
 -----
