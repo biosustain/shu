@@ -1,8 +1,8 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use bevy::{core_pipeline::clear_color::ClearColorConfig, render::camera::RenderTarget};
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_prototype_lyon::prelude::*;
 
@@ -20,6 +20,9 @@ mod screenshot;
 mod tests;
 
 use escher::{EscherMap, EscherPlugin, MapState};
+use gui::MainCamera;
+use screenshot::{ImageExportBundle, ImageExportSource, ScreenShotCamera};
+use wgpu::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages};
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
@@ -189,7 +192,12 @@ fn main() {
         .run();
 }
 
-fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut images: ResMut<Assets<Image>>,
+    mut export_sources: ResMut<Assets<ImageExportSource>>,
+) {
     let escher_handle: Handle<EscherMap> = asset_server.load("ecoli_core_map.json");
     commands.insert_resource(MapState {
         escher_map: escher_handle,
@@ -199,6 +207,32 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         reaction_data: None,
         loaded: false,
     });
+
+    let output_texture_handle = {
+        let size = Extent3d {
+            width: 2048,
+            height: 2048,
+            ..default()
+        };
+        let mut export_texture = Image {
+            texture_descriptor: TextureDescriptor {
+                label: None,
+                size,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::Rgba8UnormSrgb,
+                mip_level_count: 1,
+                sample_count: 1,
+                usage: TextureUsages::COPY_DST
+                    | TextureUsages::COPY_SRC
+                    | TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            },
+            ..default()
+        };
+        export_texture.resize(size);
+
+        images.add(export_texture)
+    };
 
     commands
         .spawn(Camera2dBundle {
@@ -214,5 +248,25 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             min_scale: 1., // prevent the camera from zooming too far in
             max_scale: Some(40.), // prevent the camera from zooming too far out
             ..Default::default()
-        });
+        })
+        .insert(MainCamera);
+
+    commands
+        .spawn(Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(Color::rgb(1., 1., 1.)),
+            },
+            camera: Camera {
+                target: RenderTarget::Image(output_texture_handle.clone()),
+                order: 1,
+                ..default()
+            },
+            ..default()
+        })
+        .insert(ScreenShotCamera);
+
+    commands.spawn(ImageExportBundle {
+        source: export_sources.add(output_texture_handle.into()),
+        ..default()
+    });
 }

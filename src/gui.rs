@@ -44,6 +44,9 @@ impl Plugin for GuiPlugin {
 }
 const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
 
+#[derive(Component)]
+pub struct MainCamera;
+
 /// Retrieve a mutable reference to the color or insert
 /// * a random color with the alpha that is already in the map at the empty string; or
 /// * the color at the empty string (random = false).
@@ -322,7 +325,7 @@ fn show_hover(
     windows: Query<&Window, With<PrimaryWindow>>,
     hover_query: Query<(&Transform, &Hover)>,
     mut popup_query: Query<(&mut Visibility, &AnyTag, &VisCondition), With<HistTag>>,
-    q_camera: Query<(&Camera, &GlobalTransform)>,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     let (camera, camera_transform) = q_camera.single();
     let Ok(win) = windows.get_single() else {
@@ -367,7 +370,7 @@ fn mouse_click_system(
     mut drag_query: Query<(&Transform, &mut Drag, &Xaxis), Without<Style>>,
     mut text_query: Query<&mut Text, With<ArrowTag>>,
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
-    q_camera: Query<(&Camera, &GlobalTransform)>,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     if mouse_button_input.just_pressed(MouseButton::Middle) {
         for (trans, mut drag, axis) in drag_query.iter_mut() {
@@ -470,7 +473,7 @@ fn mouse_click_ui_system(
 fn follow_mouse_on_drag(
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
     mut drag_query: Query<(&mut Transform, &Drag), Without<Style>>,
-    q_camera: Query<(&Camera, &GlobalTransform)>,
+    q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     for (mut trans, drag) in drag_query.iter_mut() {
         if drag.dragged {
