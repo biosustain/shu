@@ -152,10 +152,20 @@ Still, to give an impression of the mean, we can plot the color and size of the 
 <p>The generated file <cite>flux_kcat_dist.metabolism.json</cite> can be used like before at <a class="reference external" href="https://biosustain.github.io/shu">shu website</a>.</p>
 <img alt="Distributions plotted in shu." src="_images/geom_dist_screen.png" />
 <p>Notice how, there is not enough data to generate a meaningful histogram.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Shu tries to fit the best position with an heuristic but it may fail for some reactions. Try pressing right or middle button in the middle of the a histogram to rotate or move it.</p>
-</div>
+</section>
+<section id="histogram-position">
+<h2>Histogram position<a class="headerlink" href="#histogram-position" title="Permalink to this heading">¶</a></h2>
+<p>Shu tries to fit the best plotting position next to the arrows with an heuristic
+but it may fail for some reactions.</p>
+<p>Try pressing right or middle mouse button in the middle of a histogram to
+<em>rotate</em> or <em>move</em> it. If an x-axis of the side plots is too big or too small, press
+<cite>s</cite> and the x-axes will be displayed. In this mode, the behavior of right clicks
+is changed to now <em>scale</em> the axes.</p>
+<p>After moving, rotating and scaling the axes as desired, all these new coordinates
+can be saved to a new map in the settings window (only available for the desktop
+app) for futures shu sessions.</p>
+<p>A PNG/JPEG/BMP/TGA image of the map can also be exported through the settings
+window (for all platforms and web).</p>
 </section>
 <section id="hover">
 <h2>Hover<a class="headerlink" href="#hover" title="Permalink to this heading">¶</a></h2>
@@ -258,6 +268,7 @@ can be used to map the data too! For instance:</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Plotting</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#simple-reaction-example">Simple reaction example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#plotting-distributions">Plotting distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#histogram-position">Histogram position</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hover">Hover</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#plotting-metabolites-and-conditions">Plotting metabolites and conditions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-two-dataframes">Using two dataframes</a></li>

@@ -23,6 +23,7 @@ Controls
 * :code:`+` and :code:`-` keys to scale up and down the legend. If :code:`Control` is pressed,
   the Settings are scale
 * :code:`s` to toggle axis mode, which shows the histogram axes and allows for scaling them.
+* The `Settings` window can be used to change the appeareance and export the map as a json or an image.
 
 Contents
 --------
