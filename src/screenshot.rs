@@ -63,21 +63,22 @@ fn repeat_screen_event(
 }
 
 /// Write image to SVG.
-/// TODO: histograms
-/// TODO: scale
-/// TODO: the output is upside down
+/// TODO: text
 fn save_svg_file(
     mut save_events: EventReader<SvgScreenshotEvent>,
     map_dims: Res<MapDimensions>,
     // Arrows.
     stroke_paths: Query<(&Path, &Stroke, &Transform, &Visibility), Without<Fill>>,
-    // Metabolites.
-    filled_paths: Query<(&Path, &Fill, &Stroke, &Transform, &Visibility)>,
+    // Histograms
+    fill_paths: Query<(&Path, &Fill, &Transform, &Visibility), (Without<Unscale>, Without<Stroke>)>,
+    // Metabolites and box points.
+    fands_paths: Query<(&Path, &Fill, &Stroke, &Transform, &Visibility)>,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.iter() {
-        // reflect the whole graph on the X-axis
+        // reflect the whole graph on both axes, this is the
+        // reverse step from reading from escher
         let mut writer =
-            roarsvg::LyonWriter::new().with_transform(roarsvg::SvgTransform::from_scale(-1.0, 1.0));
+            roarsvg::LyonWriter::new().with_transform(roarsvg::SvgTransform::from_scale(1.0, -1.0));
         for (path, stroke, trans, vis) in &stroke_paths {
             if Visibility::Hidden == vis {
                 continue;
@@ -97,27 +98,22 @@ fn save_svg_file(
                         roarsvg::SvgTransform::from_translate(
                             trans.translation.x + map_dims.x,
                             trans.translation.y,
-                        )
-                        .post_rotate_at(180., map_dims.x, map_dims.y),
+                        ), // .post_rotate_at(180., map_dims.x, map_dims.y),
                     ),
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
         }
-        for (path, fill, stroke, trans, vis) in &filled_paths {
+        for (path, fill, stroke, trans, vis) in &fands_paths {
             if Visibility::Hidden == vis {
                 continue;
             }
             let (_, angle) = trans.rotation.to_axis_angle();
-            let svg_trans = roarsvg::SvgTransform::from_row(
-                trans.scale.x,
-                0.0,
-                0.0,
-                trans.scale.y,
-                trans.translation.x + map_dims.x,
-                trans.translation.y,
-            )
-            .pre_rotate(angle.to_degrees())
-            .post_rotate_at(180., map_dims.x, map_dims.y);
+            // apply its rotation and then the translation to the x center
+            let svg_trans = roarsvg::SvgTransform::from_scale(trans.scale.x, trans.scale.y)
+                // not super sure why this angle has to be negative, the histograms is positive
+                // maybe something with the scale being negative in one of the cases
+                .post_rotate(-angle.to_degrees())
+                .post_translate(trans.translation.x + map_dims.x, trans.translation.y);
             let st_color: [u8; 4] = stroke.color.as_rgba_u8();
             let fill_color: [u8; 4] = fill.color.as_rgba_u8();
             writer
@@ -132,6 +128,27 @@ fn save_svg_file(
                         stroke.color.a(),
                         stroke.options.line_width,
                     )),
+                    Some(svg_trans),
+                )
+                .unwrap_or_else(|_| info!("Writing error!"));
+        }
+        for (path, fill, trans, vis) in &fill_paths {
+            if Visibility::Hidden == vis {
+                continue;
+            }
+            let (_, angle) = trans.rotation.to_axis_angle();
+            let svg_trans = roarsvg::SvgTransform::from_scale(trans.scale.x, trans.scale.y)
+                .post_rotate(angle.to_degrees())
+                .post_translate(trans.translation.x + map_dims.x, trans.translation.y);
+            let fill_color: [u8; 4] = fill.color.as_rgba_u8();
+            writer
+                .push(
+                    &path.0,
+                    Some(roarsvg::fill(
+                        roarsvg::Color::new_rgb(fill_color[0], fill_color[1], fill_color[2]),
+                        fill.color.a(),
+                    )),
+                    None,
                     Some(svg_trans),
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
@@ -192,7 +209,7 @@ use std::sync::{
 };
 use wgpu::Maintain;
 
-use crate::{escher::MapDimensions, gui::MainCamera, info::Info};
+use crate::{aesthetics::Unscale, escher::MapDimensions, gui::MainCamera, info::Info};
 
 pub const NODE_NAME: &str = "image_export";
 
