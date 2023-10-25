@@ -4,7 +4,7 @@ use crate::data::{Data, ReactionState};
 use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use crate::info::Info;
-use crate::screenshot::ScreenshotEvent;
+use crate::screenshot::{ScreenshotEvent, SvgScreenshotEvent};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
@@ -557,6 +557,7 @@ fn scale_ui(
     key_input: Res<Input<KeyCode>>,
     mut ui_scale: ResMut<UiScale>,
     mut egui_settings: ResMut<EguiSettings>,
+    mut screen_events: EventWriter<SvgScreenshotEvent>,
 ) {
     let scale = if key_input.pressed(KeyCode::ControlLeft) {
         &mut egui_settings.scale_factor
@@ -567,6 +568,11 @@ fn scale_ui(
         *scale += 0.1;
     } else if key_input.just_pressed(KeyCode::Minus) {
         *scale -= 0.1;
+    } else if key_input.just_pressed(KeyCode::Y) {
+        // TODO: remove this, just for testing it quick
+        screen_events.send(SvgScreenshotEvent {
+            file_path: "s.svg".to_string(),
+        })
     }
 }
 

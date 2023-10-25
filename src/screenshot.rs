@@ -1,12 +1,14 @@
 use bevy::prelude::*;
+use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
 
 pub struct ScreenShotPlugin;
 
 impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ScreenshotEvent>()
+            .add_event::<SvgScreenshotEvent>()
             .add_plugins(ImageExportPlugin::default())
-            .add_systems(Update, (follow_camera, repeat_screen_event));
+            .add_systems(Update, (follow_camera, repeat_screen_event, save_svg_file));
     }
     fn cleanup(&self, app: &mut App) {
         app.get_added_plugins::<ImageExportPlugin>()
@@ -18,6 +20,10 @@ impl Plugin for ScreenShotPlugin {
 #[derive(Event)]
 pub struct ScreenshotEvent {
     pub path: String,
+}
+#[derive(Event)]
+pub struct SvgScreenshotEvent {
+    pub file_path: String,
 }
 
 #[derive(Component)]
@@ -34,16 +40,105 @@ pub struct ExportPreview;
 fn repeat_screen_event(
     time: Res<Time>,
     mut save_events: EventReader<ScreenshotEvent>,
+    mut send_svg_events: EventWriter<SvgScreenshotEvent>,
     mut export_repeater: Query<&mut ImageExportSettings>,
+    mut info_state: ResMut<Info>,
 ) {
     for mut writer in export_repeater.iter_mut() {
         for ScreenshotEvent { path } in save_events.iter() {
-            writer.path = Some(path.clone());
-            writer.timer.reset();
+            info_state.notify("Writing to {path}");
+            if path.ends_with("svg") {
+                send_svg_events.send(SvgScreenshotEvent {
+                    file_path: path.clone(),
+                });
+            } else {
+                writer.path = Some(path.clone());
+                writer.timer.reset();
+            }
         }
         if writer.timer.tick(time.delta()).just_finished() {
             writer.path = None;
         }
+    }
+}
+
+/// Write image to SVG.
+/// TODO: histograms
+/// TODO: scale
+/// TODO: the output is upside down
+fn save_svg_file(
+    mut save_events: EventReader<SvgScreenshotEvent>,
+    map_dims: Res<MapDimensions>,
+    // Arrows.
+    stroke_paths: Query<(&Path, &Stroke, &Transform, &Visibility), Without<Fill>>,
+    // Metabolites.
+    filled_paths: Query<(&Path, &Fill, &Stroke, &Transform, &Visibility)>,
+) {
+    for SvgScreenshotEvent { file_path } in save_events.iter() {
+        // reflect the whole graph on the X-axis
+        let mut writer =
+            roarsvg::LyonWriter::new().with_transform(roarsvg::SvgTransform::from_scale(-1.0, 1.0));
+        for (path, stroke, trans, vis) in &stroke_paths {
+            if Visibility::Hidden == vis {
+                continue;
+            }
+            let st_color = stroke.color;
+            let color: [u8; 4] = st_color.as_rgba_u8();
+            writer
+                .push(
+                    &path.0,
+                    None,
+                    Some(roarsvg::stroke(
+                        roarsvg::Color::new_rgb(color[0], color[1], color[2]),
+                        st_color.a(),
+                        stroke.options.line_width,
+                    )),
+                    Some(
+                        roarsvg::SvgTransform::from_translate(
+                            trans.translation.x + map_dims.x,
+                            trans.translation.y,
+                        )
+                        .post_rotate_at(180., map_dims.x, map_dims.y),
+                    ),
+                )
+                .unwrap_or_else(|_| info!("Writing error!"));
+        }
+        for (path, fill, stroke, trans, vis) in &filled_paths {
+            if Visibility::Hidden == vis {
+                continue;
+            }
+            let (_, angle) = trans.rotation.to_axis_angle();
+            let svg_trans = roarsvg::SvgTransform::from_row(
+                trans.scale.x,
+                0.0,
+                0.0,
+                trans.scale.y,
+                trans.translation.x + map_dims.x,
+                trans.translation.y,
+            )
+            .pre_rotate(angle.to_degrees())
+            .post_rotate_at(180., map_dims.x, map_dims.y);
+            let st_color: [u8; 4] = stroke.color.as_rgba_u8();
+            let fill_color: [u8; 4] = fill.color.as_rgba_u8();
+            writer
+                .push(
+                    &path.0,
+                    Some(roarsvg::fill(
+                        roarsvg::Color::new_rgb(fill_color[0], fill_color[1], fill_color[2]),
+                        fill.color.a(),
+                    )),
+                    Some(roarsvg::stroke(
+                        roarsvg::Color::new_rgb(st_color[0], st_color[1], st_color[2]),
+                        stroke.color.a(),
+                        stroke.options.line_width,
+                    )),
+                    Some(svg_trans),
+                )
+                .unwrap_or_else(|_| info!("Writing error!"));
+        }
+        writer
+            .write(file_path)
+            .unwrap_or_else(|_| info!("Writing error!"));
     }
 }
 
@@ -97,7 +192,7 @@ use std::sync::{
 };
 use wgpu::Maintain;
 
-use crate::gui::MainCamera;
+use crate::{escher::MapDimensions, gui::MainCamera, info::Info};
 
 pub const NODE_NAME: &str = "image_export";
 
@@ -377,7 +472,6 @@ impl Plugin for ImageExportPlugin {
 
         render_app
             .insert_resource(self.threads.clone())
-            .add_event::<ScreenshotEvent>()
             .add_systems(
                 Render,
                 save_buffer_to_disk
