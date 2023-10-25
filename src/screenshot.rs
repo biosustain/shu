@@ -67,88 +67,52 @@ fn repeat_screen_event(
 fn save_svg_file(
     mut save_events: EventReader<SvgScreenshotEvent>,
     map_dims: Res<MapDimensions>,
-    // Arrows.
-    stroke_paths: Query<(&Path, &Stroke, &Transform, &Visibility), Without<Fill>>,
-    // Histograms
-    fill_paths: Query<(&Path, &Fill, &Transform, &Visibility), (Without<Unscale>, Without<Stroke>)>,
-    // Metabolites and box points.
-    fands_paths: Query<(&Path, &Fill, &Stroke, &Transform, &Visibility)>,
+    path_query: Query<(
+        &Path,
+        Option<&Fill>,
+        Option<&Stroke>,
+        &Transform,
+        &Visibility,
+    )>,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.iter() {
         // reflect the whole graph on both axes, this is the
         // reverse step from reading from escher
         let mut writer =
             roarsvg::LyonWriter::new().with_transform(roarsvg::SvgTransform::from_scale(1.0, -1.0));
-        for (path, stroke, trans, vis) in &stroke_paths {
-            if Visibility::Hidden == vis {
-                continue;
-            }
-            let st_color = stroke.color;
-            let color: [u8; 4] = st_color.as_rgba_u8();
-            writer
-                .push(
-                    &path.0,
-                    None,
-                    Some(roarsvg::stroke(
-                        roarsvg::Color::new_rgb(color[0], color[1], color[2]),
-                        st_color.a(),
-                        stroke.options.line_width,
-                    )),
-                    Some(
-                        roarsvg::SvgTransform::from_translate(
-                            trans.translation.x + map_dims.x,
-                            trans.translation.y,
-                        ), // .post_rotate_at(180., map_dims.x, map_dims.y),
-                    ),
-                )
-                .unwrap_or_else(|_| info!("Writing error!"));
-        }
-        for (path, fill, stroke, trans, vis) in &fands_paths {
+        for (path, fill, stroke, trans, vis) in &path_query {
             if Visibility::Hidden == vis {
                 continue;
             }
             let (_, angle) = trans.rotation.to_axis_angle();
+            // not super sure why this angle has changed sign, in histograms it is positive
+            // maybe something with the scale being negative in one of the cases
+            let inv_angle = match (fill, stroke) {
+                (Some(_), Some(_)) => -1.0,
+                _ => 1.0,
+            };
             // apply its rotation and then the translation to the x center
             let svg_trans = roarsvg::SvgTransform::from_scale(trans.scale.x, trans.scale.y)
-                // not super sure why this angle has to be negative, the histograms is positive
-                // maybe something with the scale being negative in one of the cases
-                .post_rotate(-angle.to_degrees())
+                .post_rotate((inv_angle * angle).to_degrees())
                 .post_translate(trans.translation.x + map_dims.x, trans.translation.y);
-            let st_color: [u8; 4] = stroke.color.as_rgba_u8();
-            let fill_color: [u8; 4] = fill.color.as_rgba_u8();
             writer
                 .push(
                     &path.0,
-                    Some(roarsvg::fill(
-                        roarsvg::Color::new_rgb(fill_color[0], fill_color[1], fill_color[2]),
-                        fill.color.a(),
-                    )),
-                    Some(roarsvg::stroke(
-                        roarsvg::Color::new_rgb(st_color[0], st_color[1], st_color[2]),
-                        stroke.color.a(),
-                        stroke.options.line_width,
-                    )),
-                    Some(svg_trans),
-                )
-                .unwrap_or_else(|_| info!("Writing error!"));
-        }
-        for (path, fill, trans, vis) in &fill_paths {
-            if Visibility::Hidden == vis {
-                continue;
-            }
-            let (_, angle) = trans.rotation.to_axis_angle();
-            let svg_trans = roarsvg::SvgTransform::from_scale(trans.scale.x, trans.scale.y)
-                .post_rotate(angle.to_degrees())
-                .post_translate(trans.translation.x + map_dims.x, trans.translation.y);
-            let fill_color: [u8; 4] = fill.color.as_rgba_u8();
-            writer
-                .push(
-                    &path.0,
-                    Some(roarsvg::fill(
-                        roarsvg::Color::new_rgb(fill_color[0], fill_color[1], fill_color[2]),
-                        fill.color.a(),
-                    )),
-                    None,
+                    fill.map(|fill| {
+                        let fill_color: [u8; 4] = fill.color.as_rgba_u8();
+                        roarsvg::fill(
+                            roarsvg::Color::new_rgb(fill_color[0], fill_color[1], fill_color[2]),
+                            fill.color.a(),
+                        )
+                    }),
+                    stroke.map(|stroke| {
+                        let st_color: [u8; 4] = stroke.color.as_rgba_u8();
+                        roarsvg::stroke(
+                            roarsvg::Color::new_rgb(st_color[0], st_color[1], st_color[2]),
+                            stroke.color.a(),
+                            stroke.options.line_width,
+                        )
+                    }),
                     Some(svg_trans),
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
