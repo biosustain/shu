@@ -182,9 +182,9 @@ pub fn plot_metabolite_color(
 pub fn plot_metabolite_size(
     ui_state: Res<UiState>,
     mut query: Query<(&mut Path, &CircleTag)>,
-    mut aes_query: Query<(&Point<f32>, &Aesthetics, &GeomArrow), With<Gsize>>,
+    mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<Gsize>, With<GeomMetabolite>)>,
 ) {
-    for (sizes, aes, _geom) in aes_query.iter_mut() {
+    for (sizes, aes) in aes_query.iter_mut() {
         if let Some(condition) = &aes.condition {
             if condition != &ui_state.condition {
                 continue;
