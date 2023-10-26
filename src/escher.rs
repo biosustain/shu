@@ -20,6 +20,7 @@ pub struct EscherPlugin;
 impl Plugin for EscherPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(NodeToText::default())
+            .insert_resource(MapDimensions::default())
             .add_systems(Update, load_map);
     }
 }
@@ -353,12 +354,19 @@ pub struct Hover {
     pub xlimits: Option<(f32, f32)>,
 }
 
+#[derive(Resource, Default)]
+pub struct MapDimensions {
+    pub x: f32,
+    pub y: f32,
+}
+
 /// Load escher map once the asset is available.
 /// The colors correspond to the default escher colors.
 pub fn load_map(
     mut commands: Commands,
     mut state: ResMut<MapState>,
     mut info_state: ResMut<Info>,
+    mut map_dims: ResMut<MapDimensions>,
     mut node_to_text: ResMut<NodeToText>,
     asset_server: Res<AssetServer>,
     mut custom_assets: ResMut<Assets<EscherMap>>,
@@ -397,6 +405,8 @@ pub fn load_map(
         total_x / metabolites.len() as f32,
         total_y / metabolites.len() as f32,
     );
+    map_dims.x = center_x;
+    map_dims.y = center_y;
     // add infinitesimal epsilon to each arrow so they don't flicker because of z-ordering
     // metabolites are not expected to occupy the same space, but better to be safe
     let mut z_eps = 1e-6;
