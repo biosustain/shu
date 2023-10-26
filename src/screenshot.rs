@@ -64,7 +64,6 @@ fn repeat_screen_event(
 }
 
 /// Write image to SVG.
-/// TODO: text
 fn save_svg_file(
     mut save_events: EventReader<SvgScreenshotEvent>,
     map_dims: Res<MapDimensions>,
@@ -78,6 +77,7 @@ fn save_svg_file(
     text_query: Query<(&Text, &Transform, &Visibility)>,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.iter() {
+        let fonts_dir = std::path::Path::new("./assets/fonts");
         // reflect the whole graph on both axes; the reverse step from reading from escher
         let mut writer =
             roarsvg::LyonWriter::new().with_transform(roarsvg::SvgTransform::from_scale(1.0, -1.0));
@@ -118,14 +118,23 @@ fn save_svg_file(
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
         }
+        let mut writer = writer.add_fonts_dir(&fonts_dir);
         for (text, transform, vis) in &text_query {
             if Visibility::Hidden == vis {
                 continue;
             }
-            let Some((font_size, color)) = text
+            let paragraph = text
                 .sections
                 .iter()
-                .map(|tx| (tx.style.font_size, tx.style.color))
+                .map(|ts| &ts.value)
+                .fold(String::from(""), |acc, x| acc + x.as_str());
+            if paragraph.is_empty() {
+                continue;
+            }
+            let Some((font_size, _font, color)) = text
+                .sections
+                .iter()
+                .map(|tx| (tx.style.font_size, &tx.style.font, tx.style.color))
                 .next()
             else {
                 continue;
@@ -133,16 +142,16 @@ fn save_svg_file(
             let fill: [u8; 4] = color.as_rgba_u8();
             writer
                 .push_text(
-                    text.sections
-                        .iter()
-                        .map(|ts| &ts.value)
-                        .fold(String::from(""), |acc, x| acc + x.as_str()),
-                    vec![String::from("FiraSans Bold"), String::from("Mono")],
+                    paragraph,
+                    vec![String::from("Fira Sans"), String::from("Bold")],
                     font_size,
                     roarsvg::SvgTransform::from_translate(
-                        transform.translation.x,
+                        transform.translation.x + map_dims.x,
                         transform.translation.y,
-                    ),
+                    )
+                    // text rotation is actually correct, but the rest is wrong
+                    // so we have to undo the global reflection
+                    .pre_scale(1.0, -1.0),
                     Some(roarsvg::fill(
                         roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
                         color.a(),
