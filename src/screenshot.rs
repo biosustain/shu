@@ -1,3 +1,4 @@
+use crate::escher::MapDimensions;
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
 
@@ -74,10 +75,10 @@ fn save_svg_file(
         &Transform,
         &Visibility,
     )>,
+    text_query: Query<(&Text, &Transform, &Visibility)>,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.iter() {
-        // reflect the whole graph on both axes, this is the
-        // reverse step from reading from escher
+        // reflect the whole graph on both axes; the reverse step from reading from escher
         let mut writer =
             roarsvg::LyonWriter::new().with_transform(roarsvg::SvgTransform::from_scale(1.0, -1.0));
         for (path, fill, stroke, trans, vis) in &path_query {
@@ -114,6 +115,39 @@ fn save_svg_file(
                         )
                     }),
                     Some(svg_trans),
+                )
+                .unwrap_or_else(|_| info!("Writing error!"));
+        }
+        for (text, transform, vis) in &text_query {
+            if Visibility::Hidden == vis {
+                continue;
+            }
+            let Some((font_size, color)) = text
+                .sections
+                .iter()
+                .map(|tx| (tx.style.font_size, tx.style.color))
+                .next()
+            else {
+                continue;
+            };
+            let fill: [u8; 4] = color.as_rgba_u8();
+            writer
+                .push_text(
+                    text.sections
+                        .iter()
+                        .map(|ts| &ts.value)
+                        .fold(String::from(""), |acc, x| acc + x.as_str()),
+                    vec![String::from("FiraSans Bold"), String::from("Mono")],
+                    font_size,
+                    roarsvg::SvgTransform::from_translate(
+                        transform.translation.x,
+                        transform.translation.y,
+                    ),
+                    Some(roarsvg::fill(
+                        roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
+                        color.a(),
+                    )),
+                    None,
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
         }
@@ -173,7 +207,7 @@ use std::sync::{
 };
 use wgpu::Maintain;
 
-use crate::{aesthetics::Unscale, escher::MapDimensions, gui::MainCamera, info::Info};
+use crate::{gui::MainCamera, info::Info};
 
 pub const NODE_NAME: &str = "image_export";
 

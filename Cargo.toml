@@ -27,8 +27,7 @@ futures = "0.3"
 futures-lite = "1"
 wgpu = "0.16"
 bytemuck = "1.13"
-roarsvg = { path = "../roarsvg" }
-# roarsvg = { version= "0.1.0" }
+roarsvg = { version= "0.2.0" }
 
 # dependencies exclusive for wasm32
 [target.'cfg(target_arch = "wasm32")'.dependencies]
