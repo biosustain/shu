@@ -1,8 +1,14 @@
-use crate::{escher::MapDimensions, info::Info};
+use crate::{
+    escher::MapDimensions,
+    geom::Drag,
+    info::Info,
+    legend::{Xmax, Xmin},
+};
 use bevy::prelude::*;
 use bevy::render::view::screenshot::ScreenshotManager;
 use bevy::window::PrimaryWindow;
 use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
+use image::ImageOutputFormat::Png;
 
 pub struct ScreenShotPlugin;
 
@@ -59,7 +65,9 @@ fn screenshot_on_event(
 fn save_svg_file(
     mut save_events: EventReader<SvgScreenshotEvent>,
     mut info_state: ResMut<Info>,
+    ui_scale: Res<UiScale>,
     map_dims: Res<MapDimensions>,
+    images: Res<Assets<Image>>,
     path_query: Query<(
         &Path,
         Option<&Fill>,
@@ -67,7 +75,12 @@ fn save_svg_file(
         &Transform,
         &Visibility,
     )>,
-    text_query: Query<(&Text, &Transform, &Visibility)>,
+    text_query: Query<(&Text, &Transform, &Visibility), (Without<Xmin>, Without<Xmax>)>,
+    // legend part
+    legend_query: Query<(&GlobalTransform, &Node), With<Drag>>,
+    legend_node_query: Query<(Entity, &GlobalTransform, &Style, &Children)>,
+    img_query: Query<(&UiImage, &Node)>,
+    legend_text_query: Query<(&Text, &GlobalTransform, &Style, &Node)>,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.iter() {
         let fonts_dir = std::path::Path::new("./assets/fonts");
@@ -152,6 +165,97 @@ fn save_svg_file(
                     None,
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
+        }
+        if let Ok((legend_trans, _legend_root)) = legend_query.get_single() {
+            // legend is tricky because the reflection point is not the origin of each
+            // element, all the legend itself. Thus, everything is added to a group node
+            // which is then reflected.
+            let mut legend_nodes = Vec::new();
+            for (_parent, trans, style, children) in &legend_node_query {
+                if style.display == Display::None {
+                    continue;
+                }
+                for child in children.iter() {
+                    if let Ok((img_legend, ui_node)) = img_query.get(*child) {
+                        let handle = images.get_handle(&img_legend.texture);
+                        let img = images.get(&handle).unwrap();
+                        let Ok(img) = img.clone().try_into_dynamic() else {
+                            continue;
+                        };
+                        let mut img_buffer = Vec::<u8>::new();
+                        img.write_to(&mut std::io::Cursor::new(&mut img_buffer), Png)
+                            .unwrap();
+                        let trans = trans.compute_transform();
+                        legend_nodes.push(
+                            roarsvg::create_png_node(
+                                &img_buffer,
+                                roarsvg::SvgTransform::from_translate(
+                                    trans.translation.x - ui_node.size().x / 2.,
+                                    trans.translation.y - ui_node.size().y / 2.,
+                                ),
+                                ui_node.size().x,
+                                ui_node.size().y,
+                            )
+                            .unwrap(),
+                        );
+                    } else if let Ok((text, child_trans, vis, ui_node)) =
+                        legend_text_query.get(*child)
+                    {
+                        if Display::None == vis.display {
+                            continue;
+                        }
+                        let paragraph = text
+                            .sections
+                            .iter()
+                            .map(|ts| &ts.value)
+                            .fold(String::from(""), |acc, x| acc + x.as_str());
+                        if paragraph.is_empty() {
+                            continue;
+                        }
+                        let Some((font_size, _font, color)) = text
+                            .sections
+                            .iter()
+                            .map(|tx| (tx.style.font_size, &tx.style.font, tx.style.color))
+                            .next()
+                        else {
+                            continue;
+                        };
+                        let fill: [u8; 4] = color.as_rgba_u8();
+                        let trans = child_trans.compute_transform();
+                        legend_nodes.push(
+                            roarsvg::create_text_node(
+                                paragraph,
+                                roarsvg::SvgTransform::from_translate(
+                                    // I think this has to do with padding and margins
+                                    trans.translation.x - ui_node.size().x / 1.5,
+                                    trans.translation.y + ui_node.size().y / 2.8,
+                                ),
+                                Some(roarsvg::fill(
+                                    roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
+                                    color.a(),
+                                )),
+                                None,
+                                vec![String::from("Assistant"), String::from("Regular")],
+                                font_size,
+                            )
+                            .unwrap(),
+                        );
+                    }
+                }
+            }
+            if !legend_nodes.is_empty() {
+                writer
+                    // undo the scaling done on the whole SVG only for the legend
+                    .push_group(
+                        legend_nodes,
+                        roarsvg::SvgTransform::from_scale(
+                            ui_scale.scale as f32,
+                            -ui_scale.scale as f32,
+                        )
+                        .post_translate(legend_trans.translation().x, legend_trans.translation().y),
+                    )
+                    .unwrap();
+            }
         }
         match writer.write(file_path) {
             Ok(_) => info_state.notify("SVG written"),

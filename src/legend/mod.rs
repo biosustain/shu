@@ -10,9 +10,8 @@ use crate::{
 };
 
 mod setup;
-use setup::{
-    spawn_legend, LegendArrow, LegendBox, LegendCircle, LegendCondition, LegendHist, Xmin,
-};
+use setup::{spawn_legend, LegendArrow, LegendBox, LegendCircle};
+pub use setup::{LegendCondition, LegendHist, Xmax, Xmin};
 
 /// Procedural legend generation.
 pub struct LegendPlugin;
