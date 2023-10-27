@@ -1,5 +1,6 @@
 use crate::{
     escher::MapDimensions,
+    funcplot::IgnoreSave,
     geom::Drag,
     info::Info,
     legend::{Xmax, Xmin},
@@ -119,12 +120,15 @@ fn save_svg_file(
         &Transform,
         &Visibility,
     )>,
-    text_query: Query<(&Text, &Transform, &Visibility), (Without<Xmin>, Without<Xmax>)>,
+    text_query: Query<
+        (&Text, &Transform, &Visibility),
+        (Without<Xmin>, Without<Xmax>, Without<IgnoreSave>),
+    >,
     // legend part
     legend_query: Query<(&GlobalTransform, &Node), With<Drag>>,
     legend_node_query: Query<(Entity, &GlobalTransform, &Style, &Children)>,
     img_query: Query<(&UiImage, &Node)>,
-    legend_text_query: Query<(&Text, &GlobalTransform, &Style, &Node)>,
+    legend_text_query: Query<(&Text, &GlobalTransform, &Style, &Node), Without<IgnoreSave>>,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.iter() {
         let RawAsset { value: fira } = raw_fonts.get(&fonts_storage.fira).unwrap();
