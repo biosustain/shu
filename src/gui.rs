@@ -92,6 +92,7 @@ pub struct UiState {
     pub map_path: String,
     pub data_path: String,
     pub screen_path: String,
+    pub hide: bool,
     // since this type and field are private, Self has to be initialized
     // with Default::default(), ensuring that the fallbacks for colors (empty string) are set.
     _init: Init,
@@ -144,6 +145,7 @@ impl Default for UiState {
             screen_path: format!("screenshot-{}.svg", Utc::now().format("%T-%Y")),
             map_path: String::from("my_map.json"),
             data_path: String::from("my_data.metabolism.json"),
+            hide: false,
             _init: Init,
         }
     }
@@ -179,11 +181,11 @@ impl UiState {
 }
 
 #[derive(Event)]
-struct SaveEvent(String);
+pub struct SaveEvent(String);
 
 /// Settings for appearance of map and plots.
 /// This is managed by [`bevy_egui`] and it is separate from the rest of the GUI.
-fn ui_settings(
+pub fn ui_settings(
     mut egui_context: EguiContexts,
     mut state: ResMut<UiState>,
     mut save_events: EventWriter<SaveEvent>,
@@ -191,6 +193,9 @@ fn ui_settings(
     mut screen_events: EventWriter<ScreenshotEvent>,
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
 ) {
+    if state.hide {
+        return;
+    }
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         for (geom, ext) in ["Reaction", "Metabolite"]
             .into_iter()
@@ -248,7 +253,8 @@ fn ui_settings(
                 if ui.button("Image").clicked() {
                     screen_events.send(ScreenshotEvent {
                         path: state.screen_path.clone(),
-                    })
+                    });
+                    state.hide = true;
                 }
                 ui.text_edit_singleline(&mut state.screen_path);
             })
