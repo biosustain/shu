@@ -1,7 +1,7 @@
 use crate::escher::{ArrowTag, CircleTag, Hover, Tag};
 use crate::funcplot::{
     build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist,
-    plot_kde, plot_line, plot_scales, zero_lerp,
+    plot_kde, plot_line, plot_scales, zero_lerp, IgnoreSave,
 };
 use crate::geom::{
     AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
@@ -700,13 +700,13 @@ fn plot_hover_hist(
                         });
                     })
                     .with_children(|parent| {
-                        parent.spawn(scales.x_0);
+                        parent.spawn((scales.x_0, IgnoreSave));
                     })
                     .with_children(|parent| {
-                        parent.spawn(scales.x_n);
+                        parent.spawn((scales.x_n, IgnoreSave));
                     })
                     .with_children(|parent| {
-                        parent.spawn(scales.y);
+                        parent.spawn((scales.y, IgnoreSave));
                     })
                     .insert((AnyTag { id: hover.node_id }, (*is_met).clone()));
             }

@@ -1,12 +1,18 @@
 //! Functions for plotting data.
 
-use bevy::prelude::{Color, Font, Handle, Text, Text2dBundle, TextStyle, Transform, Vec2};
+use bevy::prelude::{
+    Color, Component, Font, Handle, Text, Text2dBundle, TextStyle, Transform, Vec2,
+};
 use bevy_prototype_lyon::{
     entity::ShapeBundle,
     prelude::{GeometryBuilder, Path, PathBuilder, Stroke},
     shapes,
 };
 use colorgrad::{Color as GradColor, CustomGradient, Gradient};
+
+#[derive(Component)]
+/// Marker trait to avoid outputting an [`Entity`] to the screen.
+pub struct IgnoreSave;
 
 /// Maximum of a slice.
 pub fn max_f32(slice: &[f32]) -> f32 {

@@ -1,5 +1,5 @@
 //! Information to show in the UI.
-use crate::funcplot::lerp;
+use crate::funcplot::{lerp, IgnoreSave};
 use std::time::Duration;
 
 use bevy::prelude::*;
@@ -78,11 +78,14 @@ fn spawn_info_box(mut commands: Commands, top: f32, right: f32) {
         .insert(InfoBox)
         .insert(Interaction::default())
         .with_children(|p| {
-            p.spawn(TextBundle {
-                focus_policy: bevy::ui::FocusPolicy::Block,
-                z_index: ZIndex::Global(12),
-                ..Default::default()
-            });
+            p.spawn((
+                TextBundle {
+                    focus_policy: bevy::ui::FocusPolicy::Block,
+                    z_index: ZIndex::Global(12),
+                    ..Default::default()
+                },
+                IgnoreSave,
+            ));
         });
 }
 
