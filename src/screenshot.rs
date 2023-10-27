@@ -2,6 +2,7 @@ use crate::{
     escher::MapDimensions,
     funcplot::IgnoreSave,
     geom::Drag,
+    gui::UiState,
     info::Info,
     legend::{Xmax, Xmin},
 };
@@ -20,7 +21,14 @@ impl Plugin for ScreenShotPlugin {
             .add_event::<SvgScreenshotEvent>()
             .add_asset::<RawAsset>()
             .init_asset_loader::<RawAssetLoader>()
-            .add_systems(Update, (screenshot_on_event, save_svg_file));
+            .add_systems(Startup, setup_timer)
+            .add_systems(
+                Update,
+                (
+                    screenshot_on_event.before(crate::gui::ui_settings),
+                    save_svg_file,
+                ),
+            );
     }
 }
 
@@ -34,16 +42,32 @@ pub struct SvgScreenshotEvent {
     pub file_path: String,
 }
 
+#[derive(Component, Deref, DerefMut)]
+struct HideUiTimer(Timer);
+
+fn setup_timer(mut commands: Commands) {
+    commands.spawn(HideUiTimer(Timer::from_seconds(0.2, TimerMode::Once)));
+}
+
 fn screenshot_on_event(
     mut save_events: EventReader<ScreenshotEvent>,
     mut send_svg_events: EventWriter<SvgScreenshotEvent>,
+    time: Res<Time>,
+    mut ui_state: ResMut<UiState>,
     mut info_state: ResMut<Info>,
-    main_window: Query<Entity, With<PrimaryWindow>>,
     mut screenshot_manager: ResMut<ScreenshotManager>,
+    main_window: Query<Entity, With<PrimaryWindow>>,
+    mut timer: Query<&mut HideUiTimer>,
     mut counter: Local<u32>,
 ) {
+    let Ok(mut timer) = timer.get_single_mut() else {
+        return;
+    };
+    if timer.tick(time.delta()).just_finished() {
+        ui_state.hide = false;
+    }
     for ScreenshotEvent { path } in save_events.iter() {
-        // if there is no extension, add a
+        timer.reset();
         if path.ends_with("svg") {
             info_state.notify("Writing SVG...");
             send_svg_events.send(SvgScreenshotEvent {
@@ -51,12 +75,13 @@ fn screenshot_on_event(
             });
             continue;
         }
+        // if there is no extension, add png
         let suffix = if path.split('.').count() >= 2 {
             ""
         } else {
             ".png"
         };
-        info_state.notify("Writing rastered image...");
+        info!("Writing raster imag...");
         let path = format!("{path}{suffix}");
         *counter += 1;
         if let Err(e) = screenshot_manager.save_screenshot_to_disk(main_window.single(), path) {
