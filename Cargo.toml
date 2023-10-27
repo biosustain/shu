@@ -1,6 +1,6 @@
 [package]
 name = "shu"
-version = "0.7.1"
+version = "0.8.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "High-dimensional metabolic maps."
@@ -22,7 +22,7 @@ serde = "1.0.147"
 serde_json = "1.0.88"
 proc-macro2 = "1.0.43"
 chrono = "0.4.31"
-roarsvg = "0.3.0"
+roarsvg = "0.3.1"
 image = "0.24.6"
 
 # dependencies exclusive for wasm32

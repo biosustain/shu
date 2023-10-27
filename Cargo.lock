@@ -3007,9 +3007,9 @@ checksum = "216080ab382b992234dda86873c18d4c48358f5cfcb70fd693d7f6f2131b628b"
 
 [[package]]
 name = "roarsvg"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "836627ab04d8406f5e1d1c42f901f97d495c67f96d722cb333e3d82f77ccf1be"
+checksum = "6a2732860e35ba02d87fc1abe0e56d44509646e75a3e86d35c1f6031fc6f503b"
 dependencies = [
  "lyon_path",
  "usvg",
@@ -3140,7 +3140,7 @@ dependencies = [
 
 [[package]]
 name = "shu"
-version = "0.7.1"
+version = "0.8.0"
 dependencies = [
  "async-std",
  "bevy",
