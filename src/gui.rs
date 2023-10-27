@@ -220,7 +220,7 @@ fn ui_settings(
 
         ui.checkbox(&mut state.zero_white, "Zero as white");
 
-        if let Some(first_cond) = state.conditions.get(0) {
+        if let Some(first_cond) = state.conditions.first() {
             if !((first_cond.is_empty()) & (state.conditions.len() == 1)) {
                 let conditions = state.conditions.clone();
                 let condition = &mut state.condition;

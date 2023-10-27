@@ -3007,12 +3007,17 @@ checksum = "216080ab382b992234dda86873c18d4c48358f5cfcb70fd693d7f6f2131b628b"
 
 [[package]]
 name = "roarsvg"
-version = "0.3.1"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a2732860e35ba02d87fc1abe0e56d44509646e75a3e86d35c1f6031fc6f503b"
+checksum = "6dd610dc0a80913a8bb1feb31d637793841a6623cb7bdee90f37f3587edfbf1f"
 dependencies = [
+ "console_error_panic_hook",
+ "js-sys",
  "lyon_path",
  "usvg",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
