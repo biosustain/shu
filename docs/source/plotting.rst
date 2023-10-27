@@ -165,8 +165,9 @@ After moving, rotating and scaling the axes as desired, all these new coordinate
 can be saved to a new map in the settings window (only available for the desktop
 app) for futures shu sessions.
 
-A PNG/JPEG/BMP/TGA image of the map can also be exported through the settings
-window (for all platforms and web).
+An SVG image of the map can also be exported through the settings window (for all
+platforms and the web). PNG/JPEG/BMP/TGA are also supported if the provided paths
+have one of their corresponding extensions.
 
 Hover
 -----
