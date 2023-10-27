@@ -124,7 +124,7 @@ fn save_svg_file(
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
         }
-        let mut writer = writer.add_fonts_dir(&fonts_dir);
+        let mut writer = writer.add_fonts_dir(fonts_dir);
         for (text, transform, vis) in &text_query {
             if Visibility::Hidden == vis {
                 continue;
