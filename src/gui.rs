@@ -141,7 +141,7 @@ impl Default for UiState {
             condition: String::from(""),
             conditions: vec![String::from("")],
             save_path: format!("this_map-{}.json", Utc::now().format("%T-%Y")),
-            screen_path: format!("screenshot-{}.png", Utc::now().format("%T-%Y")),
+            screen_path: format!("screenshot-{}.svg", Utc::now().format("%T-%Y")),
             map_path: String::from("my_map.json"),
             data_path: String::from("my_data.metabolism.json"),
             _init: Init,
