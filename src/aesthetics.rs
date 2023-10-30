@@ -7,7 +7,7 @@ use crate::geom::{
     AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
     VisCondition, Xaxis,
 };
-use crate::gui::{or_color, UiState};
+use crate::gui::{or_color, ActiveData, UiState};
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -31,6 +31,7 @@ impl Plugin for AesPlugin {
             .add_systems(Update, unscale_histogram_children)
             .add_systems(Update, fill_conditions)
             .add_systems(Update, filter_histograms)
+            .add_systems(Update, activate_settings)
             .add_systems(Update, follow_the_axes)
             // TODO: check since these were before load_map
             .add_systems(PostUpdate, (build_axes, build_hover_axes, build_point_axes))
@@ -853,4 +854,49 @@ fn follow_the_axes(
             }
         }
     }
+}
+
+/// Set which data is actively plotted in the screen to show its corresponding
+/// settings.
+fn activate_settings(
+    ui_state: ResMut<UiState>,
+    mut active_data: ResMut<ActiveData>,
+    arrows: Query<(&Aesthetics, &Point<f32>), With<GeomArrow>>,
+    circles: Query<(&Aesthetics, &Point<f32>), With<GeomMetabolite>>,
+    hists: Query<(&Aesthetics, &GeomHist), With<Distribution<f32>>>,
+) {
+    active_data.arrow = arrows
+        .iter()
+        // this works because data without a condition should always be shown
+        .any(|(aes, _)| {
+            aes.condition
+                .as_ref()
+                .map(|c| c == &ui_state.condition)
+                .unwrap_or(true)
+        });
+    active_data.circle = circles.iter().any(|(aes, _)| {
+        aes.condition
+            .as_ref()
+            .map(|c| c == &ui_state.condition)
+            .unwrap_or(true)
+    });
+    (
+        active_data.histogram.left,
+        active_data.histogram.right,
+        active_data.histogram.top,
+    ) = hists
+        .iter()
+        .filter(|(aes, _)| {
+            aes.condition
+                .as_ref()
+                .map(|c| c == &ui_state.condition)
+                .unwrap_or(true)
+        })
+        .fold((false, false, false), |(left, right, top), (_, geom)| {
+            (
+                left | (geom.side == Side::Left),
+                right | (geom.side == Side::Right),
+                top | (geom.side == Side::Up),
+            )
+        });
 }

@@ -1,6 +1,6 @@
 use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, RestoreEvent, Unscale};
 use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
-use crate::gui::{file_drop, UiState};
+use crate::gui::{file_drop, ActiveData, UiState};
 use crate::{data, escher, geom, info};
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{GeometryBuilder, Path, PathBuilder, ShapeBundle, Stroke};
@@ -61,6 +61,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
 
     let asset_server = setup("assets");
     app.insert_resource(asset_server);
+    app.insert_resource(ActiveData::default());
     app.insert_resource(UiState::default());
     app.add_plugins(AesPlugin);
     app.update();
@@ -123,6 +124,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     ));
 
     app.insert_resource(UiState::default());
+    app.insert_resource(ActiveData::default());
     app.insert_resource(AssetServer::new(FileAssetIo::new("asset1", &None)));
     app.add_plugins(AesPlugin);
     app.update();

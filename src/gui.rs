@@ -23,6 +23,7 @@ impl Plugin for GuiPlugin {
             .add_plugins(EguiPlugin)
             .insert_resource(UiState::default())
             .insert_resource(AxisMode::Hide)
+            .insert_resource(ActiveData::default())
             .add_event::<SaveEvent>()
             .add_systems(Update, ui_settings)
             .add_systems(Update, show_hover)
@@ -180,6 +181,35 @@ impl UiState {
     }
 }
 
+#[derive(Default)]
+pub struct ActiveHists {
+    pub left: bool,
+    pub right: bool,
+    pub top: bool,
+}
+
+#[derive(Default, Resource)]
+/// Holds state about what data is being plotted, to then only show relevant
+/// options in the Settings at [`ui_settings`].
+pub struct ActiveData {
+    pub arrow: bool,
+    pub circle: bool,
+    pub histogram: ActiveHists,
+}
+
+impl ActiveData {
+    fn get(&self, key: &str) -> bool {
+        match key {
+            "Reaction" => self.arrow,
+            "Metabolite" => self.circle,
+            "left" => self.histogram.left,
+            "right" => self.histogram.right,
+            "top" => self.histogram.top,
+            _ => panic!("{key} should never be an ActiveData key!"),
+        }
+    }
+}
+
 #[derive(Event)]
 pub struct SaveEvent(String);
 
@@ -188,6 +218,7 @@ pub struct SaveEvent(String);
 pub fn ui_settings(
     mut egui_context: EguiContexts,
     mut state: ResMut<UiState>,
+    active_set: Res<ActiveData>,
     mut save_events: EventWriter<SaveEvent>,
     mut load_events: EventWriter<FileDragAndDrop>,
     mut screen_events: EventWriter<ScreenshotEvent>,
@@ -201,6 +232,9 @@ pub fn ui_settings(
             .into_iter()
             .cartesian_product(["min", "max"])
         {
+            if !active_set.get(geom) {
+                continue;
+            }
             if "min" == ext {
                 ui.label(format!("{geom} scale"));
             }
@@ -215,6 +249,9 @@ pub fn ui_settings(
         if condition != "ALL" {
             ui.label("Histogram scale");
             for side in ["left", "right", "top"] {
+                if !active_set.get(side) {
+                    continue;
+                }
                 ui.horizontal(|ui| {
                     let (color, value) = state.get_geom_params_mut(side, &condition);
                     color_edit_button_rgba(ui, color, Alpha::BlendOrAdditive);
