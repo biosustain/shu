@@ -2,6 +2,7 @@
 
 use crate::data::{Data, ReactionState};
 use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
+use crate::extra_egui::NewTabHyperlink;
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use crate::info::Info;
 use crate::screenshot::ScreenshotEvent;
@@ -317,7 +318,7 @@ pub fn ui_settings(
             }
         });
 
-        ui.add(egui::Hyperlink::from_label_and_url(
+        ui.add(NewTabHyperlink::from_label_and_url(
             "How to use?",
             "https://biosustain.github.io/shu/docs/plotting.html",
         ));

@@ -9,6 +9,7 @@ use bevy_prototype_lyon::prelude::*;
 mod aesthetics;
 mod data;
 mod escher;
+mod extra_egui;
 mod funcplot;
 mod geom;
 mod gui;
