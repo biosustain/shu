@@ -228,6 +228,7 @@ pub fn ui_settings(
         return;
     }
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
+        ui.visuals_mut().override_text_color = Some(egui::Color32::WHITE);
         for (geom, ext) in ["Reaction", "Metabolite"]
             .into_iter()
             .cartesian_product(["min", "max"])
