@@ -262,7 +262,9 @@ pub fn ui_settings(
             }
         }
 
-        ui.checkbox(&mut state.zero_white, "Zero as white");
+        if active_set.get("Reaction") | active_set.get("Metabolite") {
+            ui.checkbox(&mut state.zero_white, "Zero as white");
+        }
 
         if let Some(first_cond) = state.conditions.first() {
             if !((first_cond.is_empty()) & (state.conditions.len() == 1)) {
