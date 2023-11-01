@@ -209,6 +209,10 @@ impl ActiveData {
             _ => panic!("{key} should never be an ActiveData key!"),
         }
     }
+
+    fn any_hist(&self) -> bool {
+        self.histogram.top | self.histogram.left | self.histogram.right
+    }
 }
 
 #[derive(Event)]
@@ -248,7 +252,7 @@ pub fn ui_settings(
         }
 
         let condition = state.condition.clone();
-        if condition != "ALL" {
+        if (condition != "ALL") & active_set.any_hist() {
             ui.label("Histogram scale");
             for side in ["left", "right", "top"] {
                 if !active_set.get(side) {
