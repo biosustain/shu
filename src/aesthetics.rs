@@ -671,7 +671,7 @@ fn plot_hover_hist(
                 let transform = Transform::from_xyz(
                     trans.translation.x + 150.,
                     trans.translation.y + 150.,
-                    10. + *z_eps,
+                    40. + *z_eps,
                 );
                 let geometry = ShapeBundle {
                     path: GeometryBuilder::build_as(&line),
