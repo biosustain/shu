@@ -12,7 +12,6 @@ use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::Rgba;
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSettings};
 use bevy_prototype_lyon::prelude::Path;
-use chrono::offset::Utc;
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -90,10 +89,6 @@ pub struct UiState {
     pub color_top: HashMap<String, Rgba>,
     pub condition: String,
     pub conditions: Vec<String>,
-    pub save_path: String,
-    pub map_path: String,
-    pub data_path: String,
-    pub screen_path: String,
     pub hide: bool,
     // since this type and field are private, Self has to be initialized
     // with Default::default(), ensuring that the fallbacks for colors (empty string) are set.
@@ -143,10 +138,6 @@ impl Default for UiState {
             },
             condition: String::from(""),
             conditions: vec![String::from("")],
-            save_path: format!("this_map-{}.json", Utc::now().format("%T-%Y")),
-            screen_path: format!("screenshot-{}.svg", Utc::now().format("%T-%Y")),
-            map_path: String::from("my_map.json"),
-            data_path: String::from("my_data.metabolism.json"),
             hide: false,
             _init: Init,
         }
@@ -170,14 +161,6 @@ impl UiState {
             ),
             ("top", _) => (or_color(geom, &mut self.color_top, true), &mut self.max_top),
             _ => panic!("Unknown side"),
-        }
-    }
-
-    fn get_mut_paths(&mut self, label: &str) -> &mut String {
-        match label {
-            "Map" => &mut self.map_path,
-            "Data" => &mut self.data_path,
-            _ => panic!("Unknown label"),
         }
     }
 }
@@ -216,7 +199,7 @@ impl ActiveData {
 }
 
 #[derive(Event)]
-pub struct SaveEvent(String);
+pub struct SaveEvent(std::path::PathBuf);
 
 /// Settings for appearance of map and plots.
 /// This is managed by [`bevy_egui`] and it is separate from the rest of the GUI.
@@ -283,26 +266,25 @@ pub fn ui_settings(
                     });
             }
         }
+        // TODO: figure this out with AsyncFileDialog
+
         // direct interactions with the file system are not supported in WASM
         // for loading, direct wasm bindings are being used.
         ui.collapsing("Export", |ui| {
             #[cfg(not(target_arch = "wasm32"))]
             ui.horizontal(|ui| {
                 if ui.button("Save map").clicked() {
-                    save_events.send(SaveEvent(state.save_path.clone()))
+                    if let Some(path) = rfd::FileDialog::new().save_file() {
+                        save_events.send(SaveEvent(path))
+                    }
                 }
-                ui.text_edit_singleline(&mut state.save_path);
-            });
-
-            ui.horizontal(|ui| {
                 if ui.button("Image").clicked() {
-                    screen_events.send(ScreenshotEvent {
-                        path: state.screen_path.clone(),
-                    });
-                    state.hide = true;
+                    if let Some(path) = rfd::FileDialog::new().save_file() {
+                        screen_events.send(ScreenshotEvent { path });
+                        state.hide = true;
+                    }
                 }
-                ui.text_edit_singleline(&mut state.screen_path);
-            })
+            });
         });
         #[cfg(not(target_arch = "wasm32"))]
         ui.collapsing("Import", |ui| {
@@ -310,17 +292,15 @@ pub fn ui_settings(
                 return;
             };
             for label in ["Map", "Data"] {
-                let path = state.get_mut_paths(label);
-                ui.horizontal(|ui| {
-                    if ui.button(label).clicked() {
+                if ui.button(label).clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_file() {
                         // piggyback on file_drop()
                         load_events.send(FileDragAndDrop::DroppedFile {
                             window: win,
-                            path_buf: path.clone().into(),
+                            path_buf: path,
                         });
                     }
-                    ui.text_edit_singleline(path);
-                });
+                }
             }
         });
 

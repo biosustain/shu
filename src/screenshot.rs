@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::{
     escher::MapDimensions,
     funcplot::IgnoreSave,
@@ -34,7 +36,7 @@ impl Plugin for ScreenShotPlugin {
 
 #[derive(Event)]
 pub struct ScreenshotEvent {
-    pub path: String,
+    pub path: PathBuf,
 }
 
 #[derive(Event)]
@@ -68,10 +70,11 @@ fn screenshot_on_event(
     }
     for ScreenshotEvent { path } in save_events.iter() {
         timer.reset();
+        let path = path.to_string_lossy();
         if path.ends_with("svg") {
             info_state.notify("Writing SVG...");
             send_svg_events.send(SvgScreenshotEvent {
-                file_path: path.clone(),
+                file_path: path.to_string(),
             });
             continue;
         }
