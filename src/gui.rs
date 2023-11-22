@@ -5,8 +5,9 @@ use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLO
 use crate::extra_egui::NewTabHyperlink;
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use crate::info::Info;
-use crate::screenshot::ScreenshotEvent;
+use crate::screenshot::ScreenshotSender;
 use bevy::prelude::*;
+use bevy::tasks::AsyncComputeTaskPool;
 use bevy::window::PrimaryWindow;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::Rgba;
@@ -209,12 +210,13 @@ pub fn ui_settings(
     active_set: Res<ActiveData>,
     mut save_events: EventWriter<SaveEvent>,
     mut load_events: EventWriter<FileDragAndDrop>,
-    mut screen_events: EventWriter<ScreenshotEvent>,
+    screen_sender: ResMut<ScreenshotSender>,
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
 ) {
     if state.hide {
         return;
     }
+    let thread_pool = AsyncComputeTaskPool::get();
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         ui.visuals_mut().override_text_color = Some(egui::Color32::WHITE);
         for (geom, ext) in ["Reaction", "Metabolite"]
@@ -266,23 +268,31 @@ pub fn ui_settings(
                     });
             }
         }
-        // TODO: figure this out with AsyncFileDialog
 
         // direct interactions with the file system are not supported in WASM
         // for loading, direct wasm bindings are being used.
         ui.collapsing("Export", |ui| {
-            #[cfg(not(target_arch = "wasm32"))]
             ui.horizontal(|ui| {
+                #[cfg(not(target_arch = "wasm32"))]
                 if ui.button("Save map").clicked() {
                     if let Some(path) = rfd::FileDialog::new().save_file() {
                         save_events.send(SaveEvent(path))
                     }
                 }
                 if ui.button("Image").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().save_file() {
-                        screen_events.send(ScreenshotEvent { path });
-                        state.hide = true;
-                    }
+                    let screen_sender = screen_sender.clone();
+                    thread_pool
+                        .spawn(async move {
+                            let path = rfd::AsyncFileDialog::new().save_file().await;
+                            if let Some(p) = path {
+                                #[cfg(not(target_arch = "wasm32"))]
+                                screen_sender.send(p.into()).await.unwrap();
+                                #[cfg(target_arch = "wasm32")]
+                                screen_sender.send(p.inner().name().into()).await.unwrap();
+                            }
+                        })
+                        .detach();
+                    state.hide = true;
                 }
             });
         });

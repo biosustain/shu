@@ -8,6 +8,7 @@ use crate::{
     info::Info,
     legend::{Xmax, Xmin},
 };
+use async_std::channel::{unbounded, Receiver, Sender};
 use bevy::{asset::LoadedAsset, window::PrimaryWindow};
 use bevy::{prelude::*, reflect::TypeUuid};
 use bevy::{reflect::TypePath, render::view::screenshot::ScreenshotManager};
@@ -19,7 +20,9 @@ pub struct ScreenShotPlugin;
 
 impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ScreenshotEvent>()
+        let (screen_sender, screen_receiver): (Sender<PathBuf>, Receiver<PathBuf>) = unbounded();
+        app.insert_resource(ScreenshotSender(screen_sender))
+            .insert_resource(ScreenshotReceiver(screen_receiver))
             .add_event::<SvgScreenshotEvent>()
             .add_asset::<RawAsset>()
             .init_asset_loader::<RawAssetLoader>()
@@ -34,10 +37,11 @@ impl Plugin for ScreenShotPlugin {
     }
 }
 
-#[derive(Event)]
-pub struct ScreenshotEvent {
-    pub path: PathBuf,
-}
+#[derive(Resource, Deref, DerefMut, Clone)]
+pub struct ScreenshotSender(pub Sender<PathBuf>);
+
+#[derive(Resource, Deref, DerefMut, Clone)]
+pub struct ScreenshotReceiver(pub Receiver<PathBuf>);
 
 #[derive(Event)]
 pub struct SvgScreenshotEvent {
@@ -52,7 +56,7 @@ fn setup_timer(mut commands: Commands) {
 }
 
 fn screenshot_on_event(
-    mut save_events: EventReader<ScreenshotEvent>,
+    receiver: Res<ScreenshotReceiver>,
     mut send_svg_events: EventWriter<SvgScreenshotEvent>,
     time: Res<Time>,
     mut ui_state: ResMut<UiState>,
@@ -68,7 +72,7 @@ fn screenshot_on_event(
     if timer.tick(time.delta()).just_finished() {
         ui_state.hide = false;
     }
-    for ScreenshotEvent { path } in save_events.iter() {
+    if let Ok(path) = receiver.0.try_recv() {
         timer.reset();
         let path = path.to_string_lossy();
         if path.ends_with("svg") {
@@ -76,7 +80,7 @@ fn screenshot_on_event(
             send_svg_events.send(SvgScreenshotEvent {
                 file_path: path.to_string(),
             });
-            continue;
+            return;
         }
         // if there is no extension, add png
         let suffix = if path.split('.').count() >= 2 {

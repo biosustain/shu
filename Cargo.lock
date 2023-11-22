@@ -3265,6 +3265,7 @@ dependencies = [
  "colorgrad",
  "console_error_panic_hook",
  "fastrand",
+ "futures-lite",
  "image",
  "itertools",
  "proc-macro2",
