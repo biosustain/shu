@@ -861,11 +861,11 @@ fn follow_the_axes(
 fn activate_settings(
     ui_state: ResMut<UiState>,
     mut active_data: ResMut<ActiveData>,
-    arrows: Query<(&Aesthetics, &Point<f32>), With<GeomArrow>>,
+    arrows_or_boxes: Query<(&Aesthetics, &Point<f32>), Or<(With<GeomArrow>, With<GeomHist>)>>,
     circles: Query<(&Aesthetics, &Point<f32>), With<GeomMetabolite>>,
     hists: Query<(&Aesthetics, &GeomHist), With<Distribution<f32>>>,
 ) {
-    active_data.arrow = arrows
+    active_data.arrow = arrows_or_boxes
         .iter()
         // this works because data without a condition should always be shown
         .any(|(aes, _)| {
