@@ -17,6 +17,8 @@ can be load with the buttons at the top-right.
 
 For a more comprehensive guide, visit the [documentation](https://biosustain.github.io/shu/docs/plotting.html).
 
+> Paper to cite: https://doi.org/10.1093/bioinformatics/btae140
+
 ## Why?
 
 [Escher](https://escher.github.io/#/) is great. In fact, the format
