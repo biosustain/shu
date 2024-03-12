@@ -49,9 +49,6 @@ pub struct Aesthetics {
 }
 
 #[derive(Component)]
-pub struct Gx {}
-
-#[derive(Component)]
 pub struct Gy {}
 
 /// Data from the variables is allocated here.
@@ -59,8 +56,6 @@ pub struct Gy {}
 pub struct Point<T>(pub Vec<T>);
 #[derive(Component)]
 pub struct Distribution<T>(pub Vec<Vec<T>>);
-#[derive(Component)]
-pub struct Categorical<T>(Vec<T>);
 
 #[derive(Component)]
 pub struct Gsize {}

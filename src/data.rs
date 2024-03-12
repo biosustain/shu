@@ -67,6 +67,10 @@ impl<A> CustomAssetLoader<A> {
 /// Enum to represent floats that may be NaN or Inf.
 enum Number {
     Num(f32),
+    #[allow(dead_code)]
+    // some libraries may use "NaN" or "Inf" as null in JSON we don't care about
+    // those values but still has to be as is since serde(other) is not possible
+    // for untagged enums.
     Skip(String),
 }
 
