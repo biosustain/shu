@@ -853,8 +853,9 @@ fn follow_the_axes(
     for (axis_trans, axis) in axes.iter() {
         for (mut trans, hist) in hists.iter_mut() {
             if (axis.node_id == hist.node_id) & (hist.side == axis.side) {
-                trans.translation = axis_trans.translation;
-                trans.rotation = axis_trans.rotation;
+                // z has to be maintained per element in the axis to avoid flickering
+                trans.translation.x = axis_trans.translation.x;
+                trans.translation.y = axis_trans.translation.y;
                 if hist.follow_scale {
                     trans.scale.x = axis_trans.scale.x;
                 }
