@@ -218,7 +218,7 @@ fn restore_geoms<T: Tag>(
         Query<&mut Stroke, (With<T>, Without<Fill>)>,
     )>,
 ) {
-    for _ in restore_event.iter() {
+    for _ in restore_event.read() {
         for (mut fill, mut path) in query.p0().iter_mut() {
             // met colors
             fill.color = T::default_color();
@@ -496,8 +496,11 @@ fn plot_side_hist(
                     ShapeBundle {
                         path: GeometryBuilder::build_as(&line),
                         // increment z to avoid flickering problems
-                        transform: trans
-                            .with_translation(trans.translation + Vec3::new(0., 0., *z_eps)),
+                        spatial: SpatialBundle {
+                            transform: trans
+                                .with_translation(trans.translation + Vec3::new(0., 0., *z_eps)),
+                            ..default()
+                        },
                         ..default()
                     },
                     Fill::color(Color::hex(hex).unwrap()),
@@ -568,7 +571,10 @@ fn plot_side_box(
                     (
                         ShapeBundle {
                             path: GeometryBuilder::build_as(&line_box),
-                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
+                            spatial: SpatialBundle {
+                                transform: trans.with_scale(Vec3::new(1., 1., 1.)),
+                                ..default()
+                            },
                             ..default()
                         },
                         Fill::color(color),
@@ -594,7 +600,10 @@ fn plot_side_box(
                     (
                         ShapeBundle {
                             path: GeometryBuilder::build_as(&shape),
-                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
+                            spatial: SpatialBundle {
+                                transform: trans.with_scale(Vec3::new(1., 1., 1.)),
+                                ..default()
+                            },
                             ..default()
                         },
                         Fill::color(color),
@@ -670,8 +679,11 @@ fn plot_hover_hist(
                 );
                 let geometry = ShapeBundle {
                     path: GeometryBuilder::build_as(&line),
-                    transform,
-                    visibility: Visibility::Hidden,
+                    spatial: SpatialBundle {
+                        transform,
+                        visibility: Visibility::Hidden,
+                        ..default()
+                    },
                     ..default()
                 };
                 let fill = Fill::color(Color::hex("ffb73388").unwrap());

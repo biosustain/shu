@@ -1,7 +1,7 @@
 //! Functions for plotting data.
 
 use bevy::prelude::{
-    Color, Component, Font, Handle, Text, Text2dBundle, TextStyle, Transform, Vec2,
+    Color, Component, Font, Handle, SpatialBundle, Text, Text2dBundle, TextStyle, Transform, Vec2,
 };
 use bevy_prototype_lyon::{
     entity::ShapeBundle,
@@ -249,8 +249,11 @@ pub fn plot_line(size: f32, transform: Transform) -> (ShapeBundle, Stroke) {
     (
         ShapeBundle {
             path: GeometryBuilder::build_as(&path_builder.build()),
-            visibility: bevy::prelude::Visibility::Hidden,
-            transform,
+            spatial: SpatialBundle {
+                visibility: bevy::prelude::Visibility::Hidden,
+                transform,
+                ..Default::default()
+            },
             ..Default::default()
         },
         Stroke::color(Color::BLACK),

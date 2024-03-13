@@ -1,6 +1,5 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_pancam::{PanCam, PanCamPlugin};
@@ -207,8 +206,9 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands
         .spawn(Camera2dBundle {
-            camera_2d: Camera2d {
+            camera: Camera {
                 clear_color: ClearColorConfig::Custom(Color::rgb(1., 1., 1.)),
+                ..Default::default()
             },
             ..Default::default()
         })

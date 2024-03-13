@@ -7,9 +7,11 @@ use crate::escher::EscherMap;
 use crate::geom::{self, HistTag, Xaxis};
 use crate::geom::{AesFilter, GeomHist, HistPlot};
 use crate::info::Info;
-use bevy::asset::{AssetLoader, LoadContext, LoadedAsset};
+use bevy::asset::io::Reader;
+use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
 use bevy::prelude::*;
-use bevy::reflect::{TypePath, TypeUuid};
+use bevy::reflect::TypePath;
+use bevy::utils::thiserror;
 use bevy::utils::BoxedFuture;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -18,10 +20,10 @@ pub struct DataPlugin;
 
 impl Plugin for DataPlugin {
     fn build(&self, app: &mut App) {
-        app.add_asset::<EscherMap>()
-            .add_asset::<Data>()
-            .add_asset_loader(CustomAssetLoader::<EscherMap>::new(vec!["json"]))
-            .add_asset_loader(CustomAssetLoader::<Data>::new(vec!["metabolism.json"]))
+        app.init_asset::<EscherMap>()
+            .init_asset::<Data>()
+            .register_asset_loader(CustomAssetLoader::<EscherMap>::new(vec!["json"]))
+            .register_asset_loader(CustomAssetLoader::<Data>::new(vec!["metabolism.json"]))
             .add_systems(PostUpdate, load_data);
     }
 }
@@ -32,19 +34,36 @@ pub struct CustomAssetLoader<A> {
     _mark: std::marker::PhantomData<A>,
 }
 
+/// Possible errors that can be produced by [`CustomAssetLoader`]
+#[non_exhaustive]
+#[derive(Debug, thiserror::Error)]
+pub enum CustomJsonLoaderError {
+    /// An [IO](std::io) Error
+    #[error("Could not load asset: {0}")]
+    Io(#[from] std::io::Error),
+    /// A [RON](ron) Error
+    #[error("Could not parse JSON: {0}")]
+    JsonSpannedError(#[from] serde_json::Error),
+}
+
 impl<A> AssetLoader for CustomAssetLoader<A>
 where
     for<'de> A: serde::Deserialize<'de> + bevy::asset::Asset,
 {
+    type Asset = A;
+    type Settings = ();
+    type Error = CustomJsonLoaderError;
     fn load<'a>(
         &'a self,
-        bytes: &'a [u8],
-        load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<(), bevy::asset::Error>> {
+        reader: &'a mut Reader,
+        _settings: &'a (),
+        _load_context: &'a mut LoadContext,
+    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
-            let custom_asset = serde_json::from_slice::<A>(bytes)?;
-            load_context.set_default_asset(LoadedAsset::new(custom_asset));
-            Ok(())
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+            let custom_asset = serde_json::from_slice::<A>(&bytes)?;
+            Ok(custom_asset)
         })
     }
 
@@ -93,8 +112,7 @@ impl Number {
 }
 
 /// Metabolic data from the user that can be read from a `file.metabolism.json`.
-#[derive(Deserialize, TypeUuid, Default, TypePath)]
-#[uuid = "413be529-bfeb-41a3-8db0-4b8b382a2c46"]
+#[derive(Deserialize, Asset, Default, TypePath)]
 pub struct Data {
     /// Vector of reactions' identifiers
     reactions: Option<Vec<String>>,
@@ -188,14 +206,14 @@ fn load_data(
     // remove data to be plotted, axes and histograms
     to_remove: Query<Entity, Or<(With<aesthetics::Aesthetics>, With<HistTag>, With<Xaxis>)>>,
 ) {
-    let custom_asset = if let Some(reac_handle) = &mut state.reaction_data {
-        if asset_server.get_load_state(&*reac_handle) == bevy::asset::LoadState::Failed {
+    let custom_asset = if let Some(reac_handle) = &state.reaction_data {
+        if let Some(bevy::asset::LoadState::Failed) = asset_server.get_load_state(&*reac_handle) {
             info_state
                 .notify("Failed loading data! Check if your metabolism.json is in correct format.");
             state.reaction_data = None;
             return;
         }
-        custom_assets.get_mut(reac_handle)
+        custom_assets.get_mut(reac_handle.id())
     } else {
         return;
     };
