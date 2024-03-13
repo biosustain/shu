@@ -331,11 +331,10 @@ fn save_svg_file(
                     // undo the scaling done on the whole SVG only for the legend
                     .push_group(
                         legend_nodes,
-                        roarsvg::SvgTransform::from_scale(ui_scale.0 as f32, -ui_scale.0 as f32)
-                            .post_translate(
-                                legend_trans.translation().x,
-                                legend_trans.translation().y,
-                            ),
+                        roarsvg::SvgTransform::from_scale(ui_scale.0, -ui_scale.0).post_translate(
+                            legend_trans.translation().x,
+                            legend_trans.translation().y,
+                        ),
                     )
                     .unwrap();
             }
