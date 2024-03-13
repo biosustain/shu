@@ -529,16 +529,29 @@ fn plot_side_box(
     >,
     mut query: Query<(&mut Transform, &Xaxis), With<Unscale>>,
 ) {
+    // first gather the minimum and maximum over conditions since boxpoints
+    // from different conditions can be displayed all at the same time
+    let (min_val, max_val) = &aes_query
+        .iter()
+        .filter(|(_, _, geom, _)| !geom.rendered)
+        .map(|(colors, _, _, _)| (min_f32(&colors.0), max_f32(&colors.0)))
+        .fold((0f32, 0f32), |acc, x| {
+            (
+                if x.0 - acc.0 <= 1e-8 { x.0 } else { acc.0 },
+                if x.1 - acc.1 > 1e-8 { x.1 } else { acc.1 },
+            )
+        });
+
     for (colors, aes, mut geom, is_box) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
-        let min_val = min_f32(&colors.0);
-        let max_val = max_f32(&colors.0);
+        // min_val and max_val don't change per loop element but this is better
+        // than recomputing on every app update with no new unrendered entities
         let grad = build_grad(
             ui_state.zero_white,
-            min_val,
-            max_val,
+            *min_val,
+            *max_val,
             &ui_state.min_reaction_color,
             &ui_state.max_reaction_color,
         );
@@ -557,7 +570,7 @@ fn plot_side_box(
                     }
                     _ => (),
                 };
-                let color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
+                let color = from_grad_clamped(&grad, colors.0[index], *min_val, *max_val);
 
                 trans.translation.z += 10.;
                 let shape = if f32::abs(colors.0[index]) > 1e-7 {
@@ -622,8 +635,8 @@ fn plot_side_box(
                     },
                     ColorListener {
                         value: colors.0[index],
-                        min_val,
-                        max_val,
+                        min_val: *min_val,
+                        max_val: *max_val,
                     },
                     Unscale {},
                     (*is_box).clone(),
@@ -738,13 +751,40 @@ fn normalize_histogram_height(
         Without<Unscale>,
     >,
 ) {
+    // first gather global height
+    let mut heights = HashMap::new();
+    for (cond, side) in ui_state
+        .conditions
+        .iter()
+        .cloned()
+        .map(|s| Some(s))
+        .chain([None])
+        .cartesian_product([Side::Left, Side::Right, Side::Up])
+    {
+        let height = max_f32(
+            &query
+                .iter()
+                .filter_map(|(_, path, _, hist, c)| {
+                    if hist.side == side && c.condition == cond {
+                        Some(path)
+                    } else {
+                        None
+                    }
+                })
+                .flat_map(|path| path.0.into_iter().map(|ev| ev.to().y))
+                .collect::<Vec<f32>>(),
+        );
+        heights.insert((cond, side), height);
+    }
     for (mut trans, path, mut fill, hist, condition) in query.iter_mut() {
-        let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<f32>>());
+        let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<_>>());
+        let global_height = heights[&(condition.condition.clone(), hist.side.clone())];
         trans.scale.y = match hist.side {
-            Side::Left => ui_state.max_left / height,
-            Side::Right => ui_state.max_right / height,
-            Side::Up => ui_state.max_top / height,
-        };
+            Side::Left => ui_state.max_left,
+            Side::Right => ui_state.max_right,
+            Side::Up => ui_state.max_top,
+        } * 10.
+            / (height / global_height);
         let ui_condition = ui_state.condition.clone();
         fill.color = {
             let color_ref = match hist.side {
