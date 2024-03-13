@@ -550,8 +550,8 @@ fn follow_mouse_on_drag_ui(
             };
             if let Some(screen_pos) = win.cursor_position() {
                 // arbitrary offset to make it feel more natural
-                style.left = Val::Px(screen_pos.x - 80. * ui_scale.0 as f32);
-                style.bottom = Val::Px(screen_pos.y - 50. * ui_scale.0 as f32);
+                style.left = Val::Px(screen_pos.x - 80. * ui_scale.0);
+                style.bottom = Val::Px(screen_pos.y - 50. * ui_scale.0);
             }
         }
     }

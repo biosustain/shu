@@ -207,7 +207,7 @@ fn load_data(
     to_remove: Query<Entity, Or<(With<aesthetics::Aesthetics>, With<HistTag>, With<Xaxis>)>>,
 ) {
     let custom_asset = if let Some(reac_handle) = &state.reaction_data {
-        if let Some(bevy::asset::LoadState::Failed) = asset_server.get_load_state(&*reac_handle) {
+        if let Some(bevy::asset::LoadState::Failed) = asset_server.get_load_state(reac_handle) {
             info_state
                 .notify("Failed loading data! Check if your metabolism.json is in correct format.");
             state.reaction_data = None;
