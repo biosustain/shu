@@ -4,8 +4,8 @@ use crate::funcplot::draw_arrow;
 use crate::geom::{GeomHist, HistTag, Side, Xaxis};
 use crate::info::Info;
 use crate::scale::DefaultFontSize;
+use bevy::prelude::*;
 use bevy::reflect::TypePath;
-use bevy::{prelude::*, reflect::TypeUuid};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -37,8 +37,7 @@ pub struct NodeToText {
     pub inner: HashMap<u64, Entity>,
 }
 
-#[derive(Deserialize, TypeUuid, Default, Serialize, TypePath)]
-#[uuid = "413be529-bfeb-41b3-9db0-4b8b380a2c46"]
+#[derive(Deserialize, Asset, Default, Serialize, TypePath)]
 pub struct EscherMap {
     #[allow(dead_code)]
     info: EscherInfo,
@@ -314,7 +313,7 @@ fn build_text_tag(
             color: ARROW_COLOR,
         },
     )
-    .with_alignment(TextAlignment::Center);
+    .with_justify(JustifyText::Center);
     (
         Text2dBundle {
             text,
@@ -374,8 +373,8 @@ pub fn load_map(
     mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
     let custom_asset = custom_assets.get_mut(&state.escher_map);
-    if (asset_server.get_load_state(&state.escher_map) == bevy::asset::LoadState::Failed)
-        & !state.loaded
+    if let (Some(bevy::asset::LoadState::Failed), false) =
+        (asset_server.get_load_state(&state.escher_map), state.loaded)
     {
         info_state.notify("Failed loading map! Check that you JSON is correct.");
         state.loaded = true;
@@ -432,7 +431,10 @@ pub fn load_map(
         commands.spawn((
             ShapeBundle {
                 path: GeometryBuilder::build_as(&shape),
-                transform: Transform::from_xyz(met.x - center_x, -met.y + center_y, 2. + z_eps),
+                spatial: SpatialBundle {
+                    transform: Transform::from_xyz(met.x - center_x, -met.y + center_y, 2. + z_eps),
+                    ..default()
+                },
                 ..Default::default()
             },
             Fill::color(MET_COLOR),
@@ -531,7 +533,10 @@ pub fn load_map(
         commands.spawn((
             ShapeBundle {
                 path: builder.build(),
-                transform: Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1. + z_eps),
+                spatial: SpatialBundle {
+                    transform: Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1. + z_eps),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
             Stroke::new(ARROW_COLOR, 10.0),

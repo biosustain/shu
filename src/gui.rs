@@ -289,7 +289,7 @@ pub fn ui_settings(
             #[cfg(not(target_arch = "wasm32"))]
             ui.horizontal(|ui| {
                 if ui.button("Save map").clicked() {
-                    save_events.send(SaveEvent(state.save_path.clone()))
+                    save_events.send(SaveEvent(state.save_path.clone()));
                 }
                 ui.text_edit_singleline(&mut state.save_path);
             });
@@ -333,25 +333,25 @@ pub fn ui_settings(
 
 /// Open `.metabolism.json` and `.reactions.json` files when dropped on the window.
 pub fn file_drop(
-    mut dnd_evr: EventReader<FileDragAndDrop>,
     mut info_state: ResMut<Info>,
     asset_server: Res<AssetServer>,
     mut reaction_resource: ResMut<ReactionState>,
     mut escher_resource: ResMut<MapState>,
+    mut events: EventReader<FileDragAndDrop>,
 ) {
-    for ev in dnd_evr.iter() {
-        if let FileDragAndDrop::DroppedFile { path_buf, .. } = ev {
+    for event in events.read() {
+        if let FileDragAndDrop::DroppedFile { path_buf, .. } = event {
             println!("Dropped file with path: {:?}", path_buf);
 
+            let path_string = path_buf.to_str().unwrap().to_string();
             if path_buf.to_str().unwrap().ends_with("metabolism.json") {
-                let reaction_handle: Handle<Data> = asset_server.load(path_buf.to_str().unwrap());
+                let reaction_handle: Handle<Data> = asset_server.load(path_string);
                 reaction_resource.reaction_data = Some(reaction_handle);
                 reaction_resource.loaded = false;
                 info_state.notify("(gui) Loading data...");
             } else {
                 //an escher map
-                let escher_handle: Handle<EscherMap> =
-                    asset_server.load(path_buf.to_str().unwrap());
+                let escher_handle: Handle<EscherMap> = asset_server.load(path_string);
                 escher_resource.escher_map = escher_handle;
                 escher_resource.loaded = false;
                 info_state.notify("Loading map...");
@@ -412,7 +412,7 @@ fn show_hover(
 
 /// Register an non-UI entity (histogram) as being dragged by center or right button.
 fn mouse_click_system(
-    mouse_button_input: Res<Input<MouseButton>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
     node_to_text: Res<NodeToText>,
     axis_mode: Res<AxisMode>,
     mut drag_query: Query<(&Transform, &mut Drag, &Xaxis), Without<Style>>,
@@ -499,7 +499,7 @@ fn mouse_click_system(
 
 /// Register a UI Drag enity as being dragged by center or right button.
 fn mouse_click_ui_system(
-    mouse_button_input: Res<Input<MouseButton>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
     mut drag_query: Query<(&mut Drag, &Interaction, &mut BackgroundColor)>,
 ) {
     for (mut drag, interaction, mut background_color) in drag_query.iter_mut() {
@@ -550,8 +550,8 @@ fn follow_mouse_on_drag_ui(
             };
             if let Some(screen_pos) = win.cursor_position() {
                 // arbitrary offset to make it feel more natural
-                style.left = Val::Px(screen_pos.x - 80. * ui_scale.scale as f32);
-                style.bottom = Val::Px(screen_pos.y - 50. * ui_scale.scale as f32);
+                style.left = Val::Px(screen_pos.x - 80. * ui_scale.0 as f32);
+                style.bottom = Val::Px(screen_pos.y - 50. * ui_scale.0 as f32);
             }
         }
     }
@@ -562,7 +562,7 @@ fn follow_mouse_on_rotate(
     mut drag_query: Query<(&mut Transform, &Drag)>,
     mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
 ) {
-    for ev in mouse_motion_events.iter() {
+    for ev in mouse_motion_events.read() {
         for (mut trans, drag) in drag_query.iter_mut() {
             let pos = trans.translation;
             if drag.rotating {
@@ -589,7 +589,7 @@ fn follow_mouse_on_scale(
     mut drag_query: Query<(&mut Transform, &Drag)>,
     mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
 ) {
-    for ev in mouse_motion_events.iter() {
+    for ev in mouse_motion_events.read() {
         for (mut trans, drag) in drag_query.iter_mut() {
             if drag.scaling {
                 const FACTOR: f32 = 0.01;
@@ -602,16 +602,16 @@ fn follow_mouse_on_scale(
 
 /// Change size of UI on +/-.
 fn scale_ui(
-    key_input: Res<Input<KeyCode>>,
+    key_input: Res<ButtonInput<KeyCode>>,
     mut ui_scale: ResMut<UiScale>,
     mut egui_settings: ResMut<EguiSettings>,
 ) {
     let scale = if key_input.pressed(KeyCode::ControlLeft) {
         &mut egui_settings.scale_factor
     } else {
-        &mut ui_scale.scale
+        &mut ui_scale.0
     };
-    if key_input.just_pressed(KeyCode::Plus) {
+    if key_input.just_pressed(KeyCode::NumpadAdd) {
         *scale += 0.1;
     } else if key_input.just_pressed(KeyCode::Minus) {
         *scale -= 0.1;
@@ -635,11 +635,11 @@ impl AxisMode {
 
 /// Show/hide axes of histograms when `s` is pressed.
 fn show_axes(
-    key_input: Res<Input<KeyCode>>,
+    key_input: Res<ButtonInput<KeyCode>>,
     mut mode: ResMut<AxisMode>,
     mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<Path>)>,
 ) {
-    if key_input.just_pressed(KeyCode::S) {
+    if key_input.just_pressed(KeyCode::KeyS) {
         mode.toggle();
         axis_query.iter_mut().for_each(|mut v| {
             *v = match *v {
@@ -659,7 +659,7 @@ fn save_file(
     mut save_events: EventReader<SaveEvent>,
     hist_query: Query<(&Transform, &Xaxis), Without<AnyTag>>,
 ) {
-    for save_event in save_events.iter() {
+    for save_event in save_events.read() {
         let custom_asset = assets.get_mut(&state.escher_map);
         if custom_asset.is_none() {
             return;

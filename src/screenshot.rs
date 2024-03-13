@@ -6,11 +6,16 @@ use crate::{
     info::Info,
     legend::{Xmax, Xmin},
 };
-use bevy::{asset::LoadedAsset, window::PrimaryWindow};
-use bevy::{prelude::*, reflect::TypeUuid};
+use bevy::{asset::AsyncReadExt, window::PrimaryWindow};
+use bevy::{
+    asset::{io::Reader, LoadContext},
+    prelude::*,
+    utils::BoxedFuture,
+};
 use bevy::{reflect::TypePath, render::view::screenshot::ScreenshotManager};
 use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
-use image::ImageOutputFormat::Png;
+
+use image::ImageFormat;
 use serde::Deserialize;
 
 pub struct ScreenShotPlugin;
@@ -19,7 +24,7 @@ impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ScreenshotEvent>()
             .add_event::<SvgScreenshotEvent>()
-            .add_asset::<RawAsset>()
+            .init_asset::<RawAsset>()
             .init_asset_loader::<RawAssetLoader>()
             .add_systems(Startup, setup_timer)
             .add_systems(
@@ -66,7 +71,7 @@ fn screenshot_on_event(
     if timer.tick(time.delta()).just_finished() {
         ui_state.hide = false;
     }
-    for ScreenshotEvent { path } in save_events.iter() {
+    for ScreenshotEvent { path } in save_events.read() {
         timer.reset();
         if path.ends_with("svg") {
             info_state.notify("Writing SVG...");
@@ -90,8 +95,7 @@ fn screenshot_on_event(
     }
 }
 
-#[derive(Debug, Clone, Deserialize, TypeUuid, TypePath)]
-#[uuid = "39cadc56-ab9c-4543-8640-a018b74b5152"]
+#[derive(Debug, Clone, Deserialize, Asset, TypePath)]
 pub struct RawAsset {
     pub value: Vec<u8>,
 }
@@ -99,17 +103,22 @@ pub struct RawAsset {
 pub struct RawAssetLoader;
 
 impl bevy::asset::AssetLoader for RawAssetLoader {
+    type Asset = RawAsset;
+    type Settings = ();
+    type Error = std::io::Error;
     fn load<'a>(
         &'a self,
-        bytes: &'a [u8],
-        load_context: &'a mut bevy::asset::LoadContext,
-    ) -> bevy::utils::BoxedFuture<'a, Result<(), bevy::asset::Error>> {
+        reader: &'a mut Reader,
+        _settings: &'a (),
+        _load_context: &'a mut LoadContext,
+    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
             let raw = RawAsset {
                 value: bytes.to_vec(),
             };
-            load_context.set_default_asset(LoadedAsset::new(raw));
-            Ok(())
+            Ok(raw)
         })
     }
 
@@ -155,7 +164,7 @@ fn save_svg_file(
     img_query: Query<(&UiImage, &Node)>,
     legend_text_query: Query<(&Text, &GlobalTransform, &Style, &Node), Without<IgnoreSave>>,
 ) {
-    for SvgScreenshotEvent { file_path } in save_events.iter() {
+    for SvgScreenshotEvent { file_path } in save_events.read() {
         let RawAsset { value: fira } = raw_fonts.get(&fonts_storage.fira).unwrap();
         let RawAsset { value: assis } = raw_fonts.get(&fonts_storage.assis).unwrap();
         // reflect the whole graph on both axes; the reverse step from reading from escher
@@ -252,13 +261,12 @@ fn save_svg_file(
                 }
                 for child in children.iter() {
                     if let Ok((img_legend, ui_node)) = img_query.get(*child) {
-                        let handle = images.get_handle(&img_legend.texture);
-                        let img = images.get(&handle).unwrap();
+                        let img = images.get(&img_legend.texture).unwrap();
                         let Ok(img) = img.clone().try_into_dynamic() else {
                             continue;
                         };
                         let mut img_buffer = Vec::<u8>::new();
-                        img.write_to(&mut std::io::Cursor::new(&mut img_buffer), Png)
+                        img.write_to(&mut std::io::Cursor::new(&mut img_buffer), ImageFormat::Png)
                             .unwrap();
                         let trans = trans.compute_transform();
                         legend_nodes.push(
@@ -323,11 +331,11 @@ fn save_svg_file(
                     // undo the scaling done on the whole SVG only for the legend
                     .push_group(
                         legend_nodes,
-                        roarsvg::SvgTransform::from_scale(
-                            ui_scale.scale as f32,
-                            -ui_scale.scale as f32,
-                        )
-                        .post_translate(legend_trans.translation().x, legend_trans.translation().y),
+                        roarsvg::SvgTransform::from_scale(ui_scale.0 as f32, -ui_scale.0 as f32)
+                            .post_translate(
+                                legend_trans.translation().x,
+                                legend_trans.translation().y,
+                            ),
                     )
                     .unwrap();
             }

@@ -80,12 +80,11 @@ fn color_legend_arrow(
                     text.sections[0].value = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let handle = images.get_handle(&img_legend.texture);
-                    let image = images.get_mut(&handle).unwrap();
+                    let img = images.get_mut(&img_legend.texture).unwrap();
 
-                    let width = image.size().x as f64;
+                    let width = img.size().x as f64;
                     let points = linspace(min_val, max_val, width as u32);
-                    let data = image.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
+                    let data = img.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
                         let row = (i as f64 / width).floor();
                         let x = i as f64 - width * row;
                         if pixel[3] != 0 {
@@ -95,7 +94,7 @@ fn color_legend_arrow(
                             [0, 0, 0, 0].into_iter()
                         }
                     });
-                    image.data = data.collect::<Vec<u8>>();
+                    img.data = data.collect::<Vec<u8>>();
                 }
             }
         }
@@ -150,12 +149,11 @@ fn color_legend_circle(
                     text.sections[0].value = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let handle = images.get_handle(&img_legend.texture);
-                    let image = images.get_mut(&handle).unwrap();
+                    let img = images.get_mut(&img_legend.texture).unwrap();
 
-                    let width = image.size().x as f64;
+                    let width = img.size().x as f64;
                     let points = linspace(min_val, max_val, width as u32);
-                    let data = image.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
+                    let data = img.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
                         let row = (i as f64 / width).floor();
                         let x = i as f64 - width * row;
                         if pixel[3] != 0 {
@@ -165,7 +163,7 @@ fn color_legend_circle(
                             [0, 0, 0, 0].into_iter()
                         }
                     });
-                    image.data = data.collect::<Vec<u8>>();
+                    img.data = data.collect::<Vec<u8>>();
                 }
             }
         }
@@ -234,8 +232,7 @@ fn color_legend_histograms(
                         style.display = Display::Flex;
                         if let Ok((img_legend, mut background_color)) = img_query.get_mut(*child) {
                             // modify the image inplace
-                            let handle = images.get_handle(&img_legend.texture);
-                            let image = images.get_mut(&handle).unwrap();
+                            let image = images.get_mut(&img_legend.texture).unwrap();
                             if condition == "ALL" {
                                 // show all conditions laminating the legend
                                 background_color.0 = Color::rgba_linear(1., 1., 1., 1.);
@@ -264,14 +261,12 @@ fn color_legend_histograms(
                                         ]
                                     })
                                     .collect();
-                                let part = (image.size().y / colors.len() as f32).floor();
+                                let part = image.size().y / colors.len() as u32;
                                 let data =
                                     image.data.chunks(4).enumerate().flat_map(|(i, pixel)| {
-                                        let row = i as f32 / width;
-                                        let section = usize::min(
-                                            (row / part).floor() as usize,
-                                            colors.len() - 1,
-                                        );
+                                        let row = i as u32 / width;
+                                        let section =
+                                            usize::min((row / part) as usize, colors.len() - 1);
                                         if pixel[3] != 0 {
                                             colors[section]
                                         } else {
@@ -358,8 +353,7 @@ fn color_legend_box(
                     text.sections[0].value = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let handle = images.get_handle(&img_legend.texture);
-                    let image = images.get_mut(&handle).unwrap();
+                    let image = images.get_mut(&img_legend.texture).unwrap();
 
                     let width = image.size().x as f64;
                     let points = linspace(min_val, max_val, width as u32);
@@ -389,7 +383,8 @@ fn display_conditions(
 ) {
     if !ui_state.is_changed() {
         return;
-    } else if (ui_state.condition != "ALL") || ui_state.conditions.is_empty() {
+    }
+    if (ui_state.condition != "ALL") || ui_state.conditions.is_empty() {
         for (_, mut style, _) in &mut legend_query {
             style.display = Display::None;
         }
