@@ -28,7 +28,6 @@ impl Plugin for GuiPlugin {
             .init_resource::<ConditionHeights>()
             .add_event::<SaveEvent>()
             .add_systems(Update, ui_settings)
-            .add_systems(Update, update_per_cond_height)
             .add_systems(Update, show_hover)
             .add_systems(Update, follow_mouse_on_drag)
             .add_systems(Update, follow_mouse_on_drag_ui)
@@ -220,9 +219,14 @@ impl ActiveData {
 #[derive(Event)]
 pub struct SaveEvent(String);
 
+/// Store information related to the scale and maximum heights of the histograms
+/// currently displayed
 #[derive(Default, Resource)]
 pub struct ConditionHeights {
+    /// histogram scale per side per condition
     pub table: HashMap<(Side, String), f32>,
+    /// max Y value of a histogram/kde for a side.
+    pub hist_path_maxes: HashMap<Side, f32>,
 }
 
 /// Settings for appearance of map and plots.
@@ -336,16 +340,6 @@ pub fn ui_settings(
             "https://biosustain.github.io/shu/docs/plotting.html",
         ));
     });
-}
-
-/// Coordinate ui_state max histogram heights.
-fn update_per_cond_height(ui_state: Res<UiState>, mut condition_heights: ResMut<ConditionHeights>) {
-    let condition = ui_state.condition.clone();
-    if ui_state.is_changed() {
-        _ = condition_heights
-            .table
-            .insert((Side::Left, condition), ui_state.max_left);
-    }
 }
 
 /// Open `.metabolism.json` and `.reactions.json` files when dropped on the window.

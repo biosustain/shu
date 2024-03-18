@@ -31,6 +31,7 @@ impl Plugin for AesPlugin {
             .add_systems(Update, unscale_histogram_children)
             .add_systems(Update, fill_conditions)
             .add_systems(Update, filter_histograms)
+            .add_systems(Update, collect_histogram_maxes)
             .add_systems(Update, activate_settings)
             .add_systems(Update, follow_the_axes)
             // TODO: check since these were before load_map
@@ -735,6 +736,47 @@ fn plot_hover_hist(
     }
 }
 
+fn collect_histogram_maxes(
+    ui_state: Res<UiState>,
+    mut cond_heights: ResMut<ConditionHeights>,
+    query: Query<(&Path, &HistTag, &VisCondition), (Without<Unscale>, With<Fill>)>,
+) {
+    if ui_state.is_changed() {
+        _ = cond_heights
+            .table
+            .insert((Side::Left, ui_state.condition.clone()), ui_state.max_left);
+        _ = cond_heights.table.insert(
+            (Side::Right, ui_state.condition.clone()),
+            ui_state.max_right,
+        );
+        _ = cond_heights
+            .table
+            .insert((Side::Up, ui_state.condition.clone()), ui_state.max_top);
+        for side in [Side::Left, Side::Right, Side::Up] {
+            let height = max_f32(
+                &query
+                    .iter()
+                    .filter_map(|(path, hist, vis)| {
+                        if hist.side == side
+                            && vis
+                                .condition
+                                .as_ref()
+                                .map(|c| c == &ui_state.condition || ui_state.condition == "ALL")
+                                .unwrap_or(true)
+                        {
+                            Some(path)
+                        } else {
+                            None
+                        }
+                    })
+                    .flat_map(|path| path.0.into_iter().map(|ev| ev.to().y))
+                    .collect::<Vec<f32>>(),
+            );
+            cond_heights.hist_path_maxes.insert(side, height);
+        }
+    }
+}
+
 /// Normalize the height of histograms to be comparable with each other.
 /// It treats the two sides independently.
 fn normalize_histogram_height(
@@ -751,33 +793,8 @@ fn normalize_histogram_height(
         Without<Unscale>,
     >,
 ) {
-    // first gather global height
-    let mut heights = HashMap::new();
-    // TODO: decouple this from this system for change detection
-    for side in [Side::Left, Side::Right, Side::Up] {
-        let height = max_f32(
-            &query
-                .iter()
-                .filter_map(|(_, path, _, hist, vis)| {
-                    if hist.side == side
-                        && vis
-                            .condition
-                            .as_ref()
-                            .map(|c| c == &ui_state.condition || ui_state.condition == "ALL")
-                            .unwrap_or(true)
-                    {
-                        Some(path)
-                    } else {
-                        None
-                    }
-                })
-                .flat_map(|path| path.0.into_iter().map(|ev| ev.to().y))
-                .collect::<Vec<f32>>(),
-        );
-        heights.insert(side, height);
-    }
     for (mut trans, _, mut fill, hist, condition) in query.iter_mut() {
-        let global_height = heights[&hist.side];
+        let global_height = cond_heights.hist_path_maxes[&hist.side];
         let max_height = cond_heights
             .table
             .get(&(

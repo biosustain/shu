@@ -1,7 +1,7 @@
 //! Unit testing on app-updates.
 use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, RestoreEvent, Unscale};
 use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
-use crate::gui::{file_drop, ActiveData, UiState};
+use crate::gui::{file_drop, ActiveData, ConditionHeights, UiState};
 use crate::{data, escher, geom, info};
 use bevy::prelude::*;
 use bevy::time::TimePlugin;
@@ -67,6 +67,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     setup(&mut app, "assets");
     app.insert_resource(ActiveData::default());
     app.insert_resource(UiState::default());
+    app.init_resource::<ConditionHeights>();
     app.add_plugins(AesPlugin);
     app.update();
 
@@ -132,6 +133,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
 
     setup(&mut app, "asset1");
     app.insert_resource(UiState::default());
+    app.init_resource::<ConditionHeights>();
     app.insert_resource(ActiveData::default());
     app.add_plugins(AesPlugin);
     app.update();
