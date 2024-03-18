@@ -9,13 +9,24 @@ pub struct GeomArrow {
 }
 
 /// Side of the arrow a plot (box point, histogram or legend) is referring to.
-#[derive(Hash, PartialEq, Eq, Debug, Clone, Deserialize, Serialize, Default, Component)]
+#[derive(Hash, PartialEq, Eq, Debug, Clone, Deserialize, Serialize, Default, Component, Copy)]
 pub enum Side {
     Left,
     #[default]
     Right,
     /// for hovering instances
     Up,
+}
+
+impl From<&'static str> for Side {
+    fn from(value: &'static str) -> Self {
+        match value {
+            "left" => Self::Left,
+            "up" => Self::Up,
+            "right" => Self::Right,
+            e @ _ => panic!("Compile time string: {e} unsupported as side."),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

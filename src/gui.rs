@@ -3,7 +3,7 @@
 use crate::data::{Data, ReactionState};
 use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
 use crate::extra_egui::NewTabHyperlink;
-use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
+use crate::geom::{AnyTag, Drag, HistTag, Side, VisCondition, Xaxis};
 use crate::info::Info;
 use crate::screenshot::ScreenshotEvent;
 use bevy::prelude::*;
@@ -25,8 +25,10 @@ impl Plugin for GuiPlugin {
             .insert_resource(UiState::default())
             .insert_resource(AxisMode::Hide)
             .insert_resource(ActiveData::default())
+            .init_resource::<ConditionHeights>()
             .add_event::<SaveEvent>()
             .add_systems(Update, ui_settings)
+            .add_systems(Update, update_per_cond_height)
             .add_systems(Update, show_hover)
             .add_systems(Update, follow_mouse_on_drag)
             .add_systems(Update, follow_mouse_on_drag_ui)
@@ -218,6 +220,11 @@ impl ActiveData {
 #[derive(Event)]
 pub struct SaveEvent(String);
 
+#[derive(Default, Resource)]
+pub struct ConditionHeights {
+    pub table: HashMap<(Side, String), f32>,
+}
+
 /// Settings for appearance of map and plots.
 /// This is managed by [`bevy_egui`] and it is separate from the rest of the GUI.
 pub fn ui_settings(
@@ -261,7 +268,7 @@ pub fn ui_settings(
                 ui.horizontal(|ui| {
                     let (color, value) = state.get_geom_params_mut(side, &condition);
                     color_edit_button_rgba(ui, color, Alpha::BlendOrAdditive);
-                    ui.add(egui::Slider::new(value, 1.0..=300.0).text(side));
+                    ui.add(egui::Slider::new(value, 0.1..=1000.0).text(side));
                 });
             }
         }
@@ -329,6 +336,16 @@ pub fn ui_settings(
             "https://biosustain.github.io/shu/docs/plotting.html",
         ));
     });
+}
+
+/// Coordinate ui_state max histogram heights.
+fn update_per_cond_height(ui_state: Res<UiState>, mut condition_heights: ResMut<ConditionHeights>) {
+    let condition = ui_state.condition.clone();
+    if ui_state.is_changed() {
+        _ = condition_heights
+            .table
+            .insert((Side::Left, condition), ui_state.max_left);
+    }
 }
 
 /// Open `.metabolism.json` and `.reactions.json` files when dropped on the window.

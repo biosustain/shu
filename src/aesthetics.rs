@@ -7,7 +7,7 @@ use crate::geom::{
     AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
     VisCondition, Xaxis,
 };
-use crate::gui::{or_color, ActiveData, UiState};
+use crate::gui::{or_color, ActiveData, ConditionHeights, UiState};
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -469,9 +469,8 @@ fn plot_side_hist(
                 .iter()
                 .position(|r| (r == &axis.id) & (geom.side == axis.side))
             {
-                let this_dist = match dist.0.get(index) {
-                    Some(d) => d,
-                    None => continue,
+                let Some(this_dist) = dist.0.get(index) else {
+                    continue;
                 };
                 let line = match geom.plot {
                     HistPlot::Hist => plot_hist(this_dist, 160, axis.arrow_size, axis.xlimits),
@@ -740,6 +739,7 @@ fn plot_hover_hist(
 /// It treats the two sides independently.
 fn normalize_histogram_height(
     mut ui_state: ResMut<UiState>,
+    cond_heights: Res<ConditionHeights>,
     mut query: Query<
         (
             &mut Transform,
@@ -753,19 +753,19 @@ fn normalize_histogram_height(
 ) {
     // first gather global height
     let mut heights = HashMap::new();
-    for (cond, side) in ui_state
-        .conditions
-        .iter()
-        .cloned()
-        .map(|s| Some(s))
-        .chain([None])
-        .cartesian_product([Side::Left, Side::Right, Side::Up])
-    {
+    // TODO: decouple this from this system for change detection
+    for side in [Side::Left, Side::Right, Side::Up] {
         let height = max_f32(
             &query
                 .iter()
-                .filter_map(|(_, path, _, hist, c)| {
-                    if hist.side == side && c.condition == cond {
+                .filter_map(|(_, path, _, hist, vis)| {
+                    if hist.side == side
+                        && vis
+                            .condition
+                            .as_ref()
+                            .map(|c| c == &ui_state.condition || ui_state.condition == "ALL")
+                            .unwrap_or(true)
+                    {
                         Some(path)
                     } else {
                         None
@@ -774,17 +774,22 @@ fn normalize_histogram_height(
                 .flat_map(|path| path.0.into_iter().map(|ev| ev.to().y))
                 .collect::<Vec<f32>>(),
         );
-        heights.insert((cond, side), height);
+        heights.insert(side, height);
     }
-    for (mut trans, path, mut fill, hist, condition) in query.iter_mut() {
-        let height = max_f32(&path.0.iter().map(|ev| ev.to().y).collect::<Vec<_>>());
-        let global_height = heights[&(condition.condition.clone(), hist.side.clone())];
-        trans.scale.y = match hist.side {
-            Side::Left => ui_state.max_left,
-            Side::Right => ui_state.max_right,
-            Side::Up => ui_state.max_top,
-        } * 10.
-            / (height / global_height);
+    for (mut trans, _, mut fill, hist, condition) in query.iter_mut() {
+        let global_height = heights[&hist.side];
+        let max_height = cond_heights
+            .table
+            .get(&(
+                hist.side,
+                condition.condition.clone().unwrap_or(String::from("")),
+            ))
+            .unwrap_or(match hist.side {
+                Side::Left => &mut ui_state.max_left,
+                Side::Right => &mut ui_state.max_right,
+                Side::Up => &mut ui_state.max_top,
+            });
+        trans.scale.y = max_height / global_height;
         let ui_condition = ui_state.condition.clone();
         fill.color = {
             let color_ref = match hist.side {
