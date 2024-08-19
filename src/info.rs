@@ -138,12 +138,15 @@ fn pop_infobox(
             }
         }
         // fade out
-        color.0.set(Box::new(lerp(
-            info_state.timer.elapsed_secs(),
-            0.,
-            info_state.timer.duration().as_secs_f32(),
-            1.,
-            0.,
-        ))).unwrap();
+        color
+            .0
+            .set(Box::new(lerp(
+                info_state.timer.elapsed_secs(),
+                0.,
+                info_state.timer.duration().as_secs_f32(),
+                1.,
+                0.,
+            )))
+            .unwrap();
     }
 }

@@ -1,16 +1,22 @@
 //! Gui (windows and panels) to upload data and hover.
 
-use crate::data::{Data, ReactionState};
-use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
-use crate::extra_egui::NewTabHyperlink;
-use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
-use crate::info::Info;
-use crate::screenshot::ScreenshotEvent;
-use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
-use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
-use bevy_egui::egui::epaint::Rgba;
-use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSettings};
+use crate::{
+    data::{Data, ReactionState},
+    escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR},
+    extra_egui::NewTabHyperlink,
+    geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis},
+    info::Info,
+    screenshot::ScreenshotEvent,
+};
+use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_egui::{
+    egui,
+    egui::{
+        color_picker::{color_edit_button_rgba, Alpha},
+        epaint::Rgba,
+    },
+    EguiContexts, EguiPlugin, EguiSettings,
+};
 use bevy_prototype_lyon::prelude::Path;
 use chrono::offset::Utc;
 use itertools::Itertools;

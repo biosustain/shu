@@ -1,7 +1,6 @@
 #![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
-use bevy::prelude::*;
-use bevy::winit::WinitSettings;
+use bevy::{prelude::*, winit::WinitSettings};
 use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_prototype_lyon::prelude::*;
 
@@ -40,7 +39,7 @@ fn main() {
         )
         // plugins from dependencies
         .add_plugins(PanCamPlugin)
-               .add_plugins(ShapePlugin)
+        .add_plugins(ShapePlugin)
         // internal plugins
         .add_plugins(screenshot::ScreenShotPlugin)
         .add_plugins(info::InfoPlugin)
@@ -65,8 +64,7 @@ fn main() {
     use gui::ReceiverResource;
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::{spawn_local, JsFuture};
-    use web_sys::console;
-    use web_sys::HtmlInputElement;
+    use web_sys::{console, HtmlInputElement};
 
     let (map_sender, map_receiver): (Sender<EscherMap>, Receiver<EscherMap>) = unbounded();
     let (data_sender, data_receiver): (Sender<data::Data>, Receiver<data::Data>) = unbounded();

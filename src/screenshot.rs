@@ -6,13 +6,15 @@ use crate::{
     info::Info,
     legend::{Xmax, Xmin},
 };
-use bevy::{asset::AsyncReadExt, window::PrimaryWindow};
 use bevy::{
-    asset::{io::Reader, LoadContext},
-    prelude::*};
-use bevy::{reflect::TypePath, render::view::screenshot::ScreenshotManager};
+    asset::{io::Reader, AsyncReadExt, LoadContext},
+    prelude::*,
+    reflect::TypePath,
+    render::view::screenshot::ScreenshotManager,
+    utils::BoxedFuture,
+    window::PrimaryWindow,
+};
 use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
-use bevy::utils::BoxedFuture;
 use image::ImageFormat;
 use serde::Deserialize;
 

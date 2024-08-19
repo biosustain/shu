@@ -1,10 +1,12 @@
 //! Unit testing on app-updates.
-use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, RestoreEvent, Unscale};
-use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
-use crate::gui::{file_drop, ActiveData, UiState};
-use crate::{data, escher, geom, info};
-use bevy::prelude::*;
-use bevy::time::TimePlugin;
+use crate::{
+    aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, RestoreEvent, Unscale},
+    data, escher, geom,
+    geom::{AesFilter, GeomHist, HistTag, Xaxis},
+    gui::{file_drop, ActiveData, UiState},
+    info,
+};
+use bevy::{prelude::*, time::TimePlugin};
 use bevy_prototype_lyon::prelude::{GeometryBuilder, Path, PathBuilder, ShapeBundle, Stroke};
 
 use bevy::tasks::IoTaskPool;

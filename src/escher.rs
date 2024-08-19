@@ -1,11 +1,12 @@
 //! Data model of escher JSON maps
 //! TODO: borrow strings
-use crate::funcplot::draw_arrow;
-use crate::geom::{GeomHist, HistTag, Side, Xaxis};
-use crate::info::Info;
-use crate::scale::DefaultFontSize;
-use bevy::prelude::*;
-use bevy::reflect::TypePath;
+use crate::{
+    funcplot::draw_arrow,
+    geom::{GeomHist, HistTag, Side, Xaxis},
+    info::Info,
+    scale::DefaultFontSize,
+};
+use bevy::{prelude::*, reflect::TypePath};
 use bevy_prototype_lyon::prelude::*;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};

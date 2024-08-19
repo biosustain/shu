@@ -1,18 +1,20 @@
 //! Input data logic.
 
-use std::collections::HashSet;
-use crate::aesthetics;
-use crate::escher::EscherMap;
-use crate::geom::{self, HistTag, Xaxis};
-use crate::geom::{AesFilter, GeomHist, HistPlot};
-use crate::info::Info;
-use bevy::asset::io::Reader;
-use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
-use bevy::prelude::*;
-use bevy::reflect::TypePath;
+use crate::{
+    aesthetics,
+    escher::EscherMap,
+    geom::{self, AesFilter, GeomHist, HistPlot, HistTag, Xaxis},
+    info::Info,
+};
+use bevy::{
+    asset::{io::Reader, AssetLoader, AsyncReadExt, LoadContext},
+    prelude::*,
+    reflect::TypePath,
+    utils::BoxedFuture,
+};
 use itertools::Itertools;
 use serde::Deserialize;
-use bevy::utils::BoxedFuture;
+use std::collections::HashSet;
 use thiserror::Error as ThisError;
 pub struct DataPlugin;
 

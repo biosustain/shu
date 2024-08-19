@@ -1,13 +1,15 @@
-use crate::escher::{ArrowTag, CircleTag, Hover, Tag};
-use crate::funcplot::{
-    build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point, plot_hist,
-    plot_kde, plot_line, plot_scales, zero_lerp, IgnoreSave,
+use crate::{
+    escher::{ArrowTag, CircleTag, Hover, Tag},
+    funcplot::{
+        build_grad, from_grad_clamped, lerp, max_f32, min_f32, path_to_vec, plot_box_point,
+        plot_hist, plot_kde, plot_line, plot_scales, zero_lerp, IgnoreSave,
+    },
+    geom::{
+        AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp,
+        Side, VisCondition, Xaxis,
+    },
+    gui::{or_color, ActiveData, UiState},
 };
-use crate::geom::{
-    AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
-    VisCondition, Xaxis,
-};
-use crate::gui::{or_color, ActiveData, UiState};
 use itertools::Itertools;
 use std::collections::HashMap;
 
