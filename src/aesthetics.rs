@@ -137,7 +137,7 @@ pub fn plot_arrow_color(
             if let Some(index) = aes.identifiers.iter().position(|r| r == tag.id()) {
                 stroke.color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
             } else {
-                stroke.color = Color::rgb(0.85, 0.85, 0.85);
+                stroke.color = Color::srgb(0.85, 0.85, 0.85);
             }
         }
     }
@@ -168,7 +168,7 @@ pub fn plot_metabolite_color(
             if let Some(index) = aes.identifiers.iter().position(|r| r == tag.id()) {
                 fill.color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
             } else {
-                fill.color = Color::rgb(0.85, 0.85, 0.85);
+                fill.color = Color::srgb(0.85, 0.85, 0.85);
             }
         }
     }
@@ -503,7 +503,7 @@ fn plot_side_hist(
                         },
                         ..default()
                     },
-                    Fill::color(Color::hex(hex).unwrap()),
+                    Fill::color(Srgba::hex(hex).unwrap()),
                     VisCondition {
                         condition: aes.condition.clone(),
                     },
@@ -686,7 +686,7 @@ fn plot_hover_hist(
                     },
                     ..default()
                 };
-                let fill = Fill::color(Color::hex("ffb73388").unwrap());
+                let fill = Fill::color(Srgba::hex("ffb73388").unwrap());
                 let scales = plot_scales(this_dist, 600., font.clone(), 12.);
                 commands
                     .spawn((
@@ -756,7 +756,7 @@ fn normalize_histogram_height(
                 Some(cond) => or_color(cond, color_ref, true),
                 None => or_color(&ui_condition, color_ref, false),
             };
-            Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+            Color::linear_rgba(color.r(), color.g(), color.b(), color.a())
         }
     }
 }
