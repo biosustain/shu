@@ -147,6 +147,6 @@ fn pop_infobox(
                 1.,
                 0.,
             )))
-            .unwrap();
+            .map_err(|e|format!("Error:{}",e.get_represented_type_info().unwrap().type_path())).unwrap();
     }
 }
