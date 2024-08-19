@@ -2,7 +2,7 @@
 use crate::funcplot::{lerp, IgnoreSave};
 use std::time::Duration;
 
-use bevy::prelude::*;
+use bevy::{color::palettes::css, prelude::*};
 
 pub struct InfoPlugin;
 impl Plugin for InfoPlugin {
@@ -72,7 +72,7 @@ fn spawn_info_box(mut commands: Commands, top: f32, right: f32) {
             },
             focus_policy: bevy::ui::FocusPolicy::Block,
             z_index: ZIndex::Global(10),
-            background_color: BackgroundColor(Color::DARK_GRAY),
+            background_color: BackgroundColor(css::DARK_GRAY.into()),
             ..Default::default()
         })
         .insert(InfoBox)
@@ -105,7 +105,7 @@ fn display_information(
                 TextStyle {
                     font: font.clone(),
                     font_size: 20.,
-                    color: Color::hex("F49596").unwrap(),
+                    color: Srgba::hex("F49596").unwrap().into(),
                 },
             );
         }
@@ -138,12 +138,12 @@ fn pop_infobox(
             }
         }
         // fade out
-        color.0.set_a(lerp(
+        color.0.set(Box::new(lerp(
             info_state.timer.elapsed_secs(),
             0.,
             info_state.timer.duration().as_secs_f32(),
             1.,
             0.,
-        ));
+        ))).unwrap();
     }
 }
