@@ -11,9 +11,9 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, collections::HashMap};
 
-pub const ARROW_COLOR: Color = Color::rgba(95. / 255., 94. / 255., 95. / 255., 1.0);
-pub const MET_COLOR: Color = Color::rgb(190. / 255., 185. / 255., 185. / 255.);
-pub const MET_STROK: Color = Color::rgb(95. / 255., 94. / 255., 95. / 255.);
+pub const ARROW_COLOR: Color = Color::srgba(95. / 255., 94. / 255., 95. / 255., 1.0);
+pub const MET_COLOR: Color = Color::srgb(190. / 255., 185. / 255., 185. / 255.);
+pub const MET_STROK: Color = Color::srgb(95. / 255., 94. / 255., 95. / 255.);
 
 pub struct EscherPlugin;
 
@@ -373,7 +373,7 @@ pub fn load_map(
     mut existing_geom_hist: Query<&mut GeomHist>,
 ) {
     let custom_asset = custom_assets.get_mut(&state.escher_map);
-    if let (Some(bevy::asset::LoadState::Failed), false) =
+    if let (Some(bevy::asset::LoadState::Failed(_)), false) =
         (asset_server.get_load_state(&state.escher_map), state.loaded)
     {
         info_state.notify("Failed loading map! Check that you JSON is correct.");
