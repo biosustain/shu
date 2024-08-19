@@ -39,7 +39,8 @@ fn main() {
                 .set(ImagePlugin::default_linear()),
         )
         // plugins from dependencies
-        .add_plugins((PanCamPlugin, ShapePlugin))
+        .add_plugins(PanCamPlugin)
+               .add_plugins(ShapePlugin)
         // internal plugins
         .add_plugins(screenshot::ScreenShotPlugin)
         .add_plugins(info::InfoPlugin)
@@ -207,7 +208,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn(Camera2dBundle {
             camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::rgb(1., 1., 1.)),
+                clear_color: ClearColorConfig::Custom(Color::srgb(1., 1., 1.)),
                 ..Default::default()
             },
             ..Default::default()
@@ -217,7 +218,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
             enabled: true, // when false, controls are disabled. See toggle example.
             zoom_to_cursor: true, // whether to zoom towards the mouse or the center of the screen
             min_scale: 1., // prevent the camera from zooming too far in
-            max_scale: Some(40.), // prevent the camera from zooming too far out
+            max_scale: 40.0, // prevent the camera from zooming too far out
             ..Default::default()
         });
 }
