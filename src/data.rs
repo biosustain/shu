@@ -1,7 +1,6 @@
 //! Input data logic.
 
 use std::collections::HashSet;
-
 use crate::aesthetics;
 use crate::escher::EscherMap;
 use crate::geom::{self, HistTag, Xaxis};
@@ -11,11 +10,10 @@ use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
 use bevy::prelude::*;
 use bevy::reflect::TypePath;
-use bevy::utils::thiserror;
-use bevy::utils::BoxedFuture;
 use itertools::Itertools;
 use serde::Deserialize;
-
+use bevy::utils::BoxedFuture;
+use thiserror::Error as ThisError;
 pub struct DataPlugin;
 
 impl Plugin for DataPlugin {
@@ -36,7 +34,7 @@ pub struct CustomAssetLoader<A> {
 
 /// Possible errors that can be produced by [`CustomAssetLoader`]
 #[non_exhaustive]
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, ThisError)]
 pub enum CustomJsonLoaderError {
     /// An [IO](std::io) Error
     #[error("Could not load asset: {0}")]
@@ -61,8 +59,8 @@ where
     ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let custom_asset = serde_json::from_slice::<A>(&bytes)?;
+            reader.read_to_end(&mut bytes).await.unwrap();
+            let custom_asset = serde_json::from_slice::<A>(&bytes).unwrap();
             Ok(custom_asset)
         })
     }
@@ -207,7 +205,7 @@ fn load_data(
     to_remove: Query<Entity, Or<(With<aesthetics::Aesthetics>, With<HistTag>, With<Xaxis>)>>,
 ) {
     let custom_asset = if let Some(reac_handle) = &state.reaction_data {
-        if let Some(bevy::asset::LoadState::Failed) = asset_server.get_load_state(reac_handle) {
+        if let Some(bevy::asset::LoadState::Failed(_)) = asset_server.get_load_state(reac_handle) {
             info_state
                 .notify("Failed loading data! Check if your metabolism.json is in correct format.");
             state.reaction_data = None;
