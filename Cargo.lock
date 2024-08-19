@@ -646,25 +646,6 @@ version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e4a90f30f2849a07d91e393b10c0cc05df09b5773c010ddde57dd8b583be230"
 dependencies = [
- "bevy",
- "bytemuck",
- "console_log",
- "crossbeam-channel",
- "egui",
- "js-sys",
- "log",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "winit",
-]
-
-[[package]]
-name = "bevy_egui"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "128438a8163e49528207aabf20d3ff0890fd6be0f0054626915995efac87922b"
-dependencies = [
  "arboard",
  "bevy",
  "bytemuck",
@@ -678,7 +659,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "webbrowser",
- "wgpu-types",
  "winit",
 ]
 
@@ -848,7 +828,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "535bb673b986f9aa1b2087b14a375ad55307151386d2f52f803acbe62eaff492"
 dependencies = [
  "bevy",
- "bevy_egui 0.28.0",
+ "bevy_egui",
 ]
 
 [[package]]
@@ -3933,10 +3913,9 @@ dependencies = [
 name = "shu"
 version = "0.8.3"
 dependencies = [
- "anyhow",
  "async-std",
  "bevy",
- "bevy_egui 0.29.0",
+ "bevy_egui",
  "bevy_pancam",
  "bevy_prototype_lyon",
  "chrono",
