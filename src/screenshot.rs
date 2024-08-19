@@ -9,12 +9,10 @@ use crate::{
 use bevy::{asset::AsyncReadExt, window::PrimaryWindow};
 use bevy::{
     asset::{io::Reader, LoadContext},
-    prelude::*,
-    utils::BoxedFuture,
-};
+    prelude::*};
 use bevy::{reflect::TypePath, render::view::screenshot::ScreenshotManager};
 use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
-
+use bevy::utils::BoxedFuture;
 use image::ImageFormat;
 use serde::Deserialize;
 
@@ -136,7 +134,15 @@ pub struct RawFontStorage {
     pub fira: Handle<RawAsset>,
     pub assis: Handle<RawAsset>,
 }
-
+fn color_translater(color: Color) -> [u8; 4] {
+    let fill_color = Srgba::from(color);
+    [
+        (fill_color.red * 255.0) as u8,
+        (fill_color.green * 255.0) as u8,
+        (fill_color.blue * 255.0) as u8,
+        (fill_color.alpha * 255.0) as u8,
+    ]
+}
 /// Write image to SVG.
 fn save_svg_file(
     mut save_events: EventReader<SvgScreenshotEvent>,
@@ -189,17 +195,18 @@ fn save_svg_file(
                 .push(
                     &path.0,
                     fill.map(|fill| {
-                        let fill_color: [u8; 4] = fill.color.as_rgba_u8();
+                        let fill_color: [u8; 4] = color_translater(fill.color);
                         roarsvg::fill(
                             roarsvg::Color::new_rgb(fill_color[0], fill_color[1], fill_color[2]),
-                            fill.color.a(),
+                            fill.color.hue(),
                         )
                     }),
                     stroke.map(|stroke| {
-                        let st_color: [u8; 4] = stroke.color.as_rgba_u8();
+                        let fill: [u8; 4] = color_translater(stroke.color);
+                        let st_color: [u8; 4] = fill;
                         roarsvg::stroke(
                             roarsvg::Color::new_rgb(st_color[0], st_color[1], st_color[2]),
-                            stroke.color.a(),
+                            stroke.color.hue(),
                             stroke.options.line_width,
                         )
                     }),
@@ -229,7 +236,7 @@ fn save_svg_file(
             else {
                 continue;
             };
-            let fill: [u8; 4] = color.as_rgba_u8();
+            let fill: [u8; 4] = color_translater(color);
             writer
                 .push_text(
                     paragraph,
@@ -244,7 +251,7 @@ fn save_svg_file(
                     .pre_scale(1.0, -1.0),
                     Some(roarsvg::fill(
                         roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
-                        color.a(),
+                        color.hue(),
                     )),
                     None,
                 )
@@ -261,13 +268,16 @@ fn save_svg_file(
                 }
                 for child in children.iter() {
                     if let Ok((img_legend, ui_node)) = img_query.get(*child) {
-                        let img = images.get(&img_legend.texture).unwrap();
+                        let img: &Image = images.get(&img_legend.texture).unwrap();
                         let Ok(img) = img.clone().try_into_dynamic() else {
                             continue;
                         };
-                        let mut img_buffer = Vec::<u8>::new();
-                        img.write_to(&mut std::io::Cursor::new(&mut img_buffer), ImageFormat::Png)
-                            .unwrap();
+                        let mut img_buffer: Vec<u8> = Vec::new();
+                        img.write_to(
+                            &mut std::io::Cursor::new(&mut img_buffer),
+                            ImageFormat::Jpeg,
+                        )
+                        .unwrap();
                         let trans = trans.compute_transform();
                         legend_nodes.push(
                             roarsvg::create_png_node(
@@ -303,7 +313,7 @@ fn save_svg_file(
                         else {
                             continue;
                         };
-                        let fill: [u8; 4] = color.as_rgba_u8();
+                        let fill: [u8; 4] = color_translater(color);
                         let trans = child_trans.compute_transform();
                         legend_nodes.push(
                             roarsvg::create_text_node(
@@ -315,7 +325,7 @@ fn save_svg_file(
                                 ),
                                 Some(roarsvg::fill(
                                     roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
-                                    color.a(),
+                                    color.hue(),
                                 )),
                                 None,
                                 vec![String::from("Assistant"), String::from("Regular")],
