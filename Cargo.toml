@@ -11,21 +11,21 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = {version="0.13", features = ["multi-threaded", "bevy_render", "bevy_core_pipeline", "bevy_asset", "bevy_sprite", "bevy_winit", "png", "x11", "bevy_ui", "tga", "bmp", "jpeg", "webgl2"], default-features=false }
-bevy_egui = "0.25"
-bevy_pancam = { version = "0.11.0", features = ["bevy_egui"] }
-bevy_prototype_lyon = "0.11.0"
+bevy = {version="0.14.0", features = [ "bevy_render", "bevy_core_pipeline", "bevy_asset", "bevy_sprite", "bevy_winit", "png", "x11", "bevy_ui", "tga", "bmp", "jpeg", "webgl2"], default-features=false }
+bevy_egui = "0.29.0"
+bevy_pancam = { version = "0.13.0", features = ["bevy_egui"] }
+bevy_prototype_lyon = "0.12.0"
 colorgrad = "0.6.2"
-itertools = "0.12.1"
-fastrand = "2.0.1"
-serde = "1.0.197"
-serde_json = "1.0.114"
-proc-macro2 = "1.0.76"
-chrono = "0.4.35"
+itertools = "0.13.0"
+fastrand = "2.1.0"
+serde = "1.0.208"
+serde_json = "1.0.125"
+proc-macro2 = "1.0.86"
+chrono = "0.4.38"
 roarsvg = "0.4.1"
-anyhow = "1.0.80"
-image = "0.24.9"
-
+anyhow = "1.0.86"
+image = "0.25.2"
+thiserror="1.0"
 # dependencies exclusive for wasm32
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2.92", features = ["serde", "serde-serialize"] }
