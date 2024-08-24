@@ -61,7 +61,7 @@ where
     ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
         Box::pin(async move {
             let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await.map_err(CustomJsonLoaderError::Io).unwrap();
+            reader.read_to_end(&mut bytes).await.map_err(CustomJsonLoaderError::Io)?;
             let custom_asset = serde_json::from_slice::<A>(&bytes).unwrap();
             Ok(custom_asset)
         })
