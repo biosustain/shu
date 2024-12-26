@@ -44,7 +44,7 @@ impl Plugin for GuiPlugin {
         building.add_systems(Update, (listen_js_escher, listen_js_data, listen_js_info));
     }
 }
-const HIGH_COLOR: Color = Color::rgb(183. / 255., 210. / 255., 255.);
+const HIGH_COLOR: Color = Color::srgb(183. / 255., 210. / 255., 255.);
 
 /// Retrieve a mutable reference to the color or insert
 /// * a random color with the alpha that is already in the map at the empty string; or
@@ -507,11 +507,11 @@ fn mouse_click_ui_system(
             Interaction::Hovered | Interaction::Pressed => {
                 drag.dragged = mouse_button_input.pressed(MouseButton::Middle);
                 drag.rotating = mouse_button_input.pressed(MouseButton::Right);
-                *background_color = BackgroundColor(Color::rgba(0.9, 0.9, 0.9, 0.2));
+                *background_color = BackgroundColor(Color::srgba(0.9, 0.9, 0.9, 0.2));
             }
             _ => {
                 drag.dragged &= mouse_button_input.pressed(MouseButton::Middle);
-                *background_color = BackgroundColor(Color::rgba(1.0, 1.0, 1.0, 0.0));
+                *background_color = BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.0));
             }
         }
     }

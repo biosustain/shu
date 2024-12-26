@@ -274,7 +274,7 @@ pub fn plot_scales(samples: &[f32], size: f32, font: Handle<Font>, font_size: f3
         size,
         font,
         font_size,
-        Color::rgb(51. / 255., 78. / 255., 107. / 255.),
+        Color::srgb(51. / 255., 78. / 255., 107. / 255.),
     )
 }
 
@@ -346,7 +346,7 @@ fn to_grad(col: &bevy_egui::egui::Rgba) -> GradColor {
 pub fn from_grad_clamped(grad: &Gradient, t: f32, min_val: f32, max_val: f32) -> Color {
     let t = f32::clamp(t, min_val, max_val) as f64;
     let rgba = grad.at(t).to_linear_rgba();
-    Color::rgba(rgba.0 as f32, rgba.1 as f32, rgba.2 as f32, rgba.3 as f32)
+    Color::srgba(rgba.0 as f32, rgba.1 as f32, rgba.2 as f32, rgba.3 as f32)
 }
 
 /// Build a `Gradient` for color interpolation between two colors from

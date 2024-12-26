@@ -57,7 +57,7 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
         200.,
         font,
         15.,
-        Color::hex("504d50").unwrap(),
+        Color::Srgba(bevy::color::Srgba::hex("504d50").unwrap()),
     );
     let scales_mets = scales_arrow.clone();
     let scales_left = scales_arrow.clone();
