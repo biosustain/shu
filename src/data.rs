@@ -11,8 +11,6 @@ use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
 use bevy::prelude::*;
 use bevy::reflect::TypePath;
-use bevy::utils::thiserror;
-use bevy::utils::BoxedFuture;
 use itertools::Itertools;
 use serde::Deserialize;
 
@@ -53,18 +51,16 @@ where
     type Asset = A;
     type Settings = ();
     type Error = CustomJsonLoaderError;
-    fn load<'a>(
+    async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader,
+        reader: &'a mut Reader<'_>,
         _settings: &'a (),
-        _load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let custom_asset = serde_json::from_slice::<A>(&bytes)?;
-            Ok(custom_asset)
-        })
+        _load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await?;
+        let custom_asset = serde_json::from_slice::<A>(&bytes)?;
+        Ok(custom_asset)
     }
 
     fn extensions(&self) -> &[&str] {
@@ -207,7 +203,7 @@ fn load_data(
     to_remove: Query<Entity, Or<(With<aesthetics::Aesthetics>, With<HistTag>, With<Xaxis>)>>,
 ) {
     let custom_asset = if let Some(reac_handle) = &state.reaction_data {
-        if let Some(bevy::asset::LoadState::Failed) = asset_server.get_load_state(reac_handle) {
+        if let Some(bevy::asset::LoadState::Failed(_)) = asset_server.get_load_state(reac_handle) {
             info_state
                 .notify("Failed loading data! Check if your metabolism.json is in correct format.");
             state.reaction_data = None;

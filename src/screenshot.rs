@@ -1,3 +1,4 @@
+//! Module to handle rendering the app state to the screen.
 use crate::{
     escher::MapDimensions,
     funcplot::IgnoreSave,
@@ -10,7 +11,6 @@ use bevy::{asset::AsyncReadExt, window::PrimaryWindow};
 use bevy::{
     asset::{io::Reader, LoadContext},
     prelude::*,
-    utils::BoxedFuture,
 };
 use bevy::{reflect::TypePath, render::view::screenshot::ScreenshotManager};
 use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
@@ -106,20 +106,18 @@ impl bevy::asset::AssetLoader for RawAssetLoader {
     type Asset = RawAsset;
     type Settings = ();
     type Error = std::io::Error;
-    fn load<'a>(
+    async fn load<'a>(
         &'a self,
-        reader: &'a mut Reader,
+        reader: &'a mut Reader<'_>,
         _settings: &'a (),
-        _load_context: &'a mut LoadContext,
-    ) -> BoxedFuture<'a, Result<Self::Asset, Self::Error>> {
-        Box::pin(async move {
-            let mut bytes = Vec::new();
-            reader.read_to_end(&mut bytes).await?;
-            let raw = RawAsset {
-                value: bytes.to_vec(),
-            };
-            Ok(raw)
-        })
+        _load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut bytes = Vec::new();
+        reader.read_to_end(&mut bytes).await?;
+        let raw = RawAsset {
+            value: bytes.to_vec(),
+        };
+        Ok(raw)
     }
 
     fn extensions(&self) -> &[&str] {
@@ -189,17 +187,17 @@ fn save_svg_file(
                 .push(
                     &path.0,
                     fill.map(|fill| {
-                        let fill_color: [u8; 4] = fill.color.as_rgba_u8();
+                        let fill_color: [u8; 3] = fill.color.to_srgba().to_u8_array_no_alpha();
                         roarsvg::fill(
                             roarsvg::Color::new_rgb(fill_color[0], fill_color[1], fill_color[2]),
-                            fill.color.a(),
+                            fill.color.alpha(),
                         )
                     }),
                     stroke.map(|stroke| {
-                        let st_color: [u8; 4] = stroke.color.as_rgba_u8();
+                        let st_color: [u8; 3] = stroke.color.to_srgba().to_u8_array_no_alpha();
                         roarsvg::stroke(
                             roarsvg::Color::new_rgb(st_color[0], st_color[1], st_color[2]),
-                            stroke.color.a(),
+                            stroke.color.alpha(),
                             stroke.options.line_width,
                         )
                     }),
@@ -229,7 +227,7 @@ fn save_svg_file(
             else {
                 continue;
             };
-            let fill: [u8; 4] = color.as_rgba_u8();
+            let fill: [u8; 3] = color.to_srgba().to_u8_array_no_alpha();
             writer
                 .push_text(
                     paragraph,
@@ -244,7 +242,7 @@ fn save_svg_file(
                     .pre_scale(1.0, -1.0),
                     Some(roarsvg::fill(
                         roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
-                        color.a(),
+                        color.alpha(),
                     )),
                     None,
                 )
@@ -303,7 +301,7 @@ fn save_svg_file(
                         else {
                             continue;
                         };
-                        let fill: [u8; 4] = color.as_rgba_u8();
+                        let fill: [u8; 3] = color.to_srgba().to_u8_array_no_alpha();
                         let trans = child_trans.compute_transform();
                         legend_nodes.push(
                             roarsvg::create_text_node(
@@ -315,7 +313,7 @@ fn save_svg_file(
                                 ),
                                 Some(roarsvg::fill(
                                     roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
-                                    color.a(),
+                                    color.alpha(),
                                 )),
                                 None,
                                 vec![String::from("Assistant"), String::from("Regular")],

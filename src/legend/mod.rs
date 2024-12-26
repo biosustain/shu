@@ -1,5 +1,6 @@
 //! Procedural legend generation.
 
+use bevy::color::Srgba;
 use bevy::prelude::*;
 
 use crate::{
@@ -235,7 +236,7 @@ fn color_legend_histograms(
                             let image = images.get_mut(&img_legend.texture).unwrap();
                             if condition == "ALL" {
                                 // show all conditions laminating the legend
-                                background_color.0 = Color::rgba_linear(1., 1., 1., 1.);
+                                background_color.0 = Color::linear_rgba(1., 1., 1., 1.);
                                 let conditions = ui_state.conditions.clone();
                                 let color_ref = match side {
                                     Side::Left => &mut ui_state.color_left,
@@ -251,13 +252,11 @@ fn color_legend_histograms(
                                         // depending on the order of execution, the colors
                                         // might have not been initialized by the histogram plotter
                                         let cl = or_color(k, color_ref, true);
-                                        let c = Color::rgba_linear(cl.r(), cl.g(), cl.b(), cl.a())
-                                            .as_rgba();
                                         [
-                                            (c.r() * 255.) as u8,
-                                            (c.g() * 255.) as u8,
-                                            (c.b() * 255.) as u8,
-                                            (c.a() * 255.) as u8,
+                                            (cl.r() * 255.) as u8,
+                                            (cl.g() * 255.) as u8,
+                                            (cl.b() * 255.) as u8,
+                                            (cl.a() * 255.) as u8,
                                         ]
                                     })
                                     .collect();
@@ -276,7 +275,7 @@ fn color_legend_histograms(
                                     });
                                 image.data = data.collect::<Vec<u8>>();
                             } else {
-                                if background_color.0 == Color::rgba_linear(1., 1., 1., 1.) {
+                                if background_color.0 == Color::linear_rgba(1., 1., 1., 1.) {
                                     // previous condition was ALL (or never changed)
                                     // reset the image data that was painted with colors
                                     let data = image.data.chunks(4).flat_map(|pixel| {
@@ -295,7 +294,7 @@ fn color_legend_histograms(
                                         _ => panic!("unexpected side"),
                                     };
                                     let color = or_color(&condition, ref_col, true);
-                                    Color::rgba_linear(color.r(), color.g(), color.b(), color.a())
+                                    Color::linear_rgba(color.r(), color.g(), color.b(), color.a())
                                 };
                             }
                         }
@@ -412,7 +411,7 @@ fn display_conditions(
                             TextStyle {
                                 font: font.clone(),
                                 font_size: 12.,
-                                color: Color::hex("504d50").unwrap(),
+                                color: Color::Srgba(Srgba::hex("504d50").unwrap()),
                             },
                         ),
                         ..Default::default()

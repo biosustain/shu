@@ -23,7 +23,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     // Setup app
     let mut app = App::new();
     // build_axes queries for aesthetics
-    app.world
+    app.world_mut()
         .spawn(Aesthetics {
             identifiers: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             condition: None,
@@ -42,7 +42,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     // and for Paths with ArrowTag
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
-    app.world.spawn((
+    app.world_mut().spawn((
         ShapeBundle {
             path: GeometryBuilder::build_as(&line),
             spatial: SpatialBundle {
@@ -51,7 +51,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
             },
             ..default()
         },
-        Stroke::new(Color::rgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
+        Stroke::new(Color::srgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
             hists: None,
@@ -72,18 +72,18 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
 
     // one update for xaxis creation
     assert!(app
-        .world
+        .world_mut()
         .query::<&Xaxis>()
-        .iter(&app.world)
+        .iter(&app.world())
         .next()
         .is_some());
 
     // another update for HistTag creation
     app.update();
     assert!(app
-        .world
+        .world_mut()
         .query::<(&HistTag, &Path)>()
-        .iter(&app.world)
+        .iter(&app.world())
         .next()
         .is_some());
 }
@@ -93,7 +93,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     // Setup app
     let mut app = App::new();
     // build_axes queries for aesthetics
-    app.world
+    app.world_mut()
         .spawn(Aesthetics {
             identifiers: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             condition: None,
@@ -108,7 +108,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     // and for Paths with ArrowTag
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
-    app.world.spawn((
+    app.world_mut().spawn((
         ShapeBundle {
             path: GeometryBuilder::build_as(&line),
             spatial: SpatialBundle {
@@ -117,7 +117,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
             },
             ..default()
         },
-        Stroke::new(Color::rgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
+        Stroke::new(Color::srgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
             hists: None,
@@ -137,9 +137,9 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     app.update();
 
     assert!(app
-        .world
+        .world_mut()
         .query::<(&Xaxis, &Unscale)>()
-        .iter(&app.world)
+        .iter(&app.world())
         .next()
         .is_some());
 
@@ -147,9 +147,9 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     app.update();
 
     assert!(app
-        .world
+        .world_mut()
         .query::<(&HistTag, &Unscale, &Path)>()
-        .iter(&app.world)
+        .iter(&app.world())
         .next()
         .is_some());
 }
@@ -171,7 +171,7 @@ fn loading_file_drop_does_not_crash() {
     app.add_plugins(data::DataPlugin);
     app.add_plugins(escher::EscherPlugin);
     app.init_asset::<Font>();
-    let asset_server = app.world.get_resource::<AssetServer>().unwrap();
+    let asset_server = app.world().get_resource::<AssetServer>().unwrap();
     let escher_handle: Handle<escher::EscherMap> = asset_server.load("ecoli_core_map.json");
     app.insert_resource(escher::MapState {
         escher_map: escher_handle,
@@ -180,7 +180,7 @@ fn loading_file_drop_does_not_crash() {
     app.add_systems(Update, file_drop);
 
     app.update();
-    app.world.send_event(FileDragAndDrop::DroppedFile {
+    app.world_mut().send_event(FileDragAndDrop::DroppedFile {
         window: Entity::from_raw(24),
         path_buf: "assets/ecoli_core_map.json".into(),
     });
