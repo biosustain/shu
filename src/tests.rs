@@ -45,10 +45,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     app.world_mut().spawn((
         ShapeBundle {
             path: GeometryBuilder::build_as(&line),
-            spatial: SpatialBundle {
-                transform: Transform::from_xyz(1., 1., 1.),
-                ..default()
-            },
+            transform: Transform::from_xyz(1., 1., 1.),
             ..default()
         },
         Stroke::new(Color::srgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
@@ -111,10 +108,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     app.world_mut().spawn((
         ShapeBundle {
             path: GeometryBuilder::build_as(&line),
-            spatial: SpatialBundle {
-                transform: Transform::from_xyz(1., 1., 1.),
-                ..default()
-            },
+            transform: Transform::from_xyz(1., 1., 1.),
             ..default()
         },
         Stroke::new(Color::srgb(51. / 255., 78. / 255., 101. / 255.), 10.0),

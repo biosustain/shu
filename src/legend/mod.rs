@@ -44,10 +44,12 @@ impl Plugin for LegendPlugin {
 ///   which is the one that is displayed on the map.
 fn color_legend_arrow(
     ui_state: Res<UiState>,
-    mut legend_query: Query<(Entity, &mut Style, &Children), With<LegendArrow>>,
-    mut img_query: Query<&UiImage>,
-    mut text_query: Query<&mut Text, With<Xmin>>,
-    mut text_max_query: Query<&mut Text, Without<Xmin>>,
+    mut writer: TextUiWriter,
+    mut legend_query: Query<(Entity, &mut Node, &Children), With<LegendArrow>>,
+    mut img_query: Query<&ImageNode>,
+    // these two queries are to filter Children of legend_query
+    text_query: Query<&Text, With<Xmin>>,
+    text_max_query: Query<&Text, Without<Xmin>>,
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomArrow>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -75,13 +77,13 @@ fn color_legend_arrow(
                 &ui_state.max_reaction_color,
             );
             for child in children.iter() {
-                if let Ok(mut text) = text_query.get_mut(*child) {
-                    text.sections[0].value = format!("{:.2e}", min_val);
-                } else if let Ok(mut text) = text_max_query.get_mut(*child) {
-                    text.sections[0].value = format!("{:.2e}", max_val);
+                if text_query.contains(*child) {
+                    *writer.text(*child, 0) = format!("{:.2e}", min_val);
+                } else if text_max_query.contains(*child) {
+                    *writer.text(*child, 0) = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let img = images.get_mut(&img_legend.texture).unwrap();
+                    let img = images.get_mut(&img_legend.image).unwrap();
 
                     let width = img.size().x as f64;
                     let points = linspace(min_val, max_val, width as u32);
@@ -115,10 +117,11 @@ fn color_legend_arrow(
 ///   which is the one that is displayed on the map.
 fn color_legend_circle(
     ui_state: Res<UiState>,
-    mut legend_query: Query<(Entity, &mut Style, &Children), With<LegendCircle>>,
-    mut img_query: Query<&UiImage>,
-    mut text_query: Query<&mut Text, With<Xmin>>,
-    mut text_max_query: Query<&mut Text, Without<Xmin>>,
+    mut writer: TextUiWriter,
+    mut legend_query: Query<(Entity, &mut Node, &Children), With<LegendCircle>>,
+    mut img_query: Query<&ImageNode>,
+    text_query: Query<&Text, With<Xmin>>,
+    text_max_query: Query<&Text, Without<Xmin>>,
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomMetabolite>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -144,13 +147,13 @@ fn color_legend_circle(
                 &ui_state.max_metabolite_color,
             );
             for child in children.iter() {
-                if let Ok(mut text) = text_query.get_mut(*child) {
-                    text.sections[0].value = format!("{:.2e}", min_val);
-                } else if let Ok(mut text) = text_max_query.get_mut(*child) {
-                    text.sections[0].value = format!("{:.2e}", max_val);
+                if text_query.contains(*child) {
+                    *writer.text(*child, 0) = format!("{:.2e}", min_val);
+                } else if text_max_query.contains(*child) {
+                    *writer.text(*child, 0) = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let img = images.get_mut(&img_legend.texture).unwrap();
+                    let img = images.get_mut(&img_legend.image).unwrap();
 
                     let width = img.size().x as f64;
                     let points = linspace(min_val, max_val, width as u32);
@@ -176,7 +179,8 @@ fn color_legend_circle(
 fn color_legend_histograms(
     mut ui_state: ResMut<UiState>,
     mut images: ResMut<Assets<Image>>,
-    mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendHist>>,
+    mut writer: TextUiWriter,
+    mut legend_query: Query<(Entity, &mut Node, &Side, &Children), With<LegendHist>>,
     // Unscale means would mean that is not a histogram
     axis_query: Query<&Xaxis, Without<Unscale>>,
     // only queries for collapsing the legend if no hist data is displayed anymore
@@ -189,9 +193,9 @@ fn color_legend_histograms(
             With<Distribution<f32>>,
         ),
     >,
-    mut img_query: Query<(&UiImage, &mut BackgroundColor)>,
-    mut text_query: Query<&mut Text, With<Xmin>>,
-    mut text_max_query: Query<&mut Text, Without<Xmin>>,
+    mut img_query: Query<(&ImageNode, &mut BackgroundColor)>,
+    text_query: Query<&Text, With<Xmin>>,
+    text_max_query: Query<&Text, Without<Xmin>>,
 ) {
     if !ui_state.is_changed() {
         // the ui_state always changes on the creation of histograms
@@ -225,15 +229,15 @@ fn color_legend_histograms(
             }
             for child in children.iter() {
                 if axis_side == &side {
-                    if let Ok(mut text) = text_query.get_mut(*child) {
-                        text.sections[0].value = format!("{:.2e}", xlimits.0);
-                    } else if let Ok(mut text) = text_max_query.get_mut(*child) {
-                        text.sections[0].value = format!("{:.2e}", xlimits.1);
+                    if text_query.contains(*child) {
+                        *writer.text(*child, 0) = format!("{:.2e}", xlimits.0);
+                    } else if text_max_query.contains(*child) {
+                        *writer.text(*child, 0) = format!("{:.2e}", xlimits.1);
                     } else {
                         style.display = Display::Flex;
                         if let Ok((img_legend, mut background_color)) = img_query.get_mut(*child) {
                             // modify the image inplace
-                            let image = images.get_mut(&img_legend.texture).unwrap();
+                            let image = images.get_mut(&img_legend.image).unwrap();
                             if condition == "ALL" {
                                 // show all conditions laminating the legend
                                 background_color.0 = Color::linear_rgba(1., 1., 1., 1.);
@@ -316,10 +320,11 @@ fn color_legend_histograms(
 ///   which is the one that is displayed on the map.
 fn color_legend_box(
     ui_state: Res<UiState>,
-    mut legend_query: Query<(Entity, &mut Style, &Side, &Children), With<LegendBox>>,
-    mut img_query: Query<&UiImage>,
-    mut text_query: Query<&mut Text, With<Xmin>>,
-    mut text_max_query: Query<&mut Text, Without<Xmin>>,
+    mut writer: TextUiWriter,
+    mut legend_query: Query<(Entity, &mut Node, &Side, &Children), With<LegendBox>>,
+    mut img_query: Query<&ImageNode>,
+    text_query: Query<&Text, With<Xmin>>,
+    text_max_query: Query<&Text, Without<Xmin>>,
     point_query: Query<(&Point<f32>, &Aesthetics, &GeomHist), (With<Gy>, Without<PopUp>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -346,13 +351,13 @@ fn color_legend_box(
                 &ui_state.max_reaction_color,
             );
             for child in children.iter() {
-                if let Ok(mut text) = text_query.get_mut(*child) {
-                    text.sections[0].value = format!("{:.2e}", min_val);
-                } else if let Ok(mut text) = text_max_query.get_mut(*child) {
-                    text.sections[0].value = format!("{:.2e}", max_val);
+                if text_query.contains(*child) {
+                    *writer.text(*child, 0) = format!("{:.2e}", min_val);
+                } else if text_max_query.contains(*child) {
+                    *writer.text(*child, 0) = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let image = images.get_mut(&img_legend.texture).unwrap();
+                    let image = images.get_mut(&img_legend.image).unwrap();
 
                     let width = image.size().x as f64;
                     let points = linspace(min_val, max_val, width as u32);
@@ -378,7 +383,7 @@ fn display_conditions(
     mut commands: Commands,
     ui_state: Res<UiState>,
     asset_server: Res<AssetServer>,
-    mut legend_query: Query<(Entity, &mut Style, &mut LegendCondition)>,
+    mut legend_query: Query<(Entity, &mut Node, &mut LegendCondition)>,
 ) {
     if !ui_state.is_changed() {
         return;
@@ -405,17 +410,11 @@ fn display_conditions(
             // commands.entity(parent).remove_children(children);
             conditions.iter().for_each(|text| {
                 commands.entity(parent).with_children(|p| {
-                    p.spawn(TextBundle {
-                        text: Text::from_section(
-                            text,
-                            TextStyle {
-                                font: font.clone(),
-                                font_size: 12.,
-                                color: Color::Srgba(Srgba::hex("504d50").unwrap()),
-                            },
-                        ),
-                        ..Default::default()
-                    });
+                    p.spawn((
+                        Text(text.clone()),
+                        TextFont::from_font(font.clone()).with_font_size(12.),
+                        TextColor(Color::Srgba(Srgba::hex("504d50").unwrap())),
+                    ));
                 });
             });
         }
