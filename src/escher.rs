@@ -304,7 +304,7 @@ fn build_text_tag(
     center_y: f32,
     font_size: f32,
 ) -> (
-    Text,
+    Text2d,
     TextFont,
     TextColor,
     TextLayout,
@@ -313,7 +313,7 @@ fn build_text_tag(
     DefaultFontSize,
 ) {
     let pos = node.label_position();
-    let text = Text(node.id());
+    let text = Text2d(node.id());
     (
         text,
         TextFont::from_font(font).with_font_size(font_size),
