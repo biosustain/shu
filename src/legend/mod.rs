@@ -48,8 +48,8 @@ fn color_legend_arrow(
     mut legend_query: Query<(Entity, &mut Node, &Children), With<LegendArrow>>,
     mut img_query: Query<&ImageNode>,
     // these two queries are to filter Children of legend_query
-    text_query: Query<&Text, With<Xmin>>,
-    text_max_query: Query<&Text, Without<Xmin>>,
+    text_query: Query<Entity, With<Xmin>>,
+    text_max_query: Query<Entity, Without<Xmin>>,
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomArrow>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -120,8 +120,8 @@ fn color_legend_circle(
     mut writer: TextUiWriter,
     mut legend_query: Query<(Entity, &mut Node, &Children), With<LegendCircle>>,
     mut img_query: Query<&ImageNode>,
-    text_query: Query<&Text, With<Xmin>>,
-    text_max_query: Query<&Text, Without<Xmin>>,
+    text_query: Query<Entity, With<Xmin>>,
+    text_max_query: Query<Entity, Without<Xmin>>,
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomMetabolite>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -194,8 +194,8 @@ fn color_legend_histograms(
         ),
     >,
     mut img_query: Query<(&ImageNode, &mut BackgroundColor)>,
-    text_query: Query<&Text, With<Xmin>>,
-    text_max_query: Query<&Text, Without<Xmin>>,
+    text_query: Query<Entity, With<Xmin>>,
+    text_max_query: Query<Entity, Without<Xmin>>,
 ) {
     if !ui_state.is_changed() {
         // the ui_state always changes on the creation of histograms
@@ -323,8 +323,8 @@ fn color_legend_box(
     mut writer: TextUiWriter,
     mut legend_query: Query<(Entity, &mut Node, &Side, &Children), With<LegendBox>>,
     mut img_query: Query<&ImageNode>,
-    text_query: Query<&Text, With<Xmin>>,
-    text_max_query: Query<&Text, Without<Xmin>>,
+    text_query: Query<Entity, With<Xmin>>,
+    text_max_query: Query<Entity, Without<Xmin>>,
     point_query: Query<(&Point<f32>, &Aesthetics, &GeomHist), (With<Gy>, Without<PopUp>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
