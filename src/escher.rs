@@ -303,24 +303,24 @@ fn build_text_tag(
     center_x: f32,
     center_y: f32,
     font_size: f32,
-) -> (Text2dBundle, DefaultFontSize) {
+) -> (
+    Text,
+    TextFont,
+    TextColor,
+    TextLayout,
+    Transform,
+    bevy::sprite::Anchor,
+    DefaultFontSize,
+) {
     let pos = node.label_position();
-    let text = Text::from_section(
-        node.id(),
-        TextStyle {
-            font,
-            font_size,
-            color: ARROW_COLOR,
-        },
-    )
-    .with_justify(JustifyText::Center);
+    let text = Text(node.id());
     (
-        Text2dBundle {
-            text,
-            transform: Transform::from_xyz(pos.x - center_x, -pos.y + center_y, 4.0),
-            text_anchor: bevy::sprite::Anchor::CenterLeft,
-            ..default()
-        },
+        text,
+        TextFont::from_font(font).with_font_size(font_size),
+        TextColor(ARROW_COLOR),
+        TextLayout::new_with_justify(JustifyText::Center),
+        Transform::from_xyz(pos.x - center_x, -pos.y + center_y, 4.0),
+        bevy::sprite::Anchor::CenterLeft,
         DefaultFontSize { size: font_size },
     )
 }
@@ -431,21 +431,22 @@ pub fn load_map(
         commands.spawn((
             ShapeBundle {
                 path: GeometryBuilder::build_as(&shape),
-                spatial: SpatialBundle {
-                    transform: Transform::from_xyz(met.x - center_x, -met.y + center_y, 2. + z_eps),
-                    ..default()
-                },
+                transform: Transform::from_xyz(met.x - center_x, -met.y + center_y, 2. + z_eps),
                 ..Default::default()
             },
             Fill::color(MET_COLOR),
             Stroke::new(MET_STROK, 4.0),
             circle.clone(),
         ));
-        commands.spawn((
-            build_text_tag(&mut met, font.clone(), center_x, center_y, 25.),
-            hover,
-            circle,
-        ));
+        commands
+            .spawn(build_text_tag(
+                &mut met,
+                font.clone(),
+                center_x,
+                center_y,
+                25.,
+            ))
+            .insert((hover, circle));
     }
     // add infinitesimal epsilon to each arrow so they don't flicker because of z-ordering
     let mut z_eps = 1e-6;
@@ -533,10 +534,7 @@ pub fn load_map(
         commands.spawn((
             ShapeBundle {
                 path: builder.build(),
-                spatial: SpatialBundle {
-                    transform: Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1. + z_eps),
-                    ..Default::default()
-                },
+                transform: Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1. + z_eps),
                 ..Default::default()
             },
             Stroke::new(ARROW_COLOR, 10.0),

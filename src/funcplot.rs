@@ -1,8 +1,6 @@
 //! Functions for plotting data.
 
-use bevy::prelude::{
-    Color, Component, Font, Handle, SpatialBundle, Text, Text2dBundle, TextStyle, Transform, Vec2,
-};
+use bevy::prelude::{Color, Component, Font, Handle, Text2d, TextColor, TextFont, Transform, Vec2};
 use bevy_prototype_lyon::{
     entity::ShapeBundle,
     prelude::{GeometryBuilder, Path, PathBuilder, Stroke},
@@ -180,12 +178,14 @@ pub fn plot_box_point(n_cond: usize, cond_index: usize) -> Path {
     path_builder.build()
 }
 
-/// Bundle for text that goes into plot scales.
+type TextBundle = (Text2d, TextFont, TextColor, Transform);
+
+/// Three text tags to be used as Components to build a an axis scale.
 #[derive(Clone)]
 pub struct ScaleBundle {
-    pub x_0: Text2dBundle,
-    pub y: Text2dBundle,
-    pub x_n: Text2dBundle,
+    pub x_0: TextBundle,
+    pub y: TextBundle,
+    pub x_n: TextBundle,
 }
 
 impl ScaleBundle {
@@ -201,43 +201,27 @@ impl ScaleBundle {
         color: Color,
     ) -> Self {
         // build x component
-        let x_0 = Text2dBundle {
-            text: Text::from_section(
-                format!("{:+.3e}", minimum),
-                TextStyle {
-                    font: font.clone(),
-                    font_size,
-                    color,
-                },
-            ),
+        let x_0 = (
+            Text2d::new(format!("{:+.3e}", minimum)),
+            TextFont::from_font(font.clone()).with_font_size(font_size),
+            TextColor(color),
             // to the left so that it is centered
-            transform: Transform::from_xyz(-size / 2. - font_size * 2., 0., 0.2),
-            ..Default::default()
-        };
-        let x_n = Text2dBundle {
-            text: Text::from_section(
-                format!("{:+.3e}", maximum),
-                TextStyle {
-                    font: font.clone(),
-                    font_size,
-                    color,
-                },
-            ),
-            transform: Transform::from_xyz(size / 2., 0., 0.2),
-            ..Default::default()
-        };
-        let y = Text2dBundle {
-            text: Text::from_section(
-                format!("{:+.3e}", mean),
-                TextStyle {
-                    font,
-                    font_size,
-                    color,
-                },
-            ),
-            transform: Transform::from_xyz(mean_pos, 0., 0.2),
-            ..Default::default()
-        };
+            Transform::from_xyz(-size / 2. - font_size * 2., 0., 0.2),
+        );
+        let x_n = (
+            Text2d::new(format!("{:+.3e}", maximum)),
+            TextFont::from_font(font.clone()).with_font_size(font_size),
+            TextColor(color),
+            // to the left so that it is centered
+            Transform::from_xyz(size / 2., 0., 0.2),
+        );
+        let y = (
+            Text2d::new(format!("{:+.3e}", mean)),
+            TextFont::from_font(font.clone()).with_font_size(font_size),
+            TextColor(color),
+            // to the left so that it is centered
+            Transform::from_xyz(mean_pos, 0., 0.2),
+        );
         Self { x_0, y, x_n }
     }
 }
@@ -249,11 +233,8 @@ pub fn plot_line(size: f32, transform: Transform) -> (ShapeBundle, Stroke) {
     (
         ShapeBundle {
             path: GeometryBuilder::build_as(&path_builder.build()),
-            spatial: SpatialBundle {
-                visibility: bevy::prelude::Visibility::Hidden,
-                transform,
-                ..Default::default()
-            },
+            visibility: bevy::prelude::Visibility::Hidden,
+            transform,
             ..Default::default()
         },
         Stroke::color(Color::BLACK),

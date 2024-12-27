@@ -2,7 +2,6 @@
 
 use crate::data::{Data, ReactionState};
 use crate::escher::{ArrowTag, EscherMap, Hover, MapState, NodeToText, ARROW_COLOR};
-use crate::extra_egui::NewTabHyperlink;
 use crate::geom::{AnyTag, Drag, HistTag, VisCondition, Xaxis};
 use crate::info::Info;
 use crate::screenshot::ScreenshotEvent;
@@ -10,6 +9,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::Rgba;
+use bevy_egui::egui::Hyperlink;
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSettings};
 use bevy_prototype_lyon::prelude::Path;
 use chrono::offset::Utc;
@@ -221,9 +221,9 @@ pub struct SaveEvent(String);
 /// Settings for appearance of map and plots.
 /// This is managed by [`bevy_egui`] and it is separate from the rest of the GUI.
 pub fn ui_settings(
-    mut egui_context: EguiContexts,
     mut state: ResMut<UiState>,
     active_set: Res<ActiveData>,
+    mut egui_context: EguiContexts,
     mut save_events: EventWriter<SaveEvent>,
     mut load_events: EventWriter<FileDragAndDrop>,
     mut screen_events: EventWriter<ScreenshotEvent>,
@@ -324,10 +324,13 @@ pub fn ui_settings(
             }
         });
 
-        ui.add(NewTabHyperlink::from_label_and_url(
-            "How to use?",
-            "https://biosustain.github.io/shu/docs/plotting.html",
-        ));
+        ui.add(
+            Hyperlink::from_label_and_url(
+                "How to use?",
+                "https://biosustain.github.io/shu/docs/plotting.html",
+            )
+            .open_in_new_tab(true),
+        );
     });
 }
 
@@ -363,7 +366,7 @@ pub fn file_drop(
 /// Cursor to mouse position. Adapted from bevy cheatbook.
 fn get_pos(win: &Window, camera: &Camera, camera_transform: &GlobalTransform) -> Option<Vec2> {
     win.cursor_position()
-        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))
+        .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor).ok())
         .map(|ray| ray.origin.truncate())
 }
 
@@ -415,8 +418,8 @@ fn mouse_click_system(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     node_to_text: Res<NodeToText>,
     axis_mode: Res<AxisMode>,
-    mut drag_query: Query<(&Transform, &mut Drag, &Xaxis), Without<Style>>,
-    mut text_query: Query<&mut Text, With<ArrowTag>>,
+    mut drag_query: Query<(&Transform, &mut Drag, &Xaxis), Without<Node>>,
+    mut text_query: Query<(&mut TextFont, &mut TextColor), With<ArrowTag>>,
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
@@ -434,8 +437,8 @@ fn mouse_click_system(
                     drag.dragged = true;
                     node_to_text.inner.get(&axis.node_id).map(|e| {
                         text_query.get_mut(*e).map(|mut text| {
-                            text.sections[0].style.font_size = 40.;
-                            text.sections[0].style.color = HIGH_COLOR;
+                            text.0.font_size = 40.;
+                            text.1 .0 = HIGH_COLOR;
                         })
                     });
                     // do not move more than one component at the same time
@@ -450,8 +453,8 @@ fn mouse_click_system(
             drag.dragged = false;
             node_to_text.inner.get(&axis.node_id).map(|e| {
                 text_query.get_mut(*e).map(|mut text| {
-                    text.sections[0].style.font_size = 35.;
-                    text.sections[0].style.color = ARROW_COLOR;
+                    text.0.font_size = 35.;
+                    text.1 .0 = ARROW_COLOR;
                 })
             });
         }
@@ -474,8 +477,8 @@ fn mouse_click_system(
                     }
                     node_to_text.inner.get(&axis.node_id).map(|e| {
                         text_query.get_mut(*e).map(|mut text| {
-                            text.sections[0].style.font_size = 40.;
-                            text.sections[0].style.color = HIGH_COLOR;
+                            text.0.font_size = 40.;
+                            text.1 .0 = HIGH_COLOR;
                         })
                     });
                 }
@@ -489,8 +492,8 @@ fn mouse_click_system(
             drag.scaling = false;
             node_to_text.inner.get(&axis.node_id).map(|e| {
                 text_query.get_mut(*e).map(|mut text| {
-                    text.sections[0].style.font_size = 35.;
-                    text.sections[0].style.color = ARROW_COLOR;
+                    text.0.font_size = 35.;
+                    text.1 .0 = ARROW_COLOR;
                 })
             });
         }
@@ -520,7 +523,7 @@ fn mouse_click_ui_system(
 /// Move the center-dragged interactable non-UI entities (histograms).
 fn follow_mouse_on_drag(
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
-    mut drag_query: Query<(&mut Transform, &Drag), Without<Style>>,
+    mut drag_query: Query<(&mut Transform, &Drag), Without<Node>>,
     q_camera: Query<(&Camera, &GlobalTransform)>,
 ) {
     for (mut trans, drag) in drag_query.iter_mut() {
@@ -539,19 +542,19 @@ fn follow_mouse_on_drag(
 /// Move the center-dragged interactable UI entities.
 fn follow_mouse_on_drag_ui(
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
-    mut drag_query: Query<(&mut Style, &Drag)>,
+    mut drag_query: Query<(&mut Node, &Drag)>,
 
     ui_scale: Res<UiScale>,
 ) {
-    for (mut style, drag) in drag_query.iter_mut() {
+    for (mut ui_node, drag) in drag_query.iter_mut() {
         if drag.dragged {
             let Ok((_, win)) = windows.get_single() else {
                 return;
             };
             if let Some(screen_pos) = win.cursor_position() {
                 // arbitrary offset to make it feel more natural
-                style.left = Val::Px(screen_pos.x - 80. * ui_scale.0);
-                style.bottom = Val::Px(screen_pos.y - 50. * ui_scale.0);
+                ui_node.left = Val::Px(screen_pos.x - 80. * ui_scale.0);
+                ui_node.bottom = Val::Px(screen_pos.y - 50. * ui_scale.0);
             }
         }
     }
@@ -604,10 +607,10 @@ fn follow_mouse_on_scale(
 fn scale_ui(
     key_input: Res<ButtonInput<KeyCode>>,
     mut ui_scale: ResMut<UiScale>,
-    mut egui_settings: ResMut<EguiSettings>,
+    mut egui_settings_query: Query<&mut EguiSettings>,
 ) {
     let scale = if key_input.pressed(KeyCode::ControlLeft) {
-        &mut egui_settings.scale_factor
+        &mut egui_settings_query.single_mut().scale_factor
     } else {
         &mut ui_scale.0
     };

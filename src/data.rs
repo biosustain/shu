@@ -8,7 +8,7 @@ use crate::geom::{self, HistTag, Xaxis};
 use crate::geom::{AesFilter, GeomHist, HistPlot};
 use crate::info::Info;
 use bevy::asset::io::Reader;
-use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
+use bevy::asset::{AssetLoader, LoadContext};
 use bevy::prelude::*;
 use bevy::reflect::TypePath;
 use itertools::Itertools;
@@ -51,11 +51,11 @@ where
     type Asset = A;
     type Settings = ();
     type Error = CustomJsonLoaderError;
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        _load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &(),
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;

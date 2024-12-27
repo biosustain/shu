@@ -7,12 +7,12 @@ use crate::{
     info::Info,
     legend::{Xmax, Xmin},
 };
-use bevy::{asset::AsyncReadExt, window::PrimaryWindow};
+use bevy::reflect::TypePath;
+use bevy::render::view::screenshot::{save_to_disk, Screenshot};
 use bevy::{
     asset::{io::Reader, LoadContext},
     prelude::*,
 };
-use bevy::{reflect::TypePath, render::view::screenshot::ScreenshotManager};
 use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
 
 use image::ImageFormat;
@@ -55,15 +55,13 @@ fn setup_timer(mut commands: Commands) {
 }
 
 fn screenshot_on_event(
+    mut commands: Commands,
     mut save_events: EventReader<ScreenshotEvent>,
     mut send_svg_events: EventWriter<SvgScreenshotEvent>,
     time: Res<Time>,
     mut ui_state: ResMut<UiState>,
     mut info_state: ResMut<Info>,
-    mut screenshot_manager: ResMut<ScreenshotManager>,
-    main_window: Query<Entity, With<PrimaryWindow>>,
     mut timer: Query<&mut HideUiTimer>,
-    mut counter: Local<u32>,
 ) {
     let Ok(mut timer) = timer.get_single_mut() else {
         return;
@@ -88,10 +86,9 @@ fn screenshot_on_event(
         };
         info!("Writing raster imag...");
         let path = format!("{path}{suffix}");
-        *counter += 1;
-        if let Err(e) = screenshot_manager.save_screenshot_to_disk(main_window.single(), path) {
-            error!("Format not supported, try PNG, JPEG, BMP or TGA: {e}")
-        }
+        commands
+            .spawn(Screenshot::primary_window())
+            .observe(save_to_disk(path));
     }
 }
 
@@ -106,11 +103,11 @@ impl bevy::asset::AssetLoader for RawAssetLoader {
     type Asset = RawAsset;
     type Settings = ();
     type Error = std::io::Error;
-    async fn load<'a>(
-        &'a self,
-        reader: &'a mut Reader<'_>,
-        _settings: &'a (),
-        _load_context: &'a mut LoadContext<'_>,
+    async fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &(),
+        _load_context: &mut LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
         reader.read_to_end(&mut bytes).await?;
@@ -153,14 +150,24 @@ fn save_svg_file(
         &Visibility,
     )>,
     text_query: Query<
-        (&Text, &Transform, &Visibility),
+        (&Text, &TextFont, &TextColor, &Transform, &Visibility),
         (Without<Xmin>, Without<Xmax>, Without<IgnoreSave>),
     >,
     // legend part
     legend_query: Query<(&GlobalTransform, &Node), With<Drag>>,
-    legend_node_query: Query<(Entity, &GlobalTransform, &Style, &Children)>,
-    img_query: Query<(&UiImage, &Node)>,
-    legend_text_query: Query<(&Text, &GlobalTransform, &Style, &Node), Without<IgnoreSave>>,
+    legend_node_query: Query<(Entity, &GlobalTransform, &Node, &Children)>,
+    img_query: Query<(&ImageNode, &ComputedNode)>,
+    legend_text_query: Query<
+        (
+            &Text,
+            &TextFont,
+            &TextColor,
+            &GlobalTransform,
+            &Node,
+            &ComputedNode,
+        ),
+        Without<IgnoreSave>,
+    >,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.read() {
         let RawAsset { value: fira } = raw_fonts.get(&fonts_storage.fira).unwrap();
@@ -207,32 +214,20 @@ fn save_svg_file(
         }
         let writer = writer.add_fonts_source(fira);
         let mut writer = writer.add_fonts_source(assis);
-        for (text, transform, vis) in &text_query {
+        for (text, font, color, transform, vis) in &text_query {
             if Visibility::Hidden == vis {
                 continue;
             }
-            let paragraph = text
-                .sections
-                .iter()
-                .map(|ts| &ts.value)
-                .fold(String::from(""), |acc, x| acc + x.as_str());
+            let paragraph = text.0.clone();
             if paragraph.is_empty() {
                 continue;
             }
-            let Some((font_size, _font, color)) = text
-                .sections
-                .iter()
-                .map(|tx| (tx.style.font_size, &tx.style.font, tx.style.color))
-                .next()
-            else {
-                continue;
-            };
             let fill: [u8; 3] = color.to_srgba().to_u8_array_no_alpha();
             writer
                 .push_text(
                     paragraph,
                     vec![String::from("Fira Sans"), String::from("Bold")],
-                    font_size,
+                    font.font_size,
                     roarsvg::SvgTransform::from_translate(
                         transform.translation.x + map_dims.x,
                         transform.translation.y,
@@ -259,7 +254,7 @@ fn save_svg_file(
                 }
                 for child in children.iter() {
                     if let Ok((img_legend, ui_node)) = img_query.get(*child) {
-                        let img = images.get(&img_legend.texture).unwrap();
+                        let img = images.get(&img_legend.image).unwrap();
                         let Ok(img) = img.clone().try_into_dynamic() else {
                             continue;
                         };
@@ -279,28 +274,16 @@ fn save_svg_file(
                             )
                             .unwrap(),
                         );
-                    } else if let Ok((text, child_trans, vis, ui_node)) =
+                    } else if let Ok((text, font, color, child_trans, ui_node, comp_node)) =
                         legend_text_query.get(*child)
                     {
-                        if Display::None == vis.display {
+                        if Display::None == ui_node.display {
                             continue;
                         }
-                        let paragraph = text
-                            .sections
-                            .iter()
-                            .map(|ts| &ts.value)
-                            .fold(String::from(""), |acc, x| acc + x.as_str());
+                        let paragraph = text.0.clone();
                         if paragraph.is_empty() {
                             continue;
                         }
-                        let Some((font_size, _font, color)) = text
-                            .sections
-                            .iter()
-                            .map(|tx| (tx.style.font_size, &tx.style.font, tx.style.color))
-                            .next()
-                        else {
-                            continue;
-                        };
                         let fill: [u8; 3] = color.to_srgba().to_u8_array_no_alpha();
                         let trans = child_trans.compute_transform();
                         legend_nodes.push(
@@ -308,8 +291,8 @@ fn save_svg_file(
                                 paragraph,
                                 roarsvg::SvgTransform::from_translate(
                                     // I think this has to do with padding and margins
-                                    trans.translation.x - ui_node.size().x / 1.5,
-                                    trans.translation.y + ui_node.size().y / 2.8,
+                                    trans.translation.x - comp_node.size().x / 1.5,
+                                    trans.translation.y + comp_node.size().y / 2.8,
                                 ),
                                 Some(roarsvg::fill(
                                     roarsvg::Color::new_rgb(fill[0], fill[1], fill[2]),
@@ -317,7 +300,7 @@ fn save_svg_file(
                                 )),
                                 None,
                                 vec![String::from("Assistant"), String::from("Regular")],
-                                font_size,
+                                font.font_size,
                             )
                             .unwrap(),
                         );

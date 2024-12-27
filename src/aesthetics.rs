@@ -269,8 +269,8 @@ fn build_axes(
             if aes.identifiers.iter().any(|r| r == &arrow.id) {
                 let size = path_to_vec(path).length();
                 let (rotation_90, away) = match geom.side {
-                    Side::Right => (-Vec2::Y.angle_between(arrow.direction.perp()), -30.),
-                    Side::Left => (-Vec2::NEG_Y.angle_between(arrow.direction.perp()), 30.),
+                    Side::Right => (-Vec2::Y.angle_to(arrow.direction.perp()), -30.),
+                    Side::Left => (-Vec2::NEG_Y.angle_to(arrow.direction.perp()), 30.),
                     _ => {
                         warn!("Tried to plot Up direction for non-popup '{}'", arrow.id);
                         continue;
@@ -350,8 +350,8 @@ fn build_point_axes(
             if aes.identifiers.iter().any(|r| r == &arrow.id) {
                 let size = path_to_vec(path).length();
                 let (rotation_90, away) = match geom.side {
-                    Side::Right => (-Vec2::Y.angle_between(arrow.direction.perp()), -30.),
-                    Side::Left => (-Vec2::NEG_Y.angle_between(arrow.direction.perp()), 30.),
+                    Side::Right => (-Vec2::Y.angle_to(arrow.direction.perp()), -30.),
+                    Side::Left => (-Vec2::NEG_Y.angle_to(arrow.direction.perp()), 30.),
                     _ => {
                         warn!("Tried to plot Up direction for non-popup '{}'", arrow.id);
                         continue;
@@ -404,7 +404,7 @@ fn build_point_axes(
             Drag::default(),
             trans,
             Unscale {},
-            VisibilityBundle::default(),
+            Visibility::default(),
         ));
     }
 }
@@ -496,11 +496,8 @@ fn plot_side_hist(
                     ShapeBundle {
                         path: GeometryBuilder::build_as(&line),
                         // increment z to avoid flickering problems
-                        spatial: SpatialBundle {
-                            transform: trans
-                                .with_translation(trans.translation + Vec3::new(0., 0., *z_eps)),
-                            ..default()
-                        },
+                        transform: trans
+                            .with_translation(trans.translation + Vec3::new(0., 0., *z_eps)),
                         ..default()
                     },
                     Fill::color(Color::Srgba(Srgba::hex(hex).unwrap())),
@@ -571,10 +568,7 @@ fn plot_side_box(
                     (
                         ShapeBundle {
                             path: GeometryBuilder::build_as(&line_box),
-                            spatial: SpatialBundle {
-                                transform: trans.with_scale(Vec3::new(1., 1., 1.)),
-                                ..default()
-                            },
+                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
                             ..default()
                         },
                         Fill::color(color),
@@ -600,10 +594,7 @@ fn plot_side_box(
                     (
                         ShapeBundle {
                             path: GeometryBuilder::build_as(&shape),
-                            spatial: SpatialBundle {
-                                transform: trans.with_scale(Vec3::new(1., 1., 1.)),
-                                ..default()
-                            },
+                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
                             ..default()
                         },
                         Fill::color(color),
@@ -652,7 +643,7 @@ fn plot_hover_hist(
         // we only need to differentiate the z-index between aes with different
         // conditions that could appear in the same axis
         *z_eps += 1e-6;
-        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+        let font: Handle<Font> = asset_server.load("fonts/FiraSans-Bold.ttf");
         for (trans, hover) in query.iter_mut() {
             if hover.xlimits.is_none() {
                 continue;
@@ -679,11 +670,8 @@ fn plot_hover_hist(
                 );
                 let geometry = ShapeBundle {
                     path: GeometryBuilder::build_as(&line),
-                    spatial: SpatialBundle {
-                        transform,
-                        visibility: Visibility::Hidden,
-                        ..default()
-                    },
+                    transform,
+                    visibility: Visibility::Hidden,
                     ..default()
                 };
                 let fill = Fill::color(Color::Srgba(Srgba::hex("ffb73388").unwrap()));
@@ -701,11 +689,10 @@ fn plot_hover_hist(
                     ))
                     .insert((geometry, fill))
                     .with_children(|p| {
-                        p.spawn(SpriteBundle {
-                            texture: asset_server.load("hover.png"),
-                            transform: Transform::from_xyz(0., 0., -0.4),
-                            ..default()
-                        });
+                        p.spawn((
+                            Sprite::from_image(asset_server.load("hover.png")),
+                            Transform::from_xyz(0., 0., -0.4),
+                        ));
                     })
                     .with_children(|parent| {
                         parent.spawn((scales.x_0, IgnoreSave));

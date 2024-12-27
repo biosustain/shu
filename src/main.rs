@@ -8,7 +8,6 @@ use bevy_prototype_lyon::prelude::*;
 mod aesthetics;
 mod data;
 mod escher;
-mod extra_egui;
 mod funcplot;
 mod geom;
 mod gui;
@@ -25,7 +24,6 @@ use screenshot::{RawAsset, RawFontStorage};
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     App::new()
-        .insert_resource(Msaa::Sample4)
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(
             DefaultPlugins
@@ -205,13 +203,14 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(RawFontStorage { fira, assis });
 
     commands
-        .spawn(Camera2dBundle {
-            camera: Camera {
+        .spawn((
+            Camera2d,
+            Camera {
                 clear_color: ClearColorConfig::Custom(Color::srgb(1., 1., 1.)),
                 ..Default::default()
             },
-            ..Default::default()
-        })
+            Msaa::Sample4,
+        ))
         .insert(PanCam {
             grab_buttons: vec![MouseButton::Left], // which buttons should drag the camera
             enabled: true, // when false, controls are disabled. See toggle example.

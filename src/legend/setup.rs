@@ -37,6 +37,22 @@ pub struct Xmin;
 #[derive(Component)]
 pub struct Xmax;
 
+fn build_image(
+    img_handle: Handle<Image>,
+    width: Val,
+    height: Val,
+) -> (ImageNode, Node, bevy::ui::FocusPolicy) {
+    (
+        ImageNode::new(img_handle),
+        Node {
+            width,
+            height,
+            ..default()
+        },
+        bevy::ui::FocusPolicy::Pass,
+    )
+}
+
 /// Spawn the legend. Nothing is displayed on spawn; only when the user
 /// adds data corresponding to a part of the legend, that part is displayed.
 ///
@@ -70,8 +86,8 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     let hist_right_handle = asset_server.load("hist_legend_right.png");
     let box_handle = asset_server.load("rect_legend.png");
     commands
-        .spawn(NodeBundle {
-            style: Style {
+        .spawn((
+            Node {
                 max_width: WIDTH,
                 max_height: HEIGHT,
                 flex_direction: FlexDirection::ColumnReverse,
@@ -81,16 +97,15 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 bottom: Val::Px(10.),
                 ..Default::default()
             },
-            focus_policy: bevy::ui::FocusPolicy::Block,
-            z_index: ZIndex::Global(10),
-            ..Default::default()
-        })
+            bevy::ui::FocusPolicy::Block,
+            GlobalZIndex(10),
+        ))
         .insert((Drag::default(), Interaction::default()))
         // box-point legend
         .with_children(|p| {
             // container for both box sides
-            p.spawn(NodeBundle {
-                style: Style {
+            p.spawn((
+                Node {
                     max_width: ARROW_BUNDLE_WIDTH,
                     max_height: HIST_HEIGHT_CHILD / 2.0,
                     display: Display::Flex,
@@ -98,13 +113,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::SpaceEvenly,
                     ..Default::default()
                 },
-                focus_policy: bevy::ui::FocusPolicy::Pass,
-                ..Default::default()
-            })
+                bevy::ui::FocusPolicy::Pass,
+            ))
             // container for left box side with text tags for axis
             .with_children(|p| {
-                p.spawn(NodeBundle {
-                    style: Style {
+                p.spawn((
+                    Node {
                         width: ARROW_BUNDLE_WIDTH,
                         height: HIST_HEIGHT_CHILD / 2.0,
                         display: Display::None,
@@ -112,47 +126,30 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::SpaceBetween,
                         ..Default::default()
                     },
-                    focus_policy: bevy::ui::FocusPolicy::Pass,
-                    ..Default::default()
-                })
+                    bevy::ui::FocusPolicy::Pass,
+                ))
                 .insert(LegendBox)
                 .insert(Side::Left)
                 // left box side
                 .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_right_box.x_0.text,
-                            ..default()
-                        },
-                        Xmin,
+                    // TODO: check this works as expected
+                    p.spawn((scales_right_box.x_0.0, Xmin));
+                })
+                .with_children(|p| {
+                    p.spawn(build_image(
+                        box_handle.clone(),
+                        CIRCLE_DIAM * 0.5,
+                        CIRCLE_DIAM * 0.5,
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn(ImageBundle {
-                        style: Style {
-                            width: CIRCLE_DIAM * 0.5,
-                            height: CIRCLE_DIAM * 0.5,
-                            ..default()
-                        },
-                        focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage::new(box_handle.clone()),
-                        ..default()
-                    });
-                })
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_right_box.x_n.text,
-                            ..default()
-                        },
-                        Xmax,
-                    ));
+                    p.spawn((scales_right_box.x_n.0, Xmax));
                 });
             })
             // container for right box side with text tags for axis
             .with_children(|p| {
-                p.spawn(NodeBundle {
-                    style: Style {
+                p.spawn((
+                    Node {
                         width: ARROW_BUNDLE_WIDTH / 2.3,
                         height: HIST_HEIGHT_CHILD / 2.0,
                         display: Display::None,
@@ -160,48 +157,30 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::SpaceBetween,
                         ..Default::default()
                     },
-                    focus_policy: bevy::ui::FocusPolicy::Pass,
-                    ..Default::default()
-                })
+                    bevy::ui::FocusPolicy::Pass,
+                ))
                 .insert(LegendBox)
                 .insert(Side::Right)
                 // right box side
                 .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_left_box.x_0.text,
-                            ..default()
-                        },
-                        Xmin,
+                    p.spawn((scales_left_box.x_0.0, Xmin));
+                })
+                .with_children(|p| {
+                    p.spawn(build_image(
+                        box_handle.clone(),
+                        CIRCLE_DIAM * 0.5,
+                        CIRCLE_DIAM * 0.5,
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn(ImageBundle {
-                        style: Style {
-                            width: CIRCLE_DIAM * 0.5,
-                            height: CIRCLE_DIAM * 0.5,
-                            ..default()
-                        },
-                        focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage::new(box_handle.clone()),
-                        ..default()
-                    });
-                })
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_left_box.x_n.text,
-                            ..default()
-                        },
-                        Xmax,
-                    ));
+                    p.spawn((scales_left_box.x_n.0, Xmax));
                 });
             });
         })
         // arrow legend
         .with_children(|p| {
-            p.spawn(NodeBundle {
-                style: Style {
+            p.spawn((
+                Node {
                     display: Display::None,
                     width: ARROW_BUNDLE_WIDTH,
                     height: HEIGHT_CHILD,
@@ -209,45 +188,23 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::SpaceBetween,
                     ..Default::default()
                 },
-                focus_policy: bevy::ui::FocusPolicy::Pass,
-                ..Default::default()
-            })
+                bevy::ui::FocusPolicy::Pass,
+            ))
             .insert(LegendArrow)
             .with_children(|p| {
-                p.spawn((
-                    TextBundle {
-                        text: scales_arrow.x_0.text,
-                        ..default()
-                    },
-                    Xmin,
-                ));
+                p.spawn((scales_arrow.x_0.0, Xmin));
             })
             .with_children(|p| {
-                p.spawn(ImageBundle {
-                    style: Style {
-                        width: ARROW_WIDTH,
-                        height: ARROW_HEIGHT,
-                        ..default()
-                    },
-                    focus_policy: bevy::ui::FocusPolicy::Pass,
-                    image: UiImage::new(arrow_handle),
-                    ..default()
-                });
+                p.spawn(build_image(arrow_handle.clone(), ARROW_WIDTH, ARROW_HEIGHT));
             })
             .with_children(|p| {
-                p.spawn((
-                    TextBundle {
-                        text: scales_arrow.x_n.text,
-                        ..default()
-                    },
-                    Xmax,
-                ));
+                p.spawn((scales_arrow.x_n.0, Xmax));
             });
         })
         // metabolite legend
         .with_children(|p| {
-            p.spawn(NodeBundle {
-                style: Style {
+            p.spawn((
+                Node {
                     width: CIRCLE_BUNDLE_WIDTH,
                     height: HEIGHT_CHILD,
                     display: Display::None,
@@ -255,46 +212,28 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::SpaceBetween,
                     ..Default::default()
                 },
-                focus_policy: bevy::ui::FocusPolicy::Pass,
-                ..Default::default()
-            })
+                bevy::ui::FocusPolicy::Pass,
+            ))
             .insert(LegendCircle)
             .with_children(|p| {
-                p.spawn((
-                    TextBundle {
-                        text: scales_mets.x_0.text,
-                        ..default()
-                    },
-                    Xmin,
+                p.spawn((scales_mets.x_0.0, Xmin));
+            })
+            .with_children(|p| {
+                p.spawn(build_image(
+                    met_handle.clone(),
+                    CIRCLE_DIAM,
+                    CIRCLE_DIAM * 0.8,
                 ));
             })
             .with_children(|p| {
-                p.spawn(ImageBundle {
-                    style: Style {
-                        width: CIRCLE_DIAM,
-                        height: CIRCLE_DIAM * 0.8,
-                        ..default()
-                    },
-                    focus_policy: bevy::ui::FocusPolicy::Pass,
-                    image: UiImage::new(met_handle),
-                    ..default()
-                });
-            })
-            .with_children(|p| {
-                p.spawn((
-                    TextBundle {
-                        text: scales_mets.x_n.text,
-                        ..default()
-                    },
-                    Xmax,
-                ));
+                p.spawn((scales_mets.x_n.0, Xmax));
             });
         })
         // hist legend
         .with_children(|p| {
             // container for both histogram sides
-            p.spawn(NodeBundle {
-                style: Style {
+            p.spawn((
+                Node {
                     width: ARROW_BUNDLE_WIDTH,
                     min_height: Val::Px(0.0),
                     max_height: HIST_HEIGHT_CHILD * 2.0,
@@ -303,34 +242,30 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     justify_content: JustifyContent::Center,
                     ..Default::default()
                 },
-                focus_policy: bevy::ui::FocusPolicy::Pass,
-                ..Default::default()
-            })
+                bevy::ui::FocusPolicy::Pass,
+            ))
             // condition container
             .with_children(|p| {
                 p.spawn((
-                    NodeBundle {
-                        style: Style {
-                            width: ARROW_BUNDLE_WIDTH / 6.0,
-                            height: HIST_HEIGHT_CHILD,
-                            display: Display::None,
-                            margin: UiRect::right(Val::Px(5.0)),
-                            flex_direction: FlexDirection::Column,
-                            flex_shrink: 1.,
-                            align_items: AlignItems::FlexEnd,
-                            justify_content: JustifyContent::SpaceAround,
-                            ..Default::default()
-                        },
-                        focus_policy: bevy::ui::FocusPolicy::Pass,
-                        ..default()
+                    Node {
+                        width: ARROW_BUNDLE_WIDTH / 6.0,
+                        height: HIST_HEIGHT_CHILD,
+                        display: Display::None,
+                        margin: UiRect::right(Val::Px(5.0)),
+                        flex_direction: FlexDirection::Column,
+                        flex_shrink: 1.,
+                        align_items: AlignItems::FlexEnd,
+                        justify_content: JustifyContent::SpaceAround,
+                        ..Default::default()
                     },
+                    bevy::ui::FocusPolicy::Pass,
                     LegendCondition { state: Vec::new() },
                 ));
             })
             // container for left histogram side with text tags for axis
             .with_children(|p| {
-                p.spawn(NodeBundle {
-                    style: Style {
+                p.spawn((
+                    Node {
                         max_width: ARROW_BUNDLE_WIDTH / 3.0,
                         max_height: HIST_HEIGHT_CHILD * 2.0,
                         display: Display::None,
@@ -341,47 +276,29 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::Center,
                         ..Default::default()
                     },
-                    focus_policy: bevy::ui::FocusPolicy::Pass,
-                    ..Default::default()
-                })
+                    bevy::ui::FocusPolicy::Pass,
+                ))
                 .insert(LegendHist)
                 .insert(Side::Left)
                 // left histogram side
                 .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_left.x_0.text,
-                            ..default()
-                        },
-                        Xmin,
+                    p.spawn((scales_left.x_0.0, Xmin));
+                })
+                .with_children(|p| {
+                    p.spawn(build_image(
+                        hist_left_handle.clone(),
+                        HIST_HEIGHT_CHILD * 0.6,
+                        HIST_HEIGHT_CHILD,
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn(ImageBundle {
-                        style: Style {
-                            width: HIST_HEIGHT_CHILD * 0.6,
-                            height: HIST_HEIGHT_CHILD,
-                            ..default()
-                        },
-                        focus_policy: bevy::ui::FocusPolicy::Pass,
-                        image: UiImage::new(hist_left_handle),
-                        ..default()
-                    });
-                })
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_left.x_n.text,
-                            ..default()
-                        },
-                        Xmax,
-                    ));
+                    p.spawn((scales_left.x_n.0, Xmax));
                 });
             })
             // container for right histogram side with text tags for axis
             .with_children(|p| {
-                p.spawn(NodeBundle {
-                    style: Style {
+                p.spawn((
+                    Node {
                         max_width: ARROW_BUNDLE_WIDTH / 3.0,
                         max_height: HIST_HEIGHT_CHILD * 2.,
                         display: Display::None,
@@ -392,41 +309,23 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                         justify_content: JustifyContent::Center,
                         ..Default::default()
                     },
-                    focus_policy: bevy::ui::FocusPolicy::Pass,
-                    ..Default::default()
-                })
+                    bevy::ui::FocusPolicy::Pass,
+                ))
                 .insert(LegendHist)
                 .insert(Side::Right)
                 // right histogram side
                 .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_right.x_0.text,
-                            ..default()
-                        },
-                        Xmin,
+                    p.spawn((scales_right.x_0.0, Xmin));
+                })
+                .with_children(|p| {
+                    p.spawn(build_image(
+                        hist_right_handle.clone(),
+                        HIST_HEIGHT_CHILD * 0.6,
+                        HIST_HEIGHT_CHILD,
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn(ImageBundle {
-                        style: Style {
-                            width: HIST_HEIGHT_CHILD * 0.6,
-                            height: HIST_HEIGHT_CHILD,
-                            ..default()
-                        },
-                        image: UiImage::new(hist_right_handle),
-                        focus_policy: bevy::ui::FocusPolicy::Pass,
-                        ..default()
-                    });
-                })
-                .with_children(|p| {
-                    p.spawn((
-                        TextBundle {
-                            text: scales_right.x_n.text,
-                            ..default()
-                        },
-                        Xmax,
-                    ));
+                    p.spawn((scales_right.x_n.0, Xmax));
                 });
             });
         });
