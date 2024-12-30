@@ -1,6 +1,9 @@
 //! Functions for plotting data.
 
-use bevy::prelude::{Color, Component, Font, Handle, Text2d, TextColor, TextFont, Transform, Vec2};
+use bevy::{
+    prelude::{Color, Component, Font, Handle, Text2d, TextColor, TextFont, Transform, Vec2},
+    text::TextRoot,
+};
 use bevy_prototype_lyon::{
     entity::ShapeBundle,
     prelude::{GeometryBuilder, Path, PathBuilder, Stroke},
@@ -178,17 +181,17 @@ pub fn plot_box_point(n_cond: usize, cond_index: usize) -> Path {
     path_builder.build()
 }
 
-type TextBundle = (Text2d, TextFont, TextColor, Transform);
+type TextBundle<T> = (T, TextFont, TextColor, Transform);
 
 /// Three text tags to be used as Components to build a an axis scale.
 #[derive(Clone)]
-pub struct ScaleBundle {
-    pub x_0: TextBundle,
-    pub y: TextBundle,
-    pub x_n: TextBundle,
+pub struct ScaleBundle<T> {
+    pub x_0: TextBundle<T>,
+    pub y: TextBundle<T>,
+    pub x_n: TextBundle<T>,
 }
 
-impl ScaleBundle {
+impl<T: TextRoot> ScaleBundle<T> {
     /// Build text components from minimum, maximum and mean values.
     pub fn new(
         minimum: f32,
@@ -202,21 +205,21 @@ impl ScaleBundle {
     ) -> Self {
         // build x component
         let x_0 = (
-            Text2d::new(format!("{:+.3e}", minimum)),
+            T::from(format!("{:+.3e}", minimum)),
             TextFont::from_font(font.clone()).with_font_size(font_size),
             TextColor(color),
             // to the left so that it is centered
             Transform::from_xyz(-size / 2. - font_size * 2., 0., 0.2),
         );
         let x_n = (
-            Text2d::new(format!("{:+.3e}", maximum)),
+            T::from(format!("{:+.3e}", maximum)),
             TextFont::from_font(font.clone()).with_font_size(font_size),
             TextColor(color),
             // to the left so that it is centered
             Transform::from_xyz(size / 2., 0., 0.2),
         );
         let y = (
-            Text2d::new(format!("{:+.3e}", mean)),
+            T::from(format!("{:+.3e}", mean)),
             TextFont::from_font(font.clone()).with_font_size(font_size),
             TextColor(color),
             // to the left so that it is centered
@@ -242,7 +245,12 @@ pub fn plot_line(size: f32, transform: Transform) -> (ShapeBundle, Stroke) {
 }
 
 /// Build and position text tags to indicate the scale of thethe  x-axis.
-pub fn plot_scales(samples: &[f32], size: f32, font: Handle<Font>, font_size: f32) -> ScaleBundle {
+pub fn plot_scales<T: TextRoot>(
+    samples: &[f32],
+    size: f32,
+    font: Handle<Font>,
+    font_size: f32,
+) -> ScaleBundle<T> {
     let mean: f32 = samples.iter().sum::<f32>() / samples.len() as f32;
     let min = min_f32(samples);
     let max = max_f32(samples);

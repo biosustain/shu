@@ -65,7 +65,7 @@ fn build_image(
 /// - box legend, same as histogram but with Rects instead of images.
 pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/Assistant-Regular.ttf");
-    let scales_arrow = ScaleBundle::new(
+    let scales_arrow = ScaleBundle::<Text>::new(
         0.,
         0.,
         0.,
@@ -133,7 +133,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 // left box side
                 .with_children(|p| {
                     // TODO: check this works as expected
-                    p.spawn((scales_right_box.x_0.0, Xmin));
+                    p.spawn((
+                        scales_right_box.x_0.0,
+                        scales_right_box.x_0.1,
+                        scales_right_box.x_0.2,
+                        Xmin,
+                    ));
                 })
                 .with_children(|p| {
                     p.spawn(build_image(
@@ -143,7 +148,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn((scales_right_box.x_n.0, Xmax));
+                    p.spawn((
+                        scales_right_box.x_n.0,
+                        scales_right_box.x_n.1,
+                        scales_right_box.x_n.2,
+                        Xmax,
+                    ));
                 });
             })
             // container for right box side with text tags for axis
@@ -163,7 +173,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(Side::Right)
                 // right box side
                 .with_children(|p| {
-                    p.spawn((scales_left_box.x_0.0, Xmin));
+                    p.spawn((
+                        scales_left_box.x_0.0,
+                        scales_left_box.x_0.1,
+                        scales_left_box.x_0.2,
+                        Xmin,
+                    ));
                 })
                 .with_children(|p| {
                     p.spawn(build_image(
@@ -173,7 +188,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn((scales_left_box.x_n.0, Xmax));
+                    p.spawn((
+                        scales_left_box.x_n.0,
+                        scales_left_box.x_n.1,
+                        scales_left_box.x_n.2,
+                        Xmax,
+                    ));
                 });
             });
         })
@@ -192,13 +212,23 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             ))
             .insert(LegendArrow)
             .with_children(|p| {
-                p.spawn((scales_arrow.x_0.0, Xmin));
+                p.spawn((
+                    scales_arrow.x_0.0,
+                    scales_arrow.x_0.1,
+                    scales_arrow.x_0.2,
+                    Xmin,
+                ));
             })
             .with_children(|p| {
                 p.spawn(build_image(arrow_handle.clone(), ARROW_WIDTH, ARROW_HEIGHT));
             })
             .with_children(|p| {
-                p.spawn((scales_arrow.x_n.0, Xmax));
+                p.spawn((
+                    scales_arrow.x_n.0,
+                    scales_arrow.x_n.1,
+                    scales_arrow.x_n.2,
+                    Xmax,
+                ));
             });
         })
         // metabolite legend
@@ -216,7 +246,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             ))
             .insert(LegendCircle)
             .with_children(|p| {
-                p.spawn((scales_mets.x_0.0, Xmin));
+                p.spawn((
+                    scales_mets.x_0.0,
+                    scales_mets.x_0.1,
+                    scales_mets.x_0.2,
+                    Xmin,
+                ));
             })
             .with_children(|p| {
                 p.spawn(build_image(
@@ -226,7 +261,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ));
             })
             .with_children(|p| {
-                p.spawn((scales_mets.x_n.0, Xmax));
+                p.spawn((
+                    scales_mets.x_n.0,
+                    scales_mets.x_n.1,
+                    scales_mets.x_n.2,
+                    Xmax,
+                ));
             });
         })
         // hist legend
@@ -282,7 +322,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(Side::Left)
                 // left histogram side
                 .with_children(|p| {
-                    p.spawn((scales_left.x_0.0, Xmin));
+                    p.spawn((
+                        scales_left.x_0.0,
+                        scales_left.x_0.1,
+                        scales_left.x_0.2,
+                        Xmin,
+                    ));
                 })
                 .with_children(|p| {
                     p.spawn(build_image(
@@ -292,7 +337,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn((scales_left.x_n.0, Xmax));
+                    p.spawn((
+                        scales_left.x_n.0,
+                        scales_left.x_n.1,
+                        scales_left.x_n.2,
+                        Xmax,
+                    ));
                 });
             })
             // container for right histogram side with text tags for axis
@@ -315,7 +365,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .insert(Side::Right)
                 // right histogram side
                 .with_children(|p| {
-                    p.spawn((scales_right.x_0.0, Xmin));
+                    p.spawn((
+                        scales_right.x_0.0,
+                        scales_right.x_0.1,
+                        scales_right.x_0.2,
+                        Xmin,
+                    ));
                 })
                 .with_children(|p| {
                     p.spawn(build_image(
@@ -325,7 +380,12 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ));
                 })
                 .with_children(|p| {
-                    p.spawn((scales_right.x_n.0, Xmax));
+                    p.spawn((
+                        scales_right.x_n.0,
+                        scales_right.x_n.1,
+                        scales_right.x_n.2,
+                        Xmax,
+                    ));
                 });
             });
         });
