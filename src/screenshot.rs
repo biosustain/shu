@@ -13,7 +13,7 @@ use bevy::{
     asset::{io::Reader, LoadContext},
     prelude::*,
 };
-use bevy_prototype_lyon::prelude::{Fill, Path, Stroke};
+use bevy_prototype_lyon::prelude::{Fill, Shape, Stroke};
 
 use image::ImageFormat;
 use serde::Deserialize;
@@ -143,7 +143,7 @@ fn save_svg_file(
     fonts_storage: Res<RawFontStorage>,
     raw_fonts: Res<Assets<RawAsset>>,
     path_query: Query<(
-        &Path,
+        &Shape,
         Option<&Fill>,
         Option<&Stroke>,
         &Transform,

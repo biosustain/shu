@@ -14,7 +14,7 @@ readme = "README.md"
 bevy = {version="0.15", features = ["multi_threaded", "bevy_render", "bevy_core_pipeline", "bevy_asset", "bevy_sprite", "bevy_winit", "png", "x11", "bevy_ui", "tga", "bmp", "jpeg", "webgl2"], default-features=false }
 bevy_egui = "0.31"
 bevy_pancam = { version = "0.16.0", features = ["bevy_egui"] }
-bevy_prototype_lyon = "0.13.0"
+bevy_prototype_lyon = {git="https://github.com/Nilirad/bevy_prototype_lyon", rev = "d2dc33d"}
 colorgrad = "0.6.2"
 itertools = "0.13.0"
 fastrand = "2.1.0"

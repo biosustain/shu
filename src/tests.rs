@@ -5,7 +5,7 @@ use crate::gui::{file_drop, ActiveData, UiState};
 use crate::{data, escher, geom, info};
 use bevy::prelude::*;
 use bevy::time::TimePlugin;
-use bevy_prototype_lyon::prelude::{GeometryBuilder, Path, PathBuilder, ShapeBundle, Stroke};
+use bevy_prototype_lyon::prelude::{GeometryBuilder, PathBuilder, Shape, Stroke};
 
 use bevy::tasks::IoTaskPool;
 
@@ -43,11 +43,8 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
     app.world_mut().spawn((
-        ShapeBundle {
-            path: GeometryBuilder::build_as(&line),
-            transform: Transform::from_xyz(1., 1., 1.),
-            ..default()
-        },
+        GeometryBuilder::build_as(&line),
+        Transform::from_xyz(1., 1., 1.),
         Stroke::new(Color::srgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
@@ -79,7 +76,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     app.update();
     assert!(app
         .world_mut()
-        .query::<(&HistTag, &Path)>()
+        .query::<(&HistTag, &Shape)>()
         .iter(&app.world())
         .next()
         .is_some());
@@ -106,11 +103,8 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
     app.world_mut().spawn((
-        ShapeBundle {
-            path: GeometryBuilder::build_as(&line),
-            transform: Transform::from_xyz(1., 1., 1.),
-            ..default()
-        },
+        GeometryBuilder::build_as(&line),
+        Transform::from_xyz(1., 1., 1.),
         Stroke::new(Color::srgb(51. / 255., 78. / 255., 101. / 255.), 10.0),
         escher::ArrowTag {
             id: String::from("a"),
@@ -142,7 +136,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
 
     assert!(app
         .world_mut()
-        .query::<(&HistTag, &Unscale, &Path)>()
+        .query::<(&HistTag, &Unscale, &Shape)>()
         .iter(&app.world())
         .next()
         .is_some());

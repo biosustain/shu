@@ -1,12 +1,11 @@
 //! Functions for plotting data.
 
 use bevy::{
-    prelude::{Color, Component, Font, Handle, Text2d, TextColor, TextFont, Transform, Vec2},
+    prelude::{Color, Component, Font, Handle, TextColor, TextFont, Transform, Vec2, Visibility},
     text::TextRoot,
 };
 use bevy_prototype_lyon::{
-    entity::ShapeBundle,
-    prelude::{GeometryBuilder, Path, PathBuilder, Stroke},
+    prelude::{GeometryBuilder, PathBuilder, Shape, Stroke},
     shapes,
 };
 use colorgrad::{Color as GradColor, CustomGradient, Gradient};
@@ -59,7 +58,7 @@ enum PlottingState {
 ///
 /// This way, artifacts produced when tesselating infinitesimal areas or when the
 /// path is not closed are avoided.
-pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
+pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Option<Shape> {
     let center = size / 2.;
     let anchors = linspace(-center, center, n);
     if center.is_nan() {
@@ -101,7 +100,7 @@ pub fn plot_kde(samples: &[f32], n: u32, size: f32, xlimits: (f32, f32)) -> Opti
 }
 
 /// Histogram plotting with n bins.
-pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> Option<Path> {
+pub fn plot_hist(samples: &[f32], bins: u32, size: f32, xlimits: (f32, f32)) -> Option<Shape> {
     let center = size / 2.;
     // a bin should not be less than a data point
     let bins = u32::min(samples.len() as u32 / 2, bins);
@@ -164,7 +163,7 @@ fn plot_spike(
 }
 
 /// Plot a box where the color is the mean of the samples.
-pub fn plot_box_point(n_cond: usize, cond_index: usize) -> Path {
+pub fn plot_box_point(n_cond: usize, cond_index: usize) -> Shape {
     let box_size = 40.;
     let box_center = if n_cond == 0 {
         0.
@@ -229,17 +228,14 @@ impl<T: TextRoot> ScaleBundle<T> {
     }
 }
 
-pub fn plot_line(size: f32, transform: Transform) -> (ShapeBundle, Stroke) {
+pub fn plot_line(size: f32, transform: Transform) -> (Shape, Visibility, Transform, Stroke) {
     let mut path_builder = PathBuilder::new();
     path_builder.move_to(Vec2::new(-size / 2., 0.));
     path_builder.line_to(Vec2::new(size / 2., 0.));
     (
-        ShapeBundle {
-            path: GeometryBuilder::build_as(&path_builder.build()),
-            visibility: bevy::prelude::Visibility::Hidden,
-            transform,
-            ..Default::default()
-        },
+        GeometryBuilder::build_as(&path_builder.build()),
+        bevy::prelude::Visibility::Hidden,
+        transform,
         Stroke::color(Color::BLACK),
     )
 }
@@ -267,7 +263,7 @@ pub fn plot_scales<T: TextRoot>(
     )
 }
 
-fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
+fn get_extreme(path: &Shape, maximum: bool, x: bool) -> f32 {
     let vec = &path
         .0
         .iter()
@@ -286,7 +282,7 @@ fn get_extreme(path: &Path, maximum: bool, x: bool) -> f32 {
 }
 
 /// Get the size of a path as the largest distance between its points.
-pub fn path_to_vec(path: &Path) -> Vec2 {
+pub fn path_to_vec(path: &Shape) -> Vec2 {
     let first_point = Vec2::new(
         get_extreme(path, false, true),
         get_extreme(path, false, false),
