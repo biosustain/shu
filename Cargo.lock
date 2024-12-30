@@ -952,8 +952,7 @@ dependencies = [
 [[package]]
 name = "bevy_prototype_lyon"
 version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e02ff6a3e8b4867eaed81a2bb2cc0bcddc33150849eefa369b4a170ef337aaa8"
+source = "git+https://github.com/Nilirad/bevy_prototype_lyon?rev=d2dc33d#d2dc33d63acec2a7c586a1c1a6f8f7f2608a4422"
 dependencies = [
  "bevy",
  "lyon_algorithms",

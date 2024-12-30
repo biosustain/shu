@@ -429,11 +429,8 @@ pub fn load_map(
         };
         z_eps += 1e-6;
         commands.spawn((
-            ShapeBundle {
-                path: GeometryBuilder::build_as(&shape),
-                transform: Transform::from_xyz(met.x - center_x, -met.y + center_y, 2. + z_eps),
-                ..Default::default()
-            },
+            GeometryBuilder::build_as(&shape),
+            Transform::from_xyz(met.x - center_x, -met.y + center_y, 2. + z_eps),
             Fill::color(MET_COLOR),
             Stroke::new(MET_STROK, 4.0),
             circle.clone(),
@@ -532,11 +529,8 @@ pub fn load_map(
         builder = builder.add(&arrow_heads.build());
         z_eps += 1e-6;
         commands.spawn((
-            ShapeBundle {
-                path: builder.build(),
-                transform: Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1. + z_eps),
-                ..Default::default()
-            },
+            builder.build(),
+            Transform::from_xyz(ori.x - center_x, ori.y + center_y, 1. + z_eps),
             Stroke::new(ARROW_COLOR, 10.0),
             arrow.clone(),
         ));

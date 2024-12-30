@@ -12,9 +12,8 @@ use itertools::Itertools;
 use std::collections::HashMap;
 
 use bevy::prelude::*;
-use bevy_prototype_lyon::prelude::{
-    shapes, Fill, GeometryBuilder, Path, ShapeBundle, ShapePath, Stroke,
-};
+// use bevy_prototype_lyon::prelude::*;
+use bevy_prototype_lyon::prelude::*;
 
 pub struct AesPlugin;
 
@@ -177,7 +176,7 @@ pub fn plot_metabolite_color(
 /// Plot size as numerical variable in metabolic circles.
 pub fn plot_metabolite_size(
     ui_state: Res<UiState>,
-    mut query: Query<(&mut Path, &CircleTag)>,
+    mut query: Query<(&mut Shape, &CircleTag)>,
     mut aes_query: Query<(&Point<f32>, &Aesthetics), (With<Gsize>, With<GeomMetabolite>)>,
 ) {
     for (sizes, aes) in aes_query.iter_mut() {
@@ -214,7 +213,7 @@ pub fn plot_metabolite_size(
 fn restore_geoms<T: Tag>(
     mut restore_event: EventReader<RestoreEvent>,
     mut query: ParamSet<(
-        Query<(&mut Fill, &mut Path), With<T>>,
+        Query<(&mut Fill, &mut Shape), With<T>>,
         Query<&mut Stroke, (With<T>, Without<Fill>)>,
     )>,
 ) {
@@ -241,7 +240,7 @@ fn restore_geoms<T: Tag>(
 /// Each Side of an arrow is assigned a different axis, shared across conditions.
 fn build_axes(
     mut commands: Commands,
-    mut query: Query<(&Transform, &ArrowTag, &Path)>,
+    mut query: Query<(&Transform, &ArrowTag, &Shape)>,
     mut aes_query: Query<
         (&Distribution<f32>, &Aesthetics, &mut GeomHist),
         (With<Gy>, Without<PopUp>),
@@ -334,7 +333,7 @@ fn build_axes(
 /// Build axis.
 fn build_point_axes(
     mut commands: Commands,
-    mut query: Query<(&Transform, &ArrowTag, &Path)>,
+    mut query: Query<(&Transform, &ArrowTag, &Shape)>,
     mut aes_query: Query<
         (&Aesthetics, &mut GeomHist),
         (With<Gy>, Without<PopUp>, With<Point<f32>>),
@@ -493,13 +492,8 @@ fn plot_side_hist(
                 };
 
                 commands.spawn((
-                    ShapeBundle {
-                        path: GeometryBuilder::build_as(&line),
-                        // increment z to avoid flickering problems
-                        transform: trans
-                            .with_translation(trans.translation + Vec3::new(0., 0., *z_eps)),
-                        ..default()
-                    },
+                    GeometryBuilder::build_as(&line),
+                    trans.with_translation(trans.translation + Vec3::new(0., 0., *z_eps)),
                     Fill::color(Color::Srgba(Srgba::hex(hex).unwrap())),
                     VisCondition {
                         condition: aes.condition.clone(),
@@ -566,11 +560,8 @@ fn plot_side_box(
                             .unwrap_or(0),
                     );
                     (
-                        ShapeBundle {
-                            path: GeometryBuilder::build_as(&line_box),
-                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
-                            ..default()
-                        },
+                        GeometryBuilder::build_as(&line_box),
+                        trans.with_scale(Vec3::new(1., 1., 1.)),
                         Fill::color(color),
                         Stroke::new(Color::BLACK, 2.),
                     )
@@ -592,11 +583,8 @@ fn plot_side_box(
                         center: Vec2::new(circle_center, 20.),
                     };
                     (
-                        ShapeBundle {
-                            path: GeometryBuilder::build_as(&shape),
-                            transform: trans.with_scale(Vec3::new(1., 1., 1.)),
-                            ..default()
-                        },
+                        GeometryBuilder::build_as(&shape),
+                        trans.with_scale(Vec3::new(1., 1., 1.)),
                         Fill::color(color),
                         Stroke::new(Color::BLACK, 2.),
                     )
@@ -668,12 +656,11 @@ fn plot_hover_hist(
                     trans.translation.y + 150.,
                     40. + *z_eps,
                 );
-                let geometry = ShapeBundle {
-                    path: GeometryBuilder::build_as(&line),
+                let geometry = (
+                    GeometryBuilder::build_as(&line),
                     transform,
-                    visibility: Visibility::Hidden,
-                    ..default()
-                };
+                    Visibility::Hidden,
+                );
                 let fill = Fill::color(Color::Srgba(Srgba::hex("ffb73388").unwrap()));
                 let scales = plot_scales::<Text2d>(this_dist, 600., font.clone(), 12.);
                 commands
@@ -717,7 +704,7 @@ fn normalize_histogram_height(
     mut query: Query<
         (
             &mut Transform,
-            &mut Path,
+            &mut Shape,
             &mut Fill,
             &HistTag,
             &VisCondition,
@@ -753,10 +740,10 @@ fn change_color(
     ui_state: Res<UiState>,
     mut query: Query<(&mut Fill, &HistTag, &ColorListener), With<Stroke>>,
 ) {
-    let mut gradients: HashMap<Side, colorgrad::Gradient> = HashMap::new();
+    let mut gradients: HashMap<&Side, colorgrad::Gradient> = HashMap::new();
     if ui_state.is_changed() {
         for (mut fill, hist, color) in query.iter_mut() {
-            let grad = gradients.entry(hist.side.clone()).or_insert(build_grad(
+            let grad = gradients.entry(&hist.side).or_insert(build_grad(
                 ui_state.zero_white,
                 color.min_val,
                 color.max_val,

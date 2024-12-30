@@ -11,7 +11,7 @@ use bevy_egui::egui::color_picker::{color_edit_button_rgba, Alpha};
 use bevy_egui::egui::epaint::Rgba;
 use bevy_egui::egui::Hyperlink;
 use bevy_egui::{egui, EguiContexts, EguiPlugin, EguiSettings};
-use bevy_prototype_lyon::prelude::Path;
+use bevy_prototype_lyon::prelude::Shape;
 use chrono::offset::Utc;
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -640,7 +640,7 @@ impl AxisMode {
 fn show_axes(
     key_input: Res<ButtonInput<KeyCode>>,
     mut mode: ResMut<AxisMode>,
-    mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<Path>)>,
+    mut axis_query: Query<&mut Visibility, (With<Xaxis>, With<Shape>)>,
 ) {
     if key_input.just_pressed(KeyCode::KeyS) {
         mode.toggle();
