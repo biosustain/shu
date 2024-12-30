@@ -49,7 +49,7 @@ fn color_legend_arrow(
     mut img_query: Query<&ImageNode>,
     // these two queries are to filter Children of legend_query
     text_query: Query<Entity, With<Xmin>>,
-    text_max_query: Query<Entity, Without<Xmin>>,
+    text_max_query: Query<Entity, (Without<Xmin>, With<Xmax>)>,
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomArrow>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -121,7 +121,7 @@ fn color_legend_circle(
     mut legend_query: Query<(Entity, &mut Node, &Children), With<LegendCircle>>,
     mut img_query: Query<&ImageNode>,
     text_query: Query<Entity, With<Xmin>>,
-    text_max_query: Query<Entity, Without<Xmin>>,
+    text_max_query: Query<Entity, (Without<Xmin>, With<Xmax>)>,
     point_query: Query<(&Point<f32>, &Aesthetics), (With<Gcolor>, With<GeomMetabolite>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -195,7 +195,7 @@ fn color_legend_histograms(
     >,
     mut img_query: Query<(&ImageNode, &mut BackgroundColor)>,
     text_query: Query<Entity, With<Xmin>>,
-    text_max_query: Query<Entity, Without<Xmin>>,
+    text_max_query: Query<Entity, (Without<Xmin>, With<Xmax>)>,
 ) {
     if !ui_state.is_changed() {
         // the ui_state always changes on the creation of histograms
@@ -324,7 +324,7 @@ fn color_legend_box(
     mut legend_query: Query<(Entity, &mut Node, &Side, &Children), With<LegendBox>>,
     mut img_query: Query<&ImageNode>,
     text_query: Query<Entity, With<Xmin>>,
-    text_max_query: Query<Entity, Without<Xmin>>,
+    text_max_query: Query<Entity, (Without<Xmin>, With<Xmax>)>,
     point_query: Query<(&Point<f32>, &Aesthetics, &GeomHist), (With<Gy>, Without<PopUp>)>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -357,7 +357,9 @@ fn color_legend_box(
                     *writer.text(*child, 0) = format!("{:.2e}", max_val);
                 } else if let Ok(img_legend) = img_query.get_mut(*child) {
                     // modify the image inplace
-                    let image = images.get_mut(&img_legend.image).unwrap();
+                    let image = images
+                        .get_mut(&img_legend.image)
+                        .expect("Image handles should have been initialized for legend.");
 
                     let width = image.size().x as f64;
                     let points = linspace(min_val, max_val, width as u32);

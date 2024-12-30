@@ -675,7 +675,7 @@ fn plot_hover_hist(
                     ..default()
                 };
                 let fill = Fill::color(Color::Srgba(Srgba::hex("ffb73388").unwrap()));
-                let scales = plot_scales(this_dist, 600., font.clone(), 12.);
+                let scales = plot_scales::<Text2d>(this_dist, 600., font.clone(), 12.);
                 commands
                     .spawn((
                         HistTag {

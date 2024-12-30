@@ -47,7 +47,7 @@ fn main() {
         .add_systems(Startup, setup_system)
         .add_plugins(aesthetics::AesPlugin)
         .add_plugins(scale::ZoomPlugin)
-        // .add_plugins(legend::LegendPlugin)
+        .add_plugins(legend::LegendPlugin)
         .run();
 }
 
