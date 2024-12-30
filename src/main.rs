@@ -59,6 +59,7 @@ fn main() {
 /// - Insert a Receiver resource so that systems can listen to that.
 fn main() {
     use async_std::channel::{unbounded, Receiver, Sender};
+    use bevy::asset::AssetMetaCheck;
     use gui::ReceiverResource;
     use wasm_bindgen::prelude::*;
     use wasm_bindgen_futures::{spawn_local, JsFuture};
@@ -160,20 +161,26 @@ fn main() {
     target_data.set_onchange(Some(data_closure.as_ref().unchecked_ref()));
 
     App::new()
-        .insert_resource(Msaa::Sample4)
         .insert_resource(WinitSettings::desktop_app())
         .insert_resource(ReceiverResource { rx: map_receiver })
         .insert_resource(ReceiverResource { rx: data_receiver })
         .insert_resource(ReceiverResource { rx: info_receiver })
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "shu".to_string(),
-                fit_canvas_to_parent: true,
-                canvas: Some("#bevy".to_string()),
-                ..default()
-            }),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "shu".to_string(),
+                        canvas: Some("#bevy".to_string()),
+                        fit_canvas_to_parent: true,
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
+                }),
+        )
         // plugins from dependencies
         .add_plugins((PanCamPlugin, ShapePlugin))
         // internal plugins
