@@ -193,7 +193,7 @@ fn color_legend_histograms(
             With<Distribution<f32>>,
         ),
     >,
-    mut img_query: Query<(&ImageNode, &mut BackgroundColor)>,
+    mut img_query: Query<&mut ImageNode>,
     text_query: Query<Entity, With<Xmin>>,
     text_max_query: Query<Entity, (Without<Xmin>, With<Xmax>)>,
 ) {
@@ -235,12 +235,12 @@ fn color_legend_histograms(
                         *writer.text(*child, 0) = format!("{:.2e}", xlimits.1);
                     } else {
                         style.display = Display::Flex;
-                        if let Ok((img_legend, mut background_color)) = img_query.get_mut(*child) {
+                        if let Ok(mut img_legend) = img_query.get_mut(*child) {
                             // modify the image inplace
                             let image = images.get_mut(&img_legend.image).unwrap();
                             if condition == "ALL" {
                                 // show all conditions laminating the legend
-                                background_color.0 = Color::linear_rgba(1., 1., 1., 1.);
+                                img_legend.color = Color::linear_rgba(1., 1., 1., 1.);
                                 let conditions = ui_state.conditions.clone();
                                 let color_ref = match side {
                                     Side::Left => &mut ui_state.color_left,
@@ -279,19 +279,19 @@ fn color_legend_histograms(
                                     });
                                 image.data = data.collect::<Vec<u8>>();
                             } else {
-                                if background_color.0 == Color::linear_rgba(1., 1., 1., 1.) {
+                                if img_legend.color == Color::linear_rgba(1., 1., 1., 1.) {
                                     // previous condition was ALL (or never changed)
                                     // reset the image data that was painted with colors
                                     let data = image.data.chunks(4).flat_map(|pixel| {
                                         if pixel[3] != 0 {
-                                            [255, 255, 255, 255].into_iter()
+                                            [255, 255, 255, pixel[3]].into_iter()
                                         } else {
                                             [0, 0, 0, 0].into_iter()
                                         }
                                     });
                                     image.data = data.collect::<Vec<u8>>();
                                 }
-                                background_color.0 = {
+                                img_legend.color = {
                                     let ref_col = match side {
                                         Side::Left => &mut ui_state.color_left,
                                         Side::Right => &mut ui_state.color_right,
