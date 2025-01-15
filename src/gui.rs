@@ -15,6 +15,7 @@ use bevy_prototype_lyon::prelude::Shape;
 use chrono::offset::Utc;
 use itertools::Itertools;
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 pub struct GuiPlugin;
 
@@ -29,12 +30,11 @@ impl Plugin for GuiPlugin {
             .add_systems(Update, ui_settings)
             .add_systems(Update, show_hover)
             .add_systems(Update, follow_mouse_on_drag)
-            .add_systems(Update, follow_mouse_on_drag_ui)
             .add_systems(Update, follow_mouse_on_rotate)
             .add_systems(Update, follow_mouse_on_scale)
             .add_systems(Update, scale_ui)
             .add_systems(Update, show_axes)
-            .add_systems(Update, (mouse_click_system, mouse_click_ui_system));
+            .add_systems(Update, mouse_click_system);
 
         // file drop and file system does not work in WASM
         #[cfg(not(target_arch = "wasm32"))]
@@ -500,27 +500,6 @@ fn mouse_click_system(
     }
 }
 
-/// Register a UI Drag enity as being dragged by center or right button.
-fn mouse_click_ui_system(
-    mouse_button_input: Res<ButtonInput<MouseButton>>,
-    mut drag_query: Query<(&mut Drag, &Interaction, &mut BackgroundColor)>,
-) {
-    for (mut drag, interaction, mut background_color) in drag_query.iter_mut() {
-        match interaction {
-            Interaction::Hovered | Interaction::Pressed => {
-                drag.dragged = mouse_button_input.pressed(MouseButton::Middle);
-                drag.rotating = mouse_button_input.pressed(MouseButton::Right);
-                *background_color = BackgroundColor(Color::srgba(0.9, 0.9, 0.9, 0.2));
-            }
-            _ => {
-                drag.dragged = false;
-                drag.rotating = false;
-                *background_color = BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.0));
-            }
-        }
-    }
-}
-
 /// Move the center-dragged interactable non-UI entities (histograms).
 fn follow_mouse_on_drag(
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
@@ -540,27 +519,39 @@ fn follow_mouse_on_drag(
     }
 }
 
-/// Move the center-dragged interactable UI entities.
-fn follow_mouse_on_drag_ui(
+/// Observer: move on drag with the middle mouse button.
+pub fn move_ui_on_drag(
+    drag: Trigger<Pointer<bevy::prelude::Drag>>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
-    mut drag_query: Query<(&mut Node, &Drag)>,
+    mut nodes: Query<(&mut Node, &Drag)>,
     ui_scale: Res<UiScale>,
 ) {
-    for (mut ui_node, drag) in drag_query.iter_mut() {
-        if drag.dragged {
-            let Ok((_, win)) = windows.get_single() else {
-                return;
-            };
-            if let Some(screen_pos) = win.cursor_position() {
-                // Base offset that feels natural at default scale
-                let base_offset_x = 80.;
-                let base_offset_y = 50.;
+    let (mut node, _drag) = nodes.get_mut(drag.entity()).unwrap();
+    if !mouse_button_input.pressed(MouseButton::Middle) {
+        return;
+    }
+    let Ok((_, win)) = windows.get_single() else {
+        return;
+    };
+    // if let Some(world_pos) = get_pos(win, camera, camera_transform) {
+    if let Some(screen_pos) = win.cursor_position() {
+        let base_offset_x = 80.;
+        let base_offset_y = 50.;
+        node.left = Val::Px(screen_pos.x / ui_scale.0 - base_offset_x);
+        node.top = Val::Px(screen_pos.y / ui_scale.0 - base_offset_y);
+    }
+}
 
-                // Convert cursor position to UI space
-                ui_node.left = Val::Px(screen_pos.x / ui_scale.0 - base_offset_x);
-                ui_node.top = Val::Px(screen_pos.y / ui_scale.0 - base_offset_y);
-            }
-        }
+/// Observer: change the target entity's background color.
+pub fn recolor_background_on<E: Debug + Clone + Reflect>(
+    color: Color,
+) -> impl Fn(Trigger<E>, Query<&mut BackgroundColor>) {
+    move |ev, mut bgs| {
+        let Ok(mut background_color) = bgs.get_mut(ev.entity()) else {
+            return;
+        };
+        *background_color = BackgroundColor(color);
     }
 }
 

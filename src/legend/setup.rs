@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use crate::{
     funcplot::ScaleBundle,
     geom::{Drag, Side},
+    gui::{move_ui_on_drag, recolor_background_on},
 };
 
 // parameters for legend sizes
@@ -100,6 +101,14 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
             bevy::ui::FocusPolicy::Block,
             GlobalZIndex(10),
         ))
+        .observe(move_ui_on_drag)
+        .observe(recolor_background_on::<Pointer<Over>>(Color::srgba(
+            0.9, 0.9, 0.9, 0.2,
+        )))
+        .observe(recolor_background_on::<Pointer<Out>>(Color::srgba(
+            1.0, 1.0, 1.0, 0.0,
+        )))
+        .observe(move_ui_on_drag)
         .insert((Drag::default(), Interaction::default()))
         // box-point legend
         .with_children(|p| {
