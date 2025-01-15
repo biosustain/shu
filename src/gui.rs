@@ -513,7 +513,8 @@ fn mouse_click_ui_system(
                 *background_color = BackgroundColor(Color::srgba(0.9, 0.9, 0.9, 0.2));
             }
             _ => {
-                drag.dragged &= mouse_button_input.pressed(MouseButton::Middle);
+                drag.dragged = false;
+                drag.rotating = false;
                 *background_color = BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.0));
             }
         }
@@ -543,7 +544,6 @@ fn follow_mouse_on_drag(
 fn follow_mouse_on_drag_ui(
     windows: Query<(Entity, &Window), With<PrimaryWindow>>,
     mut drag_query: Query<(&mut Node, &Drag)>,
-
     ui_scale: Res<UiScale>,
 ) {
     for (mut ui_node, drag) in drag_query.iter_mut() {
@@ -552,9 +552,13 @@ fn follow_mouse_on_drag_ui(
                 return;
             };
             if let Some(screen_pos) = win.cursor_position() {
-                // arbitrary offset to make it feel more natural
-                ui_node.left = Val::Px(screen_pos.x - 80. * ui_scale.0);
-                ui_node.bottom = Val::Px(screen_pos.y - 50. * ui_scale.0);
+                // Base offset that feels natural at default scale
+                let base_offset_x = 80.;
+                let base_offset_y = 50.;
+
+                // Convert cursor position to UI space
+                ui_node.left = Val::Px(screen_pos.x / ui_scale.0 - base_offset_x);
+                ui_node.top = Val::Px(screen_pos.y / ui_scale.0 - base_offset_y);
             }
         }
     }
@@ -615,9 +619,9 @@ fn scale_ui(
         &mut ui_scale.0
     };
     if key_input.just_pressed(KeyCode::NumpadAdd) {
-        *scale += 0.1;
-    } else if key_input.just_pressed(KeyCode::Minus) {
-        *scale -= 0.1;
+        *scale *= 1.1;
+    } else if key_input.just_pressed(KeyCode::NumpadSubtract) {
+        *scale /= 1.1;
     }
 }
 
