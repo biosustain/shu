@@ -5,7 +5,7 @@ use bevy::{
     text::TextRoot,
 };
 use bevy_prototype_lyon::{
-    prelude::{GeometryBuilder, PathBuilder, Shape, Stroke},
+    prelude::{GeometryBuilder, PathBuilder, Shape, Stroke, StrokeOptions},
     shapes,
 };
 use colorgrad::{Color as GradColor, CustomGradient, Gradient};
@@ -230,13 +230,17 @@ impl<T: TextRoot> ScaleBundle<T> {
 
 pub fn plot_line(size: f32, transform: Transform) -> (Shape, Visibility, Transform, Stroke) {
     let mut path_builder = PathBuilder::new();
-    path_builder.move_to(Vec2::new(-size / 2., 0.));
-    path_builder.line_to(Vec2::new(size / 2., 0.));
+    // with a small -5 offset in the y-axis
+    path_builder.move_to(Vec2::new(-size / 2., -5.));
+    path_builder.line_to(Vec2::new(size / 2., -5.));
     (
         GeometryBuilder::build_as(&path_builder.build()),
         bevy::prelude::Visibility::Hidden,
         transform,
-        Stroke::color(Color::BLACK),
+        Stroke {
+            options: StrokeOptions::default().with_line_width(2.0),
+            color: Color::linear_rgba(1.0, 0.0, 0.0, 0.7),
+        },
     )
 }
 

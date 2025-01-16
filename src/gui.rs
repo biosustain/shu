@@ -22,7 +22,6 @@ impl Plugin for GuiPlugin {
         let building = app
             .add_plugins(EguiPlugin)
             .insert_resource(UiState::default())
-            .insert_resource(AxisMode::Hide)
             .insert_resource(ActiveData::default())
             .add_event::<SaveEvent>()
             .add_systems(Update, ui_settings)
@@ -34,21 +33,6 @@ impl Plugin for GuiPlugin {
 
         #[cfg(target_arch = "wasm32")]
         building.add_systems(Update, (listen_js_escher, listen_js_data, listen_js_info));
-    }
-}
-
-#[derive(Resource)]
-pub enum AxisMode {
-    Show,
-    Hide,
-}
-
-impl AxisMode {
-    pub fn toggle(&mut self) {
-        match self {
-            AxisMode::Show => *self = AxisMode::Hide,
-            AxisMode::Hide => *self = AxisMode::Show,
-        }
     }
 }
 

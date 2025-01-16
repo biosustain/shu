@@ -16,13 +16,14 @@ Controls
 
 * **Left click** and drag to move around the map.
 * **Scroll whell** to zoom in and out.
-* **Right click** on a histogram or the legend (on its center) and drag the mouse while holding
-  the button to zoom in/out to rotate it. On axis mode, scale the axis instead.
 * **Middle click** on a histogram or the legend (on its center) and drag the mouse while holding
   the button to move it.
+* **Right click** on a histogram or the legend (on its center) and drag the mouse while holding
+  the button to zoom in/out to rotate it.
+* **Right click + Shift** on a histogram (on its center) and drag the mouse while holding
+  the button to scale the x-axis of the histogram.
 * :code:`+` and :code:`-` keys to scale up and down the legend. If :code:`Control` is pressed,
-  the Settings are scale
-* :code:`s` to toggle axis mode, which shows the histogram axes and allows for scaling them.
+  the Settings are scale.
 * The `Settings` window can be used to change the appeareance and export the map as a json or an image.
 
 Contents
