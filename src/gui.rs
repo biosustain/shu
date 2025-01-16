@@ -30,8 +30,7 @@ impl Plugin for GuiPlugin {
             .add_systems(Update, ui_settings)
             .add_systems(Update, show_hover)
             .add_systems(Update, follow_mouse_on_drag)
-            .add_systems(Update, follow_mouse_on_rotate)
-            .add_systems(Update, follow_mouse_on_scale)
+            .add_systems(Update, rotate_or_scale_on_right_drag)
             .add_systems(Update, scale_ui)
             .add_systems(Update, show_axes)
             .add_systems(Update, mouse_click_system);
@@ -414,6 +413,9 @@ fn show_hover(
 }
 
 /// Register an non-UI entity (histogram) as being dragged by center or right button.
+///
+/// This is a custom picking system implemented for `Xaxis`. The built-in bevy picking
+/// mechanism does not seem to work for non-UI nodes for some reason.
 fn mouse_click_system(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     node_to_text: Res<NodeToText>,
@@ -519,7 +521,7 @@ fn follow_mouse_on_drag(
     }
 }
 
-/// Observer: move on drag with the middle mouse button.
+/// Observer: move UI nodes on drag with the middle mouse button.
 pub fn move_ui_on_drag(
     drag: Trigger<Pointer<bevy::prelude::Drag>>,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
@@ -555,15 +557,19 @@ pub fn recolor_background_on<E: Debug + Clone + Reflect>(
     }
 }
 
-/// Rotate the right-dragged interactable (histograms and legend) entities.
-fn follow_mouse_on_rotate(
+/// Scale the right-dragged interactable (histograms and legend) entities on AxisMode::Show.
+fn rotate_or_scale_on_right_drag(
     mut drag_query: Query<(&mut Transform, &Drag)>,
     mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
 ) {
     for ev in mouse_motion_events.read() {
         for (mut trans, drag) in drag_query.iter_mut() {
-            let pos = trans.translation;
-            if drag.rotating {
+            if drag.scaling {
+                const FACTOR: f32 = 0.01;
+                let scale = ev.delta.x * FACTOR;
+                trans.scale.x += scale;
+            } else if drag.rotating {
+                let pos = trans.translation;
                 trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
                 // clamping of angle to rect angles
                 let (_, angle) = trans.rotation.to_axis_angle();
@@ -577,22 +583,6 @@ fn follow_mouse_on_rotate(
                 } else if f32::abs(angle - 3. * std::f32::consts::PI / 2.) < TOL {
                     trans.rotation = Quat::from_axis_angle(Vec3::Z, 3. * std::f32::consts::PI / 2.);
                 }
-            }
-        }
-    }
-}
-
-/// Scale the right-dragged interactable (histograms and legend) entities on AxisMode::Show.
-fn follow_mouse_on_scale(
-    mut drag_query: Query<(&mut Transform, &Drag)>,
-    mut mouse_motion_events: EventReader<bevy::input::mouse::MouseMotion>,
-) {
-    for ev in mouse_motion_events.read() {
-        for (mut trans, drag) in drag_query.iter_mut() {
-            if drag.scaling {
-                const FACTOR: f32 = 0.01;
-                let scale = ev.delta.x * FACTOR;
-                trans.scale.x += scale;
             }
         }
     }

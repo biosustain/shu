@@ -819,7 +819,7 @@ pub fn filter_histograms(
     }
 }
 
-/// Coordinate the position of histograms with their hovers.
+/// Coordinate the position of histograms with their `Xaxis`.
 fn follow_the_axes(
     axes: Query<(&Transform, &Xaxis), Changed<Transform>>,
     mut hists: Query<(&mut Transform, &HistTag), (Without<AnyTag>, Without<Xaxis>)>,
@@ -830,6 +830,7 @@ fn follow_the_axes(
                 // z has to be maintained per element in the axis to avoid flickering
                 trans.translation.x = axis_trans.translation.x;
                 trans.translation.y = axis_trans.translation.y;
+                trans.rotation = axis_trans.rotation;
                 if hist.follow_scale {
                     trans.scale.x = axis_trans.scale.x;
                 }

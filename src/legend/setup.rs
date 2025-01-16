@@ -108,7 +108,6 @@ pub fn spawn_legend(mut commands: Commands, asset_server: Res<AssetServer>) {
         .observe(recolor_background_on::<Pointer<Out>>(Color::srgba(
             1.0, 1.0, 1.0, 0.0,
         )))
-        .observe(move_ui_on_drag)
         .insert((Drag::default(), Interaction::default()))
         // box-point legend
         .with_children(|p| {
