@@ -3,7 +3,6 @@
 use crate::funcplot::draw_arrow;
 use crate::geom::{GeomHist, HistTag, Side, Xaxis};
 use crate::info::Info;
-use crate::scale::DefaultFontSize;
 use bevy::prelude::*;
 use bevy::reflect::TypePath;
 use bevy_prototype_lyon::prelude::*;
@@ -357,6 +356,11 @@ pub struct Hover {
 pub struct MapDimensions {
     pub x: f32,
     pub y: f32,
+}
+
+#[derive(Component)]
+pub struct DefaultFontSize {
+    pub size: f32,
 }
 
 /// Load escher map once the asset is available.

@@ -14,7 +14,6 @@ mod gui;
 mod info;
 mod legend;
 mod picking;
-mod scale;
 mod screenshot;
 #[cfg(test)]
 mod tests;
@@ -48,7 +47,6 @@ fn main() {
         .add_plugins(data::DataPlugin)
         .add_systems(Startup, setup_system)
         .add_plugins(aesthetics::AesPlugin)
-        .add_plugins(scale::ZoomPlugin)
         .add_plugins(legend::LegendPlugin)
         .run();
 }

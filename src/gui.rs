@@ -1,6 +1,7 @@
 //! Gui (windows and panels) to upload data and hover.
 
 use crate::data::{Data, ReactionState};
+use crate::escher::DefaultFontSize;
 use crate::escher::{EscherMap, MapState};
 use crate::geom::{AnyTag, Xaxis};
 use crate::info::Info;
@@ -25,7 +26,8 @@ impl Plugin for GuiPlugin {
             .insert_resource(ActiveData::default())
             .add_event::<SaveEvent>()
             .add_systems(Update, ui_settings)
-            .add_systems(Update, scale_ui);
+            .add_systems(Update, scale_ui)
+            .add_systems(Update, update_text_sizes);
 
         // file drop and file system does not work in WASM
         #[cfg(not(target_arch = "wasm32"))]
@@ -85,8 +87,7 @@ pub struct UiState {
     pub data_path: String,
     pub screen_path: String,
     pub hide: bool,
-    // since this type and field are private, Self has to be initialized
-    // with Default::default(), ensuring that the fallbacks for colors (empty string) are set.
+    pub font_scale: f32,
     _init: Init,
 }
 
@@ -107,6 +108,7 @@ impl Default for UiState {
             max_left: 100.,
             max_right: 100.,
             max_top: 100.,
+            font_scale: 1.0,
             color_left: {
                 let mut color = HashMap::new();
                 color.insert(
@@ -224,6 +226,11 @@ pub fn ui_settings(
     }
     egui::Window::new("Settings").show(egui_context.ctx_mut(), |ui| {
         ui.visuals_mut().override_text_color = Some(egui::Color32::WHITE);
+
+        ui.label("Text Scale");
+        ui.add(egui::Slider::new(&mut state.font_scale, 0.5..=2.0).text("Scale"));
+        ui.separator();
+
         for (geom, ext) in ["Reaction", "Metabolite"]
             .into_iter()
             .cartesian_product(["min", "max"])
@@ -368,6 +375,16 @@ fn scale_ui(
         *scale *= 1.1;
     } else if key_input.just_pressed(KeyCode::NumpadSubtract) {
         *scale /= 1.1;
+    }
+}
+
+/// Update all text components when the font scale changes in UI settings
+fn update_text_sizes(
+    state: Res<UiState>,
+    mut text_query: Query<(&mut TextFont, &DefaultFontSize)>,
+) {
+    for (mut text_font, default_size) in text_query.iter_mut() {
+        text_font.font_size = default_size.size * state.font_scale;
     }
 }
 
