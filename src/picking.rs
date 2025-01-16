@@ -43,15 +43,25 @@ pub fn mouse_click_system(
     let Ok((_, win)) = windows.get_single() else {
         return;
     };
-    if mouse_button_input.just_pressed(MouseButton::Middle) {
-        for (trans, mut drag) in drag_query.iter_mut() {
-            if let Some(world_pos) = get_pos(win, camera, camera_transform) {
+    let middle_click = mouse_button_input.just_pressed(MouseButton::Middle);
+    let right_click = mouse_button_input.just_pressed(MouseButton::Right);
+    if middle_click | right_click {
+        let scaling =
+            key_input.pressed(KeyCode::ShiftLeft) | key_input.pressed(KeyCode::ShiftRight);
+        if let Some(world_pos) = get_pos(win, camera, camera_transform) {
+            for (trans, mut drag) in drag_query.iter_mut() {
                 if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
                     .length_squared()
                     < 5000.
                 {
-                    drag.dragged = true;
+                    if middle_click {
+                        drag.dragged = true;
                     // do not move more than one component at the same time
+                    } else {
+                        drag.scaling = scaling;
+                        drag.rotating = !scaling;
+                    }
+
                     break;
                 }
             }
@@ -61,23 +71,6 @@ pub fn mouse_click_system(
     if mouse_button_input.just_released(MouseButton::Middle) {
         for (_, mut drag) in drag_query.iter_mut() {
             drag.dragged = false;
-        }
-    }
-    if mouse_button_input.just_pressed(MouseButton::Right) {
-        let scaling =
-            key_input.pressed(KeyCode::ShiftLeft) | key_input.pressed(KeyCode::ShiftRight);
-        for (trans, mut drag) in drag_query.iter_mut() {
-            if let Some(world_pos) = get_pos(win, camera, camera_transform) {
-                if (world_pos - Vec2::new(trans.translation.x, trans.translation.y))
-                    .length_squared()
-                    < 5000.
-                {
-                    drag.scaling = scaling;
-                    drag.rotating = !scaling;
-                    // do not move more than one component at the same time
-                    break;
-                }
-            }
         }
     }
 
