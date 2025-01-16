@@ -187,19 +187,25 @@ pub fn rotate_or_scale_on_right_drag(
                 trans.scale.x += scale;
             } else if drag.rotating {
                 let pos = trans.translation;
-                trans.rotate_around(pos, Quat::from_axis_angle(Vec3::Z, -ev.delta.y * 0.05));
-                // clamping of angle to rect angles
-                let (_, angle) = trans.rotation.to_axis_angle();
-                const TOL: f32 = 0.06;
-                if f32::abs(angle) < TOL {
-                    trans.rotation = Quat::from_axis_angle(Vec3::Z, 0.);
-                } else if f32::abs(angle - std::f32::consts::PI) < TOL {
-                    trans.rotation = Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI);
-                } else if f32::abs(angle - std::f32::consts::PI / 2.) < TOL {
-                    trans.rotation = Quat::from_axis_angle(Vec3::Z, std::f32::consts::PI / 2.);
-                } else if f32::abs(angle - 3. * std::f32::consts::PI / 2.) < TOL {
-                    trans.rotation = Quat::from_axis_angle(Vec3::Z, 3. * std::f32::consts::PI / 2.);
-                }
+                // calculate current angle in radians
+                let current_angle = trans.rotation.to_axis_angle().1;
+                // add the new rotation
+                let new_angle = current_angle - ev.delta.y * 0.05;
+                // snap to nearest 90 degrees (π/2 radians) if within threshold
+                const SNAP_THRESHOLD: f32 = 0.1;
+                let snapped_angle = {
+                    let nearest_right = (new_angle / (std::f32::consts::PI / 2.0)).round()
+                        * (std::f32::consts::PI / 2.0);
+                    if (new_angle - nearest_right).abs() < SNAP_THRESHOLD {
+                        nearest_right
+                    } else {
+                        new_angle
+                    }
+                };
+                trans.rotate_around(
+                    pos,
+                    Quat::from_axis_angle(Vec3::Z, snapped_angle - current_angle),
+                );
             }
         }
     }
