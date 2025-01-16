@@ -6,7 +6,7 @@ use bevy::prelude::*;
 use crate::{
     funcplot::ScaleBundle,
     geom::{Drag, Side},
-    gui::{move_ui_on_drag, recolor_background_on},
+    picking::{move_ui_on_drag, recolor_background_on},
 };
 
 // parameters for legend sizes

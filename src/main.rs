@@ -13,6 +13,7 @@ mod geom;
 mod gui;
 mod info;
 mod legend;
+mod picking;
 mod scale;
 mod screenshot;
 #[cfg(test)]
@@ -43,6 +44,7 @@ fn main() {
         .add_plugins(info::InfoPlugin)
         .add_plugins(EscherPlugin)
         .add_plugins(gui::GuiPlugin)
+        .add_plugins(picking::PickingPlugin)
         .add_plugins(data::DataPlugin)
         .add_systems(Startup, setup_system)
         .add_plugins(aesthetics::AesPlugin)
@@ -188,6 +190,7 @@ fn main() {
         .add_plugins(info::InfoPlugin)
         .add_plugins(EscherPlugin)
         .add_plugins(gui::GuiPlugin)
+        .add_plugins(picking::PickingPlugin)
         .add_plugins(data::DataPlugin)
         .add_systems(Startup, setup_system)
         .add_plugins(aesthetics::AesPlugin)
