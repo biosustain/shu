@@ -45,7 +45,7 @@ class Geom:
         # at least one of the specified aesthetics should be there
         assert any(
             var in aes_in_use for var in self.mapping
-        ), f"This geom requires aes {self.mapping.keys()} to be specifies"
+        ), f"This geom requires aes {self.mapping.keys()} to be specified"
         return {
             shu_var: self.check_type(df_in_use[aes_in_use[aes_var]])
             for aes_var, shu_var in self.mapping.items()
@@ -180,16 +180,17 @@ class GeomMetabolite(GeomArrow):
         self.post_init()
 
 
-class GeomBoxPoint(GeomArrow):
+class GeomBoxPoint(Geom):
     """Geometric mapping from aesthetics to the coloured boxes in the metabolic map.
 
     Parameters
     ----------
     aes: Optional[Aesthetics]
-        with accepted aesthetics being `{"color"}`.
+        with accepted aesthetics being `{"color": continuous, "stack": str}`.
+        "stack" controls the horizontal stacking for the same reaction and condition.
     side: str, default="right"
         Either "left", "right" or "hover". It determines the placement of the geom
-        with respect to the reaction
+        with respect to the reaction.
     """
 
     def __init__(
@@ -200,5 +201,33 @@ class GeomBoxPoint(GeomArrow):
         side="right",
     ):
         super().__init__(df=df, aes=aes)
-        self.mapping = {"color": "box_y" if side == "right" else "box_left_y"}
+        self.mapping = {
+            "color": "box_y" if side == "right" else "box_left_y",
+            "stack": "box_variant" if side == "right" else "box_left_variant",
+        }
         self.post_init()
+
+    def map(self, df: pd.DataFrame, aes: Aesthetics):
+        """Convert the information in the df to the structure in shu."""
+        df_in_use = df if self.df is None else self.df
+        aes_in_use = aes if self.aes is None else self.aes
+        # at least one of the specified aesthetics should be there
+        assert any(
+            var in aes_in_use for var in self.mapping
+        ), f"This geom requires aes {self.mapping.keys()} to be specified"
+        return {
+            shu_var: self.check_type(df_in_use[aes_in_use[aes_var]])
+            if aes_var != "stack"
+            # else check_all_str(df_in_use[aes_in_use[aes_var]], "stack", "geom_boxpoint")
+            else df_in_use[aes_in_use[aes_var]]
+            for aes_var, shu_var in self.mapping.items()
+            if aes_var in aes_in_use
+        }
+
+
+def check_all_str(x: pd.Series, aes_name: str, geom_name: str) -> pd.Series:
+    try:
+        return x.apply(str)
+    except:
+        raise ValueError("Could not convert categorical "
+                         f"aes `{aes_name}` in geom `{geom_name}` to str!")
