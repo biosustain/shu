@@ -623,7 +623,7 @@ fn plot_side_box(
                 if let Some(tag) = &ycat.tags[index] {
                     let mut text_trans = Transform::from_xyz(
                         // based y on the box size (40.) and the number of conditions
-                        -40. * 1.2 * axis.conditions.len() as f32,
+                        -40. * axis.conditions.len() as f32,
                         40.0 * ycat.idx[index] as f32 * 1.2 + 20.,
                         0.,
                     )
