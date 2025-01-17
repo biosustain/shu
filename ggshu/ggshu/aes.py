@@ -12,6 +12,7 @@ def aes(
     y: Optional[str] = None,
     color: Optional[str] = None,
     size: Optional[str] = None,
+    stack: Optional[str] = None,
 ) -> Aesthetics:
     """Map from dataframe variables to grammar graphics variables."""
     # instead of using **kwargs, we specify the exact accepted aes
@@ -24,5 +25,6 @@ def aes(
         "y": y,
         "color": color,
         "size": size,
+        "stack": stack,
     }
     return {k: v for k, v in aesthetics.items() if v is not None}

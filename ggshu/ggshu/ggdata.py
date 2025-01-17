@@ -1,6 +1,8 @@
 """Main class that performs data wrangle and build the final plotting data for shu."""
 
 from __future__ import annotations
+from typing import Any, Union
+from functools import reduce
 import logging
 import json
 from math import isnan
@@ -147,8 +149,13 @@ class PlotData:
         json_file = json_file_without_extension + ".metabolism.json"
 
         shu_data = {k: v.to_list() for k, v in self.plotting_data.items()}
+        to_flatten = ["box_y", "box_left_y", "box_variant", "box_left_variant"]
+        for v_aes in to_flatten:
+            if v_aes in shu_data:
+                null_value = float("nan") if "y" in v_aes else "NaN"
+                shu_data[v_aes] = reduce(lambda acc, x: acc + wrap_list_or_item(x, null_value), shu_data[v_aes], [])
         for key, values in shu_data.items():
-            if key not in ["reactions", "conditions", "metabolites", "met_conditions"]:
+            if key not in ["reactions", "conditions", "metabolites", "met_conditions", "box_variant", "box_left_variant"]:
                 for i in range(len(values)):
                     if isinstance(values[i], list):
                         shu_data[key][i] = [
@@ -158,3 +165,21 @@ class PlotData:
                         shu_data[key][i] = values[i] if not isnan(values[i]) else "NaN"
             with open(json_file, "w") as f:
                 json.dump(shu_data, f)
+
+
+def not_null(x) -> bool:
+    if x is None:
+        return False
+    if isinstance(x, float):
+        return not isnan(x)
+    return True
+
+
+def wrap_list_or_item(x: Union[list, float, str], null_value: Any):
+    if isinstance(x, list):
+        if all(not_null(y) for y in x):
+            return x
+        else:
+            return [null_value]
+    return [x]
+

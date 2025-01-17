@@ -10,6 +10,7 @@ def df():
     return pd.DataFrame(
         {
             "r": ["a", "a", "b", "b", "c", "c", None, None, None, None],
+            "iso": ["a1", "a1", "b1", "b2", "c1", "c2", None, None, None, None],
             "flux": [1, 2, 3, 4, 6, 6, None, None, None, None],
             "kcat": [2, 4, 6, 7, 9, 10, None, None, None, None],
             "conc": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
