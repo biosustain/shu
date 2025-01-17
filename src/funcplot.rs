@@ -163,20 +163,22 @@ fn plot_spike(
 }
 
 /// Plot a box where the color is the mean of the samples.
-pub fn plot_box_point(n_cond: usize, cond_index: usize) -> Shape {
-    let box_size = 40.;
+pub fn plot_box_point(n_cond: usize, cond_index: f32, cat_index: f32) -> Shape {
+    const BOX_SIZE: f32 = 40.;
     let box_center = if n_cond == 0 {
         0.
     } else {
-        let center = cond_index as f32 * box_size * 1.2;
-        center - n_cond as f32 * box_size * 1.2 / 2.
+        let center = cond_index * BOX_SIZE * 1.2;
+        center - n_cond as f32 * BOX_SIZE * 1.2 / 2.
     };
+    let h_pad = BOX_SIZE * 0.2 * (cat_index != 0.) as usize as f32;
+    let y = BOX_SIZE * cat_index + h_pad;
     let mut path_builder = PathBuilder::new();
-    path_builder.move_to(Vec2::new(box_center - box_size / 2., 0.));
-    path_builder.line_to(Vec2::new(box_center + box_size / 2., 0.));
-    path_builder.line_to(Vec2::new(box_center + box_size / 2., box_size));
-    path_builder.line_to(Vec2::new(box_center - box_size / 2., box_size));
-    path_builder.line_to(Vec2::new(box_center - box_size / 2., 0.));
+    path_builder.move_to(Vec2::new(box_center - BOX_SIZE / 2., y));
+    path_builder.line_to(Vec2::new(box_center + BOX_SIZE / 2., y));
+    path_builder.line_to(Vec2::new(box_center + BOX_SIZE / 2., y + BOX_SIZE));
+    path_builder.line_to(Vec2::new(box_center - BOX_SIZE / 2., y + BOX_SIZE));
+    path_builder.line_to(Vec2::new(box_center - BOX_SIZE / 2., y));
     path_builder.build()
 }
 

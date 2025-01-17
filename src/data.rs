@@ -1,11 +1,10 @@
 //! Input data logic.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::aesthetics;
 use crate::escher::EscherMap;
-use crate::geom::{self, HistTag, Xaxis};
-use crate::geom::{AesFilter, GeomHist, HistPlot};
+use crate::geom::{self, AesFilter, GeomHist, HistPlot, HistTag, Xaxis, YCategory};
 use crate::info::Info;
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
@@ -117,22 +116,26 @@ pub struct Data {
     colors: Option<Vec<Number>>,
     /// Numeric values to plot as reaction arrow sizes.
     sizes: Option<Vec<Number>>,
-    /// Numeric values to plot as KDE.
+    /// Numeric values to plot as histogram.
     y: Option<Vec<Vec<Number>>>,
-    /// Numeric values to plot as KDE.
+    /// Numeric values to plot as histogram.
     left_y: Option<Vec<Vec<Number>>>,
-    /// Numeric values to plot on a hovered popup.
+    /// Numeric values to plot on a hovered histogram popup.
     hover_y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot as KDE.
     kde_y: Option<Vec<Vec<Number>>>,
     /// Numeric values to plot as KDE.
     kde_left_y: Option<Vec<Vec<Number>>>,
-    /// Numeric values to plot on a hovered popup.
+    /// Numeric values to plot on a hovered KDE popup.
     kde_hover_y: Option<Vec<Vec<Number>>>,
-    /// Numeric values to plot as KDE.
+    /// Numeric values to plot as boxpoint.
     box_y: Option<Vec<Number>>,
-    /// Numeric values to plot as KDE.
+    /// Numeric values to plot as boxpoint.
     box_left_y: Option<Vec<Number>>,
+    /// Vector of identifiers for horizontal ordering of the box boxpoints (right).
+    box_variant: Option<Vec<String>>,
+    /// Vector of identifiers for horizontal ordering of the box boxpoints (left).
+    box_left_variant: Option<Vec<String>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
     /// Categorical values to be associated with conditions.
@@ -312,23 +315,59 @@ fn load_data(
                     );
                 }
             }
-            for (var, geom) in [
-                (&mut data.box_y, GeomHist::right(HistPlot::BoxPoint)),
-                (&mut data.box_left_y, GeomHist::left(HistPlot::BoxPoint)),
+            for (aes, variant, geom) in [
+                (
+                    &mut data.box_y,
+                    &data.box_variant,
+                    GeomHist::right(HistPlot::BoxPoint),
+                ),
+                (
+                    &mut data.box_left_y,
+                    &data.box_left_variant,
+                    GeomHist::left(HistPlot::BoxPoint),
+                ),
             ]
             .into_iter()
             {
-                if let Some(point_data) = var {
-                    let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+                if let Some(point_data) = aes {
+                    let ((mut data, str_variant), ids): (
+                        (Vec<f32>, Vec<Option<&String>>),
+                        Vec<String>,
+                    ) = indices
                         .iter()
-                        .map(|i| &point_data[*i])
+                        .map(|i| (&point_data[*i], variant.as_ref().map(|v| &v[*i])))
                         .zip(identifiers.iter())
                         // filter values that are NaN
-                        .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
+                        .filter_map(|((col, var), id)| {
+                            col.as_ref().map(|x| ((*x, var), id.clone()))
+                        })
                         .unzip();
                     if data.is_empty() {
                         continue;
                     }
+                    // decide the x-axis ordering of the str variant:
+                    // we need to group identifiers based on variant
+                    // and assign an index to the corresponding variant
+                    let id_to_variant: HashMap<&String, Vec<&str>> = str_variant
+                        .iter()
+                        .zip(ids.iter())
+                        .fold(HashMap::new(), |mut map, (var, id)| {
+                            if let Some(var) = var {
+                                map.entry(id).or_default().push(var);
+                            }
+                            map
+                        });
+                    let variant_indices: Vec<usize> = str_variant
+                        .iter()
+                        .zip(ids.iter())
+                        .map(|(var, id)| {
+                            if let Some(var) = var {
+                                id_to_variant[id].iter().position(|v| v == var).unwrap()
+                            } else {
+                                0
+                            }
+                        })
+                        .collect();
                     commands.spawn((
                         aesthetics::Gy {},
                         aesthetics::Point(std::mem::take(&mut data)),
@@ -337,6 +376,7 @@ fn load_data(
                             met: false,
                             pbox: true,
                         },
+                        YCategory(variant_indices),
                         aesthetics::Aesthetics {
                             identifiers: ids,
                             condition: if cond.is_empty() {

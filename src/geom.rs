@@ -101,6 +101,12 @@ pub struct Xaxis {
     pub conditions: Vec<String>,
 }
 
+/// Component that indicates a Y-categorical axis.
+/// Used to plot boxpoints next to each other, indicating
+/// isozymes for instance (x-axis is conditions).
+#[derive(Component)]
+pub struct YCategory(pub Vec<usize>);
+
 /// Component that marks something susceptible of being dragged/rotated.
 #[derive(Debug, Component, Default)]
 pub struct Drag {

@@ -1,6 +1,6 @@
 //! Unit testing on app-updates.
 use crate::aesthetics::{AesPlugin, Aesthetics, Distribution, Gy, Point, RestoreEvent, Unscale};
-use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis};
+use crate::geom::{AesFilter, GeomHist, HistTag, Xaxis, YCategory};
 use crate::gui::{file_drop, ActiveData, UiState};
 use crate::{data, escher, geom, info};
 use bevy::prelude::*;
@@ -11,10 +11,12 @@ use bevy::tasks::IoTaskPool;
 
 /// Setup to test systems that require [`AsserServer`] as an argument.
 /// Adapted form bevy source code.
-fn setup<'appl>(app: &'appl mut App, asset_path: &str) {
+fn setup(app: &mut App, asset_path: &str) {
     IoTaskPool::get_or_init(Default::default);
-    let mut asset_plug = AssetPlugin::default();
-    asset_plug.file_path = asset_path.to_string();
+    let asset_plug = AssetPlugin {
+        file_path: asset_path.to_string(),
+        ..Default::default()
+    };
     app.add_plugins(asset_plug);
 }
 
@@ -68,7 +70,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     assert!(app
         .world_mut()
         .query::<&Xaxis>()
-        .iter(&app.world())
+        .iter(app.world())
         .next()
         .is_some());
 
@@ -77,7 +79,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     assert!(app
         .world_mut()
         .query::<(&HistTag, &Shape)>()
-        .iter(&app.world())
+        .iter(app.world())
         .next()
         .is_some());
 }
@@ -98,6 +100,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
             met: false,
             pbox: true,
         })
+        .insert(YCategory(vec![0, 1, 2]))
         .insert(GeomHist::right(geom::HistPlot::Kde));
     // and for Paths with ArrowTag
     let path_builder = PathBuilder::new();
@@ -127,7 +130,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     assert!(app
         .world_mut()
         .query::<(&Xaxis, &Unscale)>()
-        .iter(&app.world())
+        .iter(app.world())
         .next()
         .is_some());
 
@@ -137,7 +140,7 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
     assert!(app
         .world_mut()
         .query::<(&HistTag, &Unscale, &Shape)>()
-        .iter(&app.world())
+        .iter(app.world())
         .next()
         .is_some());
 }
