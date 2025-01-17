@@ -191,7 +191,6 @@ struct GgPair<'a, Aes, Geom> {
     geom_component: Geom,
     cond: &'a str,
     hover: bool,
-    met: bool,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -284,10 +283,9 @@ fn load_data(
                     &identifiers,
                     GgPair {
                         aes_component: aesthetics::Gcolor {},
-                        geom_component: geom::GeomArrow { plotted: false },
+                        geom_component: geom::GeomArrow {},
                         cond,
                         hover: false,
-                        met: false,
                     },
                 );
             }
@@ -301,10 +299,9 @@ fn load_data(
                         &identifiers,
                         GgPair {
                             aes_component: aesthetics::Gsize {},
-                            geom_component: geom::GeomArrow { plotted: false },
+                            geom_component: geom::GeomArrow {},
                             cond,
                             hover: false,
-                            met: false,
                         },
                     );
                 };
@@ -331,7 +328,6 @@ fn load_data(
                             geom_component,
                             cond,
                             hover: i > 3,
-                            met: false,
                         },
                     );
                 }
@@ -386,11 +382,11 @@ fn load_data(
                         aesthetics::Gy {},
                         aesthetics::Point(std::mem::take(&mut data)),
                         geom,
-                        AesFilter {
-                            met: false,
-                            pbox: true,
+                        AesFilter {},
+                        YCategory {
+                            idx: variant_indices,
+                            tags: str_variant.into_iter().map(|x| x.cloned()).collect(),
                         },
-                        YCategory(variant_indices),
                         aesthetics::Aesthetics {
                             identifiers: ids,
                             condition: if cond.is_empty() {
@@ -439,10 +435,9 @@ fn load_data(
                     &identifiers,
                     GgPair {
                         aes_component: aesthetics::Gcolor {},
-                        geom_component: geom::GeomMetabolite { plotted: false },
+                        geom_component: geom::GeomMetabolite {},
                         cond,
                         hover: false,
-                        met: false,
                     },
                 );
             }
@@ -454,10 +449,9 @@ fn load_data(
                     &identifiers,
                     GgPair {
                         aes_component: aesthetics::Gsize {},
-                        geom_component: geom::GeomMetabolite { plotted: false },
+                        geom_component: geom::GeomMetabolite {},
                         cond,
                         hover: false,
-                        met: false,
                     },
                 );
             }
@@ -478,7 +472,6 @@ fn load_data(
                             geom_component,
                             cond,
                             hover: true,
-                            met: true,
                         },
                     );
                 }
@@ -560,10 +553,7 @@ fn insert_geom_hist<Aes: Component, Geom: Component>(
             .insert((
                 ggcomp.aes_component,
                 aesthetics::Distribution(std::mem::take(&mut data)),
-                AesFilter {
-                    met: ggcomp.met,
-                    pbox: false,
-                },
+                AesFilter {},
             ));
         if ggcomp.hover {
             ent_commands.insert(geom::PopUp {});
