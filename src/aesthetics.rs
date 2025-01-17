@@ -301,7 +301,6 @@ fn build_axes(
                             arrow_size: size,
                             xlimits,
                             side: geom.side.clone(),
-                            plot: geom.plot.clone(),
                             node_id: arrow.node_id,
                             conditions: Vec::new(),
                         },
@@ -387,7 +386,6 @@ fn build_point_axes(
                             arrow_size: size,
                             xlimits: (0., 0.),
                             side: geom.side.clone(),
-                            plot: geom.plot.clone(),
                             node_id: arrow.node_id,
                             conditions: Vec::new(),
                         },
@@ -519,6 +517,7 @@ fn plot_side_hist(
 
 fn plot_side_box(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     ui_state: Res<UiState>,
     mut aes_query: Query<
         (
@@ -532,6 +531,7 @@ fn plot_side_box(
     >,
     mut query: Query<(&mut Transform, &Xaxis), With<Unscale>>,
 ) {
+    let font: Handle<Font> = asset_server.load("fonts/FiraSans-Bold.ttf");
     for (colors, aes, mut geom, is_box, ycat) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
@@ -570,7 +570,7 @@ fn plot_side_box(
                         .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
                         .unwrap_or(0) as f32;
                     let line_box =
-                        plot_box_point(axis.conditions.len(), cond_idx, ycat.0[index] as f32);
+                        plot_box_point(axis.conditions.len(), cond_idx, ycat.idx[index] as f32);
                     (
                         GeometryBuilder::build_as(&line_box),
                         trans.with_scale(Vec3::new(1., 1., 1.)),
@@ -601,7 +601,7 @@ fn plot_side_box(
                         Stroke::new(Color::BLACK, 2.),
                     )
                 };
-                commands.spawn((
+                let mut ent = commands.spawn((
                     shape,
                     VisCondition {
                         condition: aes.condition.clone(),
@@ -619,6 +619,25 @@ fn plot_side_box(
                     Unscale {},
                     (*is_box).clone(),
                 ));
+                // add a label to the top of the boxes
+                if let Some(tag) = &ycat.tags[index] {
+                    let mut text_trans = Transform::from_xyz(
+                        // based y on the box size (40.) and the number of conditions
+                        -40. * 1.2 * axis.conditions.len() as f32,
+                        40.0 * ycat.idx[index] as f32 * 1.2 + 20.,
+                        0.,
+                    )
+                    .with_rotation(Quat::from_rotation_z(f32::consts::PI / 2.));
+                    if matches!(geom.side, Side::Left) {
+                        text_trans.rotate_x(f32::consts::PI);
+                    }
+                    ent.with_child((
+                        Text2d(tag.clone()),
+                        TextFont::from_font(font.clone()).with_font_size(12.0),
+                        TextColor::BLACK,
+                        text_trans,
+                    ));
+                }
             }
             geom.rendered = true;
         }

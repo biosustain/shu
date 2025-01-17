@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
 /// the arrows in the map.
 #[derive(Component)]
-pub struct GeomArrow {
-    pub plotted: bool,
-}
+pub struct GeomArrow {}
 
 /// Side of the arrow a plot (box point, histogram or legend) is referring to.
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Deserialize, Serialize, Default, Component)]
@@ -71,9 +69,7 @@ impl GeomHist {
 /// When in a Entity with `Aesthetics`, it will plot whatever aes to
 /// the circles in the map.
 #[derive(Component)]
-pub struct GeomMetabolite {
-    pub plotted: bool,
-}
+pub struct GeomMetabolite;
 
 /// Component applied to all Hist-like entities (spawned by a GeomKde, GeomHist, etc. aesthetic)
 /// This allow us to query for systems like normalize or drag.
@@ -96,7 +92,6 @@ pub struct Xaxis {
     pub arrow_size: f32,
     pub xlimits: (f32, f32),
     pub side: Side,
-    pub plot: HistPlot,
     pub node_id: u64,
     pub conditions: Vec<String>,
 }
@@ -105,7 +100,10 @@ pub struct Xaxis {
 /// Used to plot boxpoints next to each other, indicating
 /// isozymes for instance (x-axis is conditions).
 #[derive(Component)]
-pub struct YCategory(pub Vec<usize>);
+pub struct YCategory {
+    pub idx: Vec<usize>,
+    pub tags: Vec<Option<String>>,
+}
 
 /// Component that marks something susceptible of being dragged/rotated.
 #[derive(Debug, Component, Default)]
@@ -148,7 +146,4 @@ pub struct AnyTag {
 /// Mark aesthetics as pertaining to mets.
 /// Used to filter removal queries.
 #[derive(Component, Clone)]
-pub struct AesFilter {
-    pub met: bool,
-    pub pbox: bool,
-}
+pub struct AesFilter {}
