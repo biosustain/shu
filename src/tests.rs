@@ -24,6 +24,9 @@ fn setup(app: &mut App, asset_path: &str) {
 fn gy_dist_aes_spaws_xaxis_spawns_hist() {
     // Setup app
     let mut app = App::new();
+    setup(&mut app, "assets");
+    app.world().get_resource::<AssetServer>().unwrap();
+    app.init_asset::<Font>();
     // build_axes queries for aesthetics
     app.world_mut()
         .spawn(Aesthetics {
@@ -36,10 +39,7 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
             vec![1f32, 2., 1.],
             vec![6f32, 2., 6.],
         ]))
-        .insert(AesFilter {
-            met: false,
-            pbox: false,
-        })
+        .insert(AesFilter {})
         .insert(GeomHist::right(geom::HistPlot::Kde));
     // and for Paths with ArrowTag
     let path_builder = PathBuilder::new();
@@ -54,13 +54,9 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
             node_id: 9,
             direction: Vec2::new(0., 1.),
         },
-        AesFilter {
-            met: false,
-            pbox: false,
-        },
+        AesFilter {},
     ));
 
-    setup(&mut app, "assets");
     app.insert_resource(ActiveData::default());
     app.insert_resource(UiState::default());
     app.add_plugins(AesPlugin);
@@ -88,6 +84,9 @@ fn gy_dist_aes_spaws_xaxis_spawns_hist() {
 fn point_dist_aes_spaws_box_axis_spawns_box() {
     // Setup app
     let mut app = App::new();
+    setup(&mut app, "assets");
+    app.world().get_resource::<AssetServer>().unwrap();
+    app.init_asset::<Font>();
     // build_axes queries for aesthetics
     app.world_mut()
         .spawn(Aesthetics {
@@ -96,11 +95,15 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
         })
         .insert(Gy {})
         .insert(Point(vec![1f32, 2., 2.]))
-        .insert(AesFilter {
-            met: false,
-            pbox: true,
+        .insert(AesFilter {})
+        .insert(YCategory {
+            idx: vec![0, 1, 2],
+            tags: vec![
+                Some(String::from("a")),
+                Some(String::from("b")),
+                Some(String::from("c")),
+            ],
         })
-        .insert(YCategory(vec![0, 1, 2]))
         .insert(GeomHist::right(geom::HistPlot::Kde));
     // and for Paths with ArrowTag
     let path_builder = PathBuilder::new();
@@ -115,13 +118,9 @@ fn point_dist_aes_spaws_box_axis_spawns_box() {
             node_id: 9,
             direction: Vec2::new(0., 1.),
         },
-        AesFilter {
-            met: false,
-            pbox: true,
-        },
+        AesFilter {},
     ));
 
-    setup(&mut app, "asset1");
     app.insert_resource(UiState::default());
     app.insert_resource(ActiveData::default());
     app.add_plugins(AesPlugin);
