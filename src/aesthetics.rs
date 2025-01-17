@@ -5,9 +5,10 @@ use crate::funcplot::{
 };
 use crate::geom::{
     AesFilter, AnyTag, Drag, GeomArrow, GeomHist, GeomMetabolite, HistPlot, HistTag, PopUp, Side,
-    VisCondition, Xaxis,
+    VisCondition, Xaxis, YCategory,
 };
 use crate::gui::{or_color, ActiveData, UiState};
+use core::f32;
 use itertools::Itertools;
 use std::collections::HashMap;
 
@@ -348,9 +349,13 @@ fn build_point_axes(
         for (trans, arrow, path) in query.iter_mut() {
             if aes.identifiers.iter().any(|r| r == &arrow.id) {
                 let size = path_to_vec(path).length();
-                let (rotation_90, away) = match geom.side {
-                    Side::Right => (-Vec2::Y.angle_to(arrow.direction.perp()), -30.),
-                    Side::Left => (-Vec2::NEG_Y.angle_to(arrow.direction.perp()), 30.),
+                let (rotation_90, rotation_x, away) = match geom.side {
+                    Side::Right => (-Vec2::Y.angle_to(arrow.direction.perp()), 0.0, -30.),
+                    Side::Left => (
+                        -Vec2::NEG_Y.angle_to(arrow.direction.perp()),
+                        f32::consts::PI,
+                        30.,
+                    ),
                     _ => {
                         warn!("Tried to plot Up direction for non-popup '{}'", arrow.id);
                         continue;
@@ -367,6 +372,7 @@ fn build_point_axes(
                     let mut transform =
                         Transform::from_xyz(trans.translation.x, trans.translation.y, 0.5)
                             .with_rotation(Quat::from_rotation_z(rotation_90));
+                    transform.rotate_x(rotation_x);
                     transform.translation.x += arrow.direction.perp().x * away;
                     transform.translation.y += arrow.direction.perp().y * away;
                     transform
@@ -515,12 +521,18 @@ fn plot_side_box(
     mut commands: Commands,
     ui_state: Res<UiState>,
     mut aes_query: Query<
-        (&Point<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
+        (
+            &Point<f32>,
+            &Aesthetics,
+            &mut GeomHist,
+            &AesFilter,
+            &YCategory,
+        ),
         (With<Gy>, Without<PopUp>),
     >,
     mut query: Query<(&mut Transform, &Xaxis), With<Unscale>>,
 ) {
-    for (colors, aes, mut geom, is_box) in aes_query.iter_mut() {
+    for (colors, aes, mut geom, is_box, ycat) in aes_query.iter_mut() {
         if geom.rendered {
             continue;
         }
@@ -535,10 +547,10 @@ fn plot_side_box(
         );
 
         for (mut trans, axis) in query.iter_mut() {
-            if let Some(index) = aes
+            for index in aes
                 .identifiers
                 .iter()
-                .position(|r| (r == &axis.id) & (geom.side == axis.side))
+                .positions(|r| (r == &axis.id) & (geom.side == axis.side))
             {
                 match geom.plot {
                     HistPlot::Hist | HistPlot::Kde => {
@@ -552,13 +564,13 @@ fn plot_side_box(
 
                 trans.translation.z += 10.;
                 let shape = if f32::abs(colors.0[index]) > 1e-7 {
-                    let line_box = plot_box_point(
-                        axis.conditions.len(),
-                        axis.conditions
-                            .iter()
-                            .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
-                            .unwrap_or(0),
-                    );
+                    let cond_idx = axis
+                        .conditions
+                        .iter()
+                        .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
+                        .unwrap_or(0) as f32;
+                    let line_box =
+                        plot_box_point(axis.conditions.len(), cond_idx, ycat.0[index] as f32);
                     (
                         GeometryBuilder::build_as(&line_box),
                         trans.with_scale(Vec3::new(1., 1., 1.)),
