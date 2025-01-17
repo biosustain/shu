@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::aesthetics;
 use crate::escher::EscherMap;
-use crate::geom::{self, AesFilter, GeomHist, HistPlot, HistTag, Xaxis, YCategory};
+use crate::geom::{self, AesFilter, GeomHist, HistPlot, HistTag, Side, Xaxis, YCategory};
 use crate::info::Info;
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext};
@@ -236,6 +236,27 @@ fn load_data(
         .unwrap_or_else(|| vec![String::from("")]);
     let cond_set = conditions.iter().unique().collect::<HashSet<&String>>();
     if let Some(reactions) = data.reactions.as_ref() {
+        // hashmap to then decide the horizontal position of boxes
+        let id_to_variant_right: HashMap<&String, HashSet<&str>> = reactions
+            .iter()
+            .enumerate()
+            .map(|(i, reac)| (reac, data.box_variant.as_ref().map(|v| &v[i])))
+            .fold(HashMap::new(), |mut map, (id, var)| {
+                if let Some(var) = var {
+                    map.entry(id).or_default().insert(var);
+                }
+                map
+            });
+        let id_to_variant_left: HashMap<&String, HashSet<&str>> = reactions
+            .iter()
+            .enumerate()
+            .map(|(i, reac)| (reac, data.box_left_variant.as_ref().map(|v| &v[i])))
+            .fold(HashMap::new(), |mut map, (id, var)| {
+                if let Some(var) = var {
+                    map.entry(id).or_default().insert(var);
+                }
+                map
+            });
         for cond in cond_set.iter() {
             let indices: HashSet<usize> = if cond.is_empty() & (conditions.len() <= 1) {
                 reactions
@@ -348,24 +369,17 @@ fn load_data(
                     // decide the x-axis ordering of the str variant:
                     // we need to group identifiers based on variant
                     // and assign an index to the corresponding variant
-                    let id_to_variant: HashMap<&String, Vec<&str>> = str_variant
-                        .iter()
-                        .zip(ids.iter())
-                        .fold(HashMap::new(), |mut map, (var, id)| {
-                            if let Some(var) = var {
-                                map.entry(id).or_default().push(var);
-                            }
-                            map
-                        });
+                    let id_to_variant = match geom.side {
+                        Side::Left => &id_to_variant_left,
+                        Side::Right => &id_to_variant_right,
+                        _ => unreachable!(),
+                    };
                     let variant_indices: Vec<usize> = str_variant
                         .iter()
                         .zip(ids.iter())
                         .map(|(var, id)| {
-                            if let Some(var) = var {
-                                id_to_variant[id].iter().position(|v| v == var).unwrap()
-                            } else {
-                                0
-                            }
+                            var.map(|var| id_to_variant[id].iter().position(|v| v == var).unwrap())
+                                .unwrap_or_default()
                         })
                         .collect();
                     commands.spawn((
