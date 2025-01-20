@@ -15,8 +15,8 @@ pub fn parse_args() -> CliArgs {
     let (map_path, data_path) = args.iter().skip(1).zip(args.iter().skip(2)).fold(
         (None, None),
         |(map, data), (arg, next)| match arg.as_str() {
-            "--map" => (Some(PathBuf::from(next)), data),
-            "--data" => (map, Some(PathBuf::from(next))),
+            "--map" | "-m" => (Some(PathBuf::from(next)), data),
+            "--data" | "-d" => (map, Some(PathBuf::from(next))),
             _ => (map, data),
         },
     );
