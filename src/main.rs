@@ -53,7 +53,13 @@ fn main() {
         .add_plugins(legend::LegendPlugin);
 
     let cli_args = cli::parse_args();
-    cli::handle_cli_args(app, cli_args);
+    if let Err(e) = cli::handle_cli_args(app, cli_args) {
+        use cli::InitCliError::*;
+        match e {
+            InvalidPathError(error) => error!("Supplied path as arg is invalid: {error}"),
+            UninitWindow => error!("Window was not initialized!"),
+        }
+    }
 
     app.run();
 }
