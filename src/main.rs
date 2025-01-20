@@ -6,6 +6,8 @@ use bevy_pancam::{PanCam, PanCamPlugin};
 use bevy_prototype_lyon::prelude::*;
 
 mod aesthetics;
+#[cfg(not(target_arch = "wasm32"))]
+mod cli;
 mod data;
 mod escher;
 mod funcplot;
@@ -23,7 +25,8 @@ use screenshot::{RawAsset, RawFontStorage};
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    App::new()
+    let mut app = App::new();
+    let app = app
         .insert_resource(WinitSettings::desktop_app())
         .add_plugins(
             DefaultPlugins
@@ -47,8 +50,12 @@ fn main() {
         .add_plugins(data::DataPlugin)
         .add_systems(Startup, setup_system)
         .add_plugins(aesthetics::AesPlugin)
-        .add_plugins(legend::LegendPlugin)
-        .run();
+        .add_plugins(legend::LegendPlugin);
+
+    let cli_args = cli::parse_args();
+    cli::handle_cli_args(app, cli_args);
+
+    app.run();
 }
 
 #[cfg(target_arch = "wasm32")]
