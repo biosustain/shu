@@ -21,7 +21,6 @@ mod screenshot;
 mod tests;
 
 use escher::{EscherMap, EscherPlugin, MapState};
-use screenshot::{RawAsset, RawFontStorage};
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
@@ -219,9 +218,6 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         reaction_data: None,
         loaded: false,
     });
-    let fira: Handle<RawAsset> = asset_server.load("fonts/FiraSans-Bold.tttx");
-    let assis: Handle<RawAsset> = asset_server.load("fonts/Assistant-Regular.tttx");
-    commands.insert_resource(RawFontStorage { fira, assis });
 
     commands
         .spawn((
