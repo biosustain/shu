@@ -7,16 +7,11 @@ use crate::{
     info::Info,
     legend::{Xmax, Xmin},
 };
-use bevy::reflect::TypePath;
+use bevy::prelude::*;
 use bevy::render::view::screenshot::{save_to_disk, Screenshot};
-use bevy::{
-    asset::{io::Reader, LoadContext},
-    prelude::*,
-};
 use bevy_prototype_lyon::prelude::{Fill, Shape, Stroke};
 
 use image::ImageFormat;
-use serde::Deserialize;
 
 pub struct ScreenShotPlugin;
 
@@ -24,8 +19,6 @@ impl Plugin for ScreenShotPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ScreenshotEvent>()
             .add_event::<SvgScreenshotEvent>()
-            .init_asset::<RawAsset>()
-            .init_asset_loader::<RawAssetLoader>()
             .add_systems(Startup, setup_timer)
             .add_systems(
                 Update,
@@ -92,46 +85,6 @@ fn screenshot_on_event(
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Asset, TypePath)]
-pub struct RawAsset {
-    pub value: Vec<u8>,
-}
-#[derive(Default)]
-pub struct RawAssetLoader;
-
-impl bevy::asset::AssetLoader for RawAssetLoader {
-    type Asset = RawAsset;
-    type Settings = ();
-    type Error = std::io::Error;
-    async fn load(
-        &self,
-        reader: &mut dyn Reader,
-        _settings: &(),
-        _load_context: &mut LoadContext<'_>,
-    ) -> Result<Self::Asset, Self::Error> {
-        let mut bytes = Vec::new();
-        reader.read_to_end(&mut bytes).await?;
-        let raw = RawAsset {
-            value: bytes.to_vec(),
-        };
-        Ok(raw)
-    }
-
-    fn extensions(&self) -> &[&str] {
-        &["tttx"]
-    }
-}
-
-#[derive(Resource)]
-/// Resource to store the two fonts used to render the map as raw `Vec<u8>`.
-///
-/// This is needed to pass the fonts as raw data to usvg since the bevy `Font` struct
-/// does not provide a way to retrieve that data (it is a `FontArc`).
-pub struct RawFontStorage {
-    pub fira: Handle<RawAsset>,
-    pub assis: Handle<RawAsset>,
-}
-
 /// Write image to SVG.
 fn save_svg_file(
     mut save_events: EventReader<SvgScreenshotEvent>,
@@ -140,8 +93,8 @@ fn save_svg_file(
     map_dims: Res<MapDimensions>,
     // to get images and font raw data
     images: Res<Assets<Image>>,
-    fonts_storage: Res<RawFontStorage>,
-    raw_fonts: Res<Assets<RawAsset>>,
+    fonts: Res<Assets<Font>>,
+    asset_server: Res<AssetServer>,
     path_query: Query<(
         &Shape,
         Option<&Fill>,
@@ -170,8 +123,12 @@ fn save_svg_file(
     >,
 ) {
     for SvgScreenshotEvent { file_path } in save_events.read() {
-        let RawAsset { value: fira } = raw_fonts.get(&fonts_storage.fira).unwrap();
-        let RawAsset { value: assis } = raw_fonts.get(&fonts_storage.assis).unwrap();
+        let Some(fira) = fonts.get(&asset_server.load("fonts/FiraSans-Bold.ttf")) else {
+            return;
+        };
+        let Some(assis) = fonts.get(&asset_server.load("fonts/Assistant-Regular.ttf")) else {
+            return;
+        };
         // reflect the whole graph on both axes; the reverse step from reading from escher
         let mut writer =
             roarsvg::LyonWriter::new().with_transform(roarsvg::SvgTransform::from_scale(1.0, -1.0));
@@ -212,8 +169,8 @@ fn save_svg_file(
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
         }
-        let writer = writer.add_fonts_source(fira);
-        let mut writer = writer.add_fonts_source(assis);
+        let writer = writer.add_fonts_source(&fira.data[..]);
+        let mut writer = writer.add_fonts_source(&assis.data[..]);
         for (text, font, color, transform, vis) in &text_query {
             if Visibility::Hidden == vis {
                 continue;
