@@ -169,8 +169,8 @@ fn save_svg_file(
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
         }
-        let writer = writer.add_fonts_source(&fira.data[..]);
-        let mut writer = writer.add_fonts_source(&assis.data[..]);
+        let writer = writer.add_fonts_source(fira.data.clone());
+        let mut writer = writer.add_fonts_source(assis.data.clone());
         for (text, font, color, transform, vis) in &text_query {
             if Visibility::Hidden == vis {
                 continue;
@@ -197,6 +197,7 @@ fn save_svg_file(
                         color.alpha(),
                     )),
                     None,
+                    roarsvg::DominantBaseline::Middle,
                 )
                 .unwrap_or_else(|_| info!("Writing error!"));
         }
@@ -258,6 +259,7 @@ fn save_svg_file(
                                 None,
                                 vec![String::from("Assistant"), String::from("Regular")],
                                 font.font_size,
+                                roarsvg::DominantBaseline::Auto,
                             )
                             .unwrap(),
                         );
