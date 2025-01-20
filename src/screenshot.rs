@@ -103,7 +103,7 @@ fn save_svg_file(
         &Visibility,
     )>,
     text_query: Query<
-        (&Text, &TextFont, &TextColor, &Transform, &Visibility),
+        (&Text2d, &TextFont, &TextColor, &Transform, &Visibility),
         (Without<Xmin>, Without<Xmax>, Without<IgnoreSave>),
     >,
     // legend part
