@@ -5,5 +5,6 @@ from .geoms import GeomKde as geom_kde
 from .geoms import GeomMetabolite as geom_metabolite
 from .geoms import GeomBoxPoint as geom_boxpoint
 from .ggdata import PlotData as ggmap
+from .jupyter import Shu
 
 __version__ = "0.1.0"
