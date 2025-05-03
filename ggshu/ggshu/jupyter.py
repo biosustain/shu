@@ -66,19 +66,19 @@ class Shu:
 
     Example
     -------
-    >>> import json
-    >>> from ggshu import Shu
-    >>> 
-    >>> view = Shu(height=740)
-    >>> view.show()
-    >>> with open("ecoli_core_map.json") as f_map:
-    >>>     ecoli_map = json.load(f_map)
-    >>>
-    >>> view.load_map(ecoli_map)
-    >>> with open("omics.metabolism.json") as f_data:
-    >>>     ecoli_data = json.load(f_data)
-    >>>
-    >>> view.load_data(ecoli_data)
+    ```python
+    import json
+    from ggshu import Shu
+    
+    view = Shu(height=740)
+    view.show()
+    with open("ecoli_core_map.json") as f_map:
+        ecoli_map = json.load(f_map)
+    view.load_map(ecoli_map)
+    with open("omics.metabolism.json") as f_data:
+        ecoli_data = json.load(f_data)
+    view.load_data(ecoli_data)
+    ```
     """
 
     # ───────────────────── initialisation ───────────────────── #
