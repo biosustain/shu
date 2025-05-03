@@ -3,11 +3,21 @@
 This allows showing the map and then interacting with it by loading maps
 and metabolic data directly from python.
 """
-import json, pathlib, tempfile, sys, re, socket, threading, functools
-from urllib.parse import urljoin
+
+import functools
+import json
+import mimetypes
+import pathlib
+import re
+import socket
+import sys
+import tempfile
+import threading
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from typing import Union
-from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
-import mimetypes, requests
+from urllib.parse import urljoin
+
+import requests
 from IPython.display import IFrame, Javascript, display
 
 # MIME for WASM (older Python versions lack this)
@@ -69,7 +79,7 @@ class Shu:
     ```python
     import json
     from ggshu import Shu
-    
+
     view = Shu(height=740)
     view.show()
     with open("ecoli_core_map.json") as f_map:
@@ -81,7 +91,6 @@ class Shu:
     ```
     """
 
-    # ───────────────────── initialisation ───────────────────── #
     def __init__(
         self,
         source_url: str = "https://biosustain.github.io/shu/",
@@ -97,36 +106,6 @@ class Shu:
         )
         self._local_index = self._base / "index.html"
         self._server = None
-        self._current_src = None  # iframe src last shown
-
-    # ───────────────────── server helpers ───────────────────── #
-    
-    def _start_server(self) -> None:
-        """Launch a silent ThreadingHTTPServer that serves `self._base`.
-
-        Ensures WASM is sent with the correct MIME.
-        """
-        if self._server:
-            return
-
-        # pick an unused port
-        with socket.socket() as s:
-            s.bind(("127.0.0.1", 0))
-            port = s.getsockname()[1]
-
-        class Quiet(SimpleHTTPRequestHandler):
-            extensions_map = {
-                **SimpleHTTPRequestHandler.extensions_map,
-                ".wasm": "application/wasm",
-                ".js":   "application/javascript",
-            }
-            def log_message(self, *_):  # suppress console spam in notebooks
-                pass
-
-        handler = functools.partial(Quiet, directory=str(self._base))
-        self._server = ThreadingHTTPServer(("127.0.0.1", port), handler)
-        threading.Thread(target=self._server.serve_forever, daemon=True).start()
-        self._http_url = f"http://127.0.0.1:{port}/index.html"
 
     def close(self):
         """Stop the local web‑server."""
@@ -146,8 +125,35 @@ class Shu:
         else:
             src = self.source_url
 
-        self._current_src = src
         display(self._iframe(src))
+
+    def _start_server(self) -> None:
+        """Launch a silent ThreadingHTTPServer that serves `self._base`.
+
+        Ensures WASM is sent with the correct MIME.
+        """
+        if self._server:
+            return
+
+        # pick an unused port
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+
+        class Quiet(SimpleHTTPRequestHandler):
+            extensions_map = {
+                **SimpleHTTPRequestHandler.extensions_map,
+                ".wasm": "application/wasm",
+                ".js": "application/javascript",
+            }
+
+            def log_message(self, *_):  # suppress console spam in notebooks
+                pass
+
+        handler = functools.partial(Quiet, directory=str(self._base))
+        self._server = ThreadingHTTPServer(("127.0.0.1", port), handler)
+        threading.Thread(target=self._server.serve_forever, daemon=True).start()
+        self._http_url = f"http://127.0.0.1:{port}/index.html"
 
     def load_map(self, data: dict) -> None:
         """Load the map in the running Shu app (offline mode).
@@ -212,11 +218,14 @@ class Shu:
             console.log("[Shu] map posted");
         }})();"""
         display(Javascript(js_code))
-        
 
     def _iframe(self, src: str) -> IFrame:
-        return IFrame(src, width="100%", height=self.height,
-                      sandbox="allow-scripts allow-same-origin")
+        return IFrame(
+            src,
+            width="100%",
+            height=self.height,
+            sandbox="allow-scripts allow-same-origin",
+        )
 
     def _download_site(self, force: bool = False) -> None:
         """Mirror every file under self.source_url into self._base, *then*
@@ -225,7 +234,7 @@ class Shu:
         if self._local_index.exists() and not force:
             return
 
-        base = self.source_url      # e.g. https://biosustain.github.io/shu/
+        base = self.source_url  # e.g. https://biosustain.github.io/shu/
         print(f"Downloading Shu from {base}…", file=sys.stderr)
 
         todo, seen = {base}, set()
@@ -241,8 +250,8 @@ class Shu:
                     print("skipping", url, r.status_code, file=sys.stderr)
                     continue
 
-                rel_url = url[len(base):]                  # '' for landing dir
-                target  = self._base / rel_url
+                rel_url = url[len(base) :]  # '' for landing dir
+                target = self._base / rel_url
                 if url.endswith("/"):
                     target.mkdir(parents=True, exist_ok=True)
                     target = target / "index.html"
@@ -272,7 +281,7 @@ class Shu:
 
             # TODO: harcoded, should be properly scraped
             for rel_path in _ASSETS_MANIFEST:
-                url  = urljoin(self.source_url, f"assets/{rel_path}")
+                url = urljoin(self.source_url, f"assets/{rel_path}")
                 dest = assets_root / rel_path
                 if dest.exists():
                     continue  # already grabbed by crawler
