@@ -81,6 +81,41 @@ The map should look like this:
 .. note::
   Try tweaking the "Settings" window to achieve the same colors.
 
+Jupyter Notebooks
+-----------------
+
+Instead of saving the file to JSON and loading it manually into Shu, **ggshu** can load Shu in a JupyterLab notebook and let you interact with it through Python.
+
+Inside a notebook, create the same plot as before:
+
+.. code-block:: python
+
+   plot = (
+       ggmap(df, aes(reaction="reactions", size="flux", color="kcat"))
+       + geom_arrow()
+   )
+
+Next, load Shu into the notebook. This will download the necessary files under the hood (it may take a few seconds):
+
+.. code-block:: python
+
+   from ggshu import Shu
+
+   shu_view = Shu(height=740)
+   shu_view.show()
+
+To render your plot in the notebook, simply call the ``show`` method:
+
+.. code-block:: python
+
+   plot.show(shu_view)
+
+The visualization will appear in the cell where you called ``shu_view.show()``.
+
+.. warning::
+   To conserve resources, shu renders lazily: it updates only when you interact with the app.
+   If you don’t see any changes, try hovering your cursor over the map!
+
 Plotting distributions
 ----------------------
 
