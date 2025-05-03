@@ -6,7 +6,7 @@ from typing import Dict, Optional
 import numpy as np
 import pandas as pd
 
-from ggshu.aes import Aesthetics
+from .aes import Aesthetics
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)

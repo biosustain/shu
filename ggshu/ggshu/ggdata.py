@@ -8,8 +8,9 @@ import json
 from math import isnan
 
 import pandas as pd
-from ggshu.aes import Aesthetics
-from ggshu.geoms import Geom
+from .aes import Aesthetics
+from .geoms import Geom
+from .jupyter import Shu
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
@@ -148,6 +149,39 @@ class PlotData:
         """
         json_file = json_file_without_extension + ".metabolism.json"
 
+        shu_data = self.to_dict()
+        with open(json_file, "w") as f:
+            json.dump(shu_data, f)
+
+    def show(self, shu_viewer: Shu):
+        """Write to shu data to JSON.
+
+        This file can be the dragged and dropped into shu to visualize
+        data.
+
+        Parameters
+        ----------
+        json_file_without_extension: str
+            Path to desired destination. It should not contain the extension
+            since the final file has to contain a "metabolism.json" extension
+            for shu to parse it. This way, we enforce that particularity.
+
+        Example
+        -------
+
+        ```python
+        import pandas as pd
+        from ggshu import aes, geom_arrow, ggmap
+
+        df = pd.DataFrame({"met": ["glc", "akg"], "conc": [4, 10]})
+        (ggmap(df, aes(metabolite="met", size="conc")) + geom_map()).to_json("shu_data")
+        ```
+        """
+        shu_data = self.to_dict()
+        shu_viewer.load_data(shu_data)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Write to shu data to a dictionary of data that can be passed to `Shu.load_data`. """
         shu_data = {k: v.to_list() for k, v in self.plotting_data.items()}
         to_flatten = ["box_y", "box_left_y", "box_variant", "box_left_variant"]
         for v_aes in to_flatten:
@@ -163,8 +197,7 @@ class PlotData:
                         ]
                     else:
                         shu_data[key][i] = values[i] if not isnan(values[i]) else "NaN"
-            with open(json_file, "w") as f:
-                json.dump(shu_data, f)
+        return shu_data
 
 
 def not_null(x) -> bool:
