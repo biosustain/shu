@@ -136,6 +136,10 @@ pub struct Data {
     box_variant: Option<Vec<String>>,
     /// Vector of identifiers for horizontal ordering of the box boxpoints (left).
     box_left_variant: Option<Vec<String>>,
+    /// Numeric values to plot a column plot (right).
+    column_y: Option<Vec<Number>>,
+    /// Numeric values to plot a column plot (left).
+    left_column_y: Option<Vec<Number>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
     /// Categorical values to be associated with conditions.
@@ -305,6 +309,40 @@ fn load_data(
                         },
                     );
                 };
+            }
+            for (aes, geom_component) in [
+                (&mut data.column_y, GeomHist::right(HistPlot::Hist)),
+                (&mut data.left_column_y, GeomHist::left(HistPlot::Hist)),
+            ]
+            .into_iter()
+            {
+                if let Some(ref mut column_data) = aes.as_mut() {
+                    let (mut data, ids): (Vec<f32>, Vec<String>) = indices
+                        .iter()
+                        .map(|i| &column_data[*i])
+                        .zip(identifiers.iter())
+                        // filter values that are NaN
+                        .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
+                        .unzip();
+                    if data.is_empty() {
+                        return;
+                    }
+                    info!("Spawning GyLengths");
+                    commands.spawn((
+                        aesthetics::GyLength {},
+                        aesthetics::Point(std::mem::take(&mut data)),
+                        geom_component,
+                        AesFilter {},
+                        aesthetics::Aesthetics {
+                            identifiers: ids,
+                            condition: if cond.is_empty() {
+                                None
+                            } else {
+                                Some(cond.to_string())
+                            },
+                        },
+                    ));
+                }
             }
             for (i, (aes, geom_component)) in [
                 (&mut data.y, GeomHist::right(HistPlot::Hist)),
