@@ -182,6 +182,24 @@ pub fn plot_box_point(n_cond: usize, cond_index: f32, cat_index: f32) -> Shape {
     path_builder.build()
 }
 
+/// Plot a column bar.
+pub fn plot_column(height: f32, n_cond: usize, cond_index: f32) -> Shape {
+    const COL_WIDTH: f32 = 40.;
+    let column_center = if n_cond == 0 {
+        0.
+    } else {
+        let center = cond_index * COL_WIDTH * 1.2;
+        center - n_cond as f32 * COL_WIDTH * 1.2 / 2.
+    };
+    let mut path_builder = PathBuilder::new();
+    path_builder.move_to(Vec2::new(column_center - COL_WIDTH / 2., 0.0));
+    path_builder.line_to(Vec2::new(column_center - COL_WIDTH / 2., height));
+    path_builder.line_to(Vec2::new(column_center + COL_WIDTH / 2., height));
+    path_builder.line_to(Vec2::new(column_center + COL_WIDTH / 2., 0.0));
+    path_builder.line_to(Vec2::new(column_center - COL_WIDTH / 2., 0.0));
+    path_builder.build()
+}
+
 type TextBundle<T> = (T, TextFont, TextColor, Transform);
 
 /// Three text tags to be used as Components to build a an axis scale.
