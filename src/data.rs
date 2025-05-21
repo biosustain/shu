@@ -138,8 +138,12 @@ pub struct Data {
     box_left_variant: Option<Vec<String>>,
     /// Numeric values to plot a column plot (right).
     column_y: Option<Vec<Number>>,
+    column_ymin: Option<Vec<Number>>,
+    column_ymax: Option<Vec<Number>>,
     /// Numeric values to plot a column plot (left).
     left_column_y: Option<Vec<Number>>,
+    left_column_ymin: Option<Vec<Number>>,
+    left_column_ymax: Option<Vec<Number>>,
     /// Categorical values to be associated with conditions.
     conditions: Option<Vec<String>>,
     /// Categorical values to be associated with conditions.
@@ -179,7 +183,8 @@ impl IsEmpty for Data {
         self.left_y.is_empty() & self.hover_y.is_empty() & self.kde_y.is_empty() &
         self.kde_left_y.is_empty() & self.kde_hover_y.is_empty() & self.box_y.is_empty() &
         self.box_left_y.is_empty() & self.conditions.is_empty() & self.met_conditions.is_empty() &
-        self.met_colors.is_empty() & self.met_sizes.is_empty() & self.met_y.is_empty() & self.kde_met_y.is_empty()
+        self.met_colors.is_empty() & self.met_sizes.is_empty() & self.met_y.is_empty() & self.kde_met_y.is_empty() &
+        self.column_y.is_empty() & self.left_column_y.is_empty()
     }
 }
 
@@ -310,27 +315,54 @@ fn load_data(
                     );
                 };
             }
-            for (aes, geom_component) in [
-                (&mut data.column_y, GeomHist::right(HistPlot::Hist)),
-                (&mut data.left_column_y, GeomHist::left(HistPlot::Hist)),
+            for (y, ymin, ymax, geom_component) in [
+                (
+                    &mut data.column_y,
+                    &mut data.column_ymin,
+                    &mut data.column_ymax,
+                    GeomHist::right(HistPlot::Hist),
+                ),
+                (
+                    &mut data.left_column_y,
+                    &mut data.left_column_ymin,
+                    &mut data.left_column_ymax,
+                    GeomHist::right(HistPlot::Hist),
+                ),
             ]
             .into_iter()
             {
-                if let Some(ref mut column_data) = aes.as_mut() {
-                    let (mut data, ids): (Vec<f32>, Vec<String>) = indices
-                        .iter()
-                        .map(|i| &column_data[*i])
-                        .zip(identifiers.iter())
-                        // filter values that are NaN
-                        .filter_map(|(col, id)| col.as_ref().map(|x| (*x, id.clone())))
-                        .unzip();
+                if let Some(ref mut column_data) = y.as_mut() {
+                    let (mut data, ids): (Vec<(f32, Option<f32>, Option<f32>)>, Vec<String>) =
+                        indices
+                            .iter()
+                            .map(|i| {
+                                (
+                                    &column_data[*i],
+                                    ymin.as_ref().map(|s| s[*i].as_ref()).flatten(),
+                                    ymax.as_ref().map(|s| s[*i].as_ref()).flatten(),
+                                )
+                            })
+                            .zip(identifiers.iter())
+                            // filter values that are NaN
+                            .filter_map(|(range, id)| {
+                                range.0.as_ref().map(|x| {
+                                    (
+                                        (
+                                            *x,
+                                            range.1.as_deref().map(|x| *x),
+                                            range.2.as_deref().map(|x| *x),
+                                        ),
+                                        id.clone(),
+                                    )
+                                })
+                            })
+                            .unzip();
                     if data.is_empty() {
                         return;
                     }
-                    info!("Spawning GyLengths");
                     commands.spawn((
-                        aesthetics::GyLength {},
-                        aesthetics::Point(std::mem::take(&mut data)),
+                        aesthetics::Gy {},
+                        aesthetics::SummaryDist(std::mem::take(&mut data)),
                         geom_component,
                         AesFilter {},
                         aesthetics::Aesthetics {
