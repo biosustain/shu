@@ -4,7 +4,7 @@ use bevy::color::Srgba;
 use bevy::prelude::*;
 
 use crate::{
-    aesthetics::{Aesthetics, Distribution, Gcolor, Gy, Point, Unscale},
+    aesthetics::{Aesthetics, ColumnAxis, Distribution, Gcolor, Gy, Point, SummaryDist, Unscale},
     funcplot::{linspace, max_f32, min_f32},
     geom::{GeomArrow, GeomHist, GeomMetabolite, PopUp, Side, Xaxis},
     gui::{or_color, UiState},
@@ -182,7 +182,7 @@ fn color_legend_histograms(
     mut writer: TextUiWriter,
     mut legend_query: Query<(Entity, &mut Node, &Side, &Children), With<LegendHist>>,
     // Unscale means would mean that is not a histogram
-    axis_query: Query<&Xaxis, Without<Unscale>>,
+    axis_query: Query<&Xaxis, Or<(Without<Unscale>, With<ColumnAxis>)>>,
     // only queries for collapsing the legend if no hist data is displayed anymore
     hist_query: Query<
         &GeomHist,
@@ -190,7 +190,7 @@ fn color_legend_histograms(
             With<Gy>,
             Without<PopUp>,
             With<Aesthetics>,
-            With<Distribution<f32>>,
+            Or<(With<Distribution<f32>>, With<SummaryDist<f32>>)>,
         ),
     >,
     mut img_query: Query<&mut ImageNode>,
