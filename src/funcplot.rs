@@ -183,7 +183,13 @@ pub fn plot_box_point(n_cond: usize, cond_index: f32, cat_index: f32) -> Shape {
 }
 
 /// Plot a column bar.
-pub fn plot_column(height: f32, n_cond: usize, cond_index: f32) -> Shape {
+pub fn plot_column(
+    height: f32,
+    ymin: Option<f32>,
+    ymax: Option<f32>,
+    n_cond: usize,
+    cond_index: f32,
+) -> Shape {
     const COL_WIDTH: f32 = 40.;
     let column_center = if n_cond == 0 {
         0.
@@ -197,6 +203,17 @@ pub fn plot_column(height: f32, n_cond: usize, cond_index: f32) -> Shape {
     path_builder.line_to(Vec2::new(column_center + COL_WIDTH / 2., height));
     path_builder.line_to(Vec2::new(column_center + COL_WIDTH / 2., 0.0));
     path_builder.line_to(Vec2::new(column_center - COL_WIDTH / 2., 0.0));
+    // path_builder.close();
+    if let Some(min_height) = ymin {
+        path_builder.move_to(Vec2::new(column_center, min_height));
+        path_builder.line_to(Vec2::new(column_center, height));
+        // path_builder.close();
+    }
+    if let Some(max_height) = ymax {
+        path_builder.move_to(Vec2::new(column_center, height));
+        path_builder.line_to(Vec2::new(column_center, max_height));
+        // path_builder.close();
+    }
     path_builder.build()
 }
 
