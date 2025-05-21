@@ -40,8 +40,8 @@ impl Plugin for AesPlugin {
                 (
                     build_axes,
                     build_hover_axes,
-                    build_point_axes::<Gy>,
-                    build_point_axes::<GyLength>,
+                    build_point_axes::<Point<f32>, PointAxis>,
+                    build_point_axes::<SummaryDist<f32>, ColumnAxis>,
                 ),
             )
             .add_systems(Update, (plot_side_hist, plot_hover_hist, plot_side_column))
@@ -57,31 +57,53 @@ pub struct Aesthetics {
     pub condition: Option<String>,
 }
 
-trait Aes {
-    fn new() -> Self;
-}
-
 #[derive(Component)]
 pub struct Gy {}
-impl Aes for Gy {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-#[derive(Component)]
-pub struct GyLength {}
-impl Aes for GyLength {
-    fn new() -> Self {
-        Self {}
-    }
-}
 
 /// Data from the variables is allocated here.
 #[derive(Component)]
 pub struct Point<T>(pub Vec<T>);
 #[derive(Component)]
 pub struct Distribution<T>(pub Vec<Vec<T>>);
+#[derive(Component)]
+pub struct SummaryDist<T>(pub Vec<(T, Option<T>, Option<T>)>);
+
+/// Marker trait for Xaxis for boxpoints.
+#[derive(Component)]
+struct PointAxis {}
+/// Marker trait for Xaxis for column plots.
+#[derive(Component)]
+struct ColumnAxis {}
+
+/// For a geom plotted in an axis, get the lower and upper bounds of the data
+/// and define a marker trait.
+trait Bounds<T, M> {
+    fn bounds(&self) -> (T, T);
+    fn axis_marker() -> M;
+}
+
+impl Bounds<f32, PointAxis> for Point<f32> {
+    fn bounds(&self) -> (f32, f32) {
+        (min_f32(&self.0), max_f32(&self.0))
+    }
+    fn axis_marker() -> PointAxis {
+        PointAxis {}
+    }
+}
+
+impl Bounds<f32, ColumnAxis> for SummaryDist<f32> {
+    fn bounds(&self) -> (f32, f32) {
+        self.0.iter().fold((0f32, 0f32), |acc, (a, b, c)| {
+            (
+                f32::min(acc.0, b.map(|b| a.min(b)).unwrap_or(*a)),
+                f32::max(acc.1, c.map(|c| a.max(c)).unwrap_or(*a)),
+            )
+        })
+    }
+    fn axis_marker() -> ColumnAxis {
+        ColumnAxis {}
+    }
+}
 
 #[derive(Component)]
 pub struct Gsize {}
@@ -361,10 +383,10 @@ fn build_axes(
 }
 
 /// Build axis.
-fn build_point_axes<T: Component + Aes>(
+fn build_point_axes<Data: Component + Bounds<f32, Marker>, Marker: Component>(
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Shape)>,
-    mut aes_query: Query<(&Aesthetics, &mut GeomHist, &Point<f32>), (With<T>, Without<PopUp>)>,
+    mut aes_query: Query<(&Aesthetics, &mut GeomHist, &Data), (With<Gy>, Without<PopUp>)>,
 ) {
     let mut axes: HashMap<String, HashMap<Side, (Xaxis, Transform)>> = HashMap::new();
     // first gather all x-limits for different conditions and the arrow and side
@@ -372,10 +394,8 @@ fn build_point_axes<T: Component + Aes>(
         (f32::INFINITY, f32::NEG_INFINITY),
         |acc, (_, geom, points)| {
             if !geom.in_axis {
-                (
-                    f32::min(acc.0, min_f32(&points.0)),
-                    f32::max(acc.1, max_f32(&points.0)),
-                )
+                let bounds = &points.bounds();
+                (f32::min(acc.0, bounds.0), f32::max(acc.1, bounds.1))
             } else {
                 acc
             }
@@ -447,7 +467,8 @@ fn build_point_axes<T: Component + Aes>(
             axis,
             Drag::default(),
             trans,
-            T::new(),
+            Gy {},
+            Data::axis_marker(),
             Unscale {},
             Visibility::default(),
         ));
@@ -571,7 +592,7 @@ fn plot_side_box(
         ),
         (With<Gy>, Without<PopUp>),
     >,
-    mut query: Query<(&mut Transform, &Xaxis), (With<Unscale>, With<Gy>)>,
+    mut query: Query<(&mut Transform, &Xaxis), (With<Unscale>, With<PointAxis>)>,
 ) {
     let font: Handle<Font> = asset_server.load("fonts/FiraSans-Bold.ttf");
     for (colors, aes, mut geom, is_box, ycat) in aes_query.iter_mut() {
@@ -689,10 +710,10 @@ fn plot_side_box(
 fn plot_side_column(
     mut commands: Commands,
     mut aes_query: Query<
-        (&Point<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
-        (With<GyLength>, Without<PopUp>),
+        (&SummaryDist<f32>, &Aesthetics, &mut GeomHist, &AesFilter),
+        (With<Gy>, Without<PopUp>),
     >,
-    mut query: Query<(&mut Transform, &Xaxis), With<GyLength>>,
+    mut query: Query<(&mut Transform, &Xaxis), With<ColumnAxis>>,
 ) {
     const COLUMN_PLOT_HEIGHT: f32 = 100.0;
 
@@ -717,7 +738,13 @@ fn plot_side_column(
                     }
                     _ => (),
                 };
-                let height = lerp(heights.0[index], min_val, max_val, 0.0, COLUMN_PLOT_HEIGHT);
+                let height = lerp(
+                    heights.0[index].0,
+                    min_val,
+                    max_val,
+                    0.0,
+                    COLUMN_PLOT_HEIGHT,
+                );
 
                 trans.translation.z += 10.;
                 let color_hex = match geom.side {
@@ -993,7 +1020,7 @@ fn activate_settings(
     mut active_data: ResMut<ActiveData>,
     arrows_or_boxes: Query<(&Aesthetics, &Point<f32>), Or<(With<GeomArrow>, With<GeomHist>)>>,
     circles: Query<(&Aesthetics, &Point<f32>), With<GeomMetabolite>>,
-    hists: Query<(&Aesthetics, &GeomHist), Or<(With<Distribution<f32>>, With<GyLength>)>>,
+    hists: Query<(&Aesthetics, &GeomHist), Or<(With<Distribution<f32>>, With<SummaryDist<f32>>)>>,
 ) {
     active_data.arrow = arrows_or_boxes
         .iter()
