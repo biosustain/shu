@@ -73,7 +73,7 @@ pub struct SummaryDist<T>(pub Vec<(T, Option<T>, Option<T>)>);
 struct PointAxis {}
 /// Marker trait for Xaxis for column plots.
 #[derive(Component)]
-struct ColumnAxis {}
+pub struct ColumnAxis {}
 
 /// For a geom plotted in an axis, get the lower and upper bounds of the data
 /// and define a marker trait.
@@ -745,6 +745,12 @@ fn plot_side_column(
                     0.0,
                     COLUMN_PLOT_HEIGHT,
                 );
+                let min_height = heights.0[index]
+                    .1
+                    .map(|x| lerp(x, min_val, max_val, 0.0, COLUMN_PLOT_HEIGHT));
+                let max_height = heights.0[index]
+                    .2
+                    .map(|x| lerp(x, min_val, max_val, 0.0, COLUMN_PLOT_HEIGHT));
 
                 trans.translation.z += 10.;
                 let color_hex = match geom.side {
@@ -758,7 +764,13 @@ fn plot_side_column(
                         .iter()
                         .position(|x| x == aes.condition.as_ref().unwrap_or(&String::from("")))
                         .unwrap_or(0) as f32;
-                    let column = plot_column(height, axis.conditions.len(), cond_idx);
+                    let column = plot_column(
+                        height,
+                        min_height,
+                        max_height,
+                        axis.conditions.len(),
+                        cond_idx,
+                    );
                     (
                         GeometryBuilder::build_as(&column),
                         trans.with_scale(Vec3::new(1., 1., 1.)),
