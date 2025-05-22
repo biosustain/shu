@@ -389,18 +389,19 @@ fn build_point_axes<Data: Component + Bounds<f32, Marker>, Marker: Component>(
     mut aes_query: Query<(&Aesthetics, &mut GeomHist, &Data), (With<Gy>, Without<PopUp>)>,
 ) {
     let mut axes: HashMap<String, HashMap<Side, (Xaxis, Transform)>> = HashMap::new();
-    // first gather all x-limits for different conditions and the arrow and side
-    let (min_val, max_val) = aes_query.iter().fold(
-        (f32::INFINITY, f32::NEG_INFINITY),
-        |acc, (_, geom, points)| {
-            if !geom.in_axis {
+    // gather bounds for each side
+    let mut bounds = HashMap::<Side, (f32, f32)>::new();
+    for side in [Side::Left, Side::Right] {
+        let min_max = aes_query
+            .iter()
+            .filter(|(_, geom, _)| (&geom.side == &side) & !geom.in_axis)
+            .fold((f32::INFINITY, f32::NEG_INFINITY), |acc, (_, _, points)| {
                 let bounds = &points.bounds();
-                (f32::min(acc.0, bounds.0), f32::max(acc.1, bounds.1))
-            } else {
-                acc
-            }
-        },
-    );
+                (acc.0.min(bounds.0), acc.1.max(bounds.1))
+            });
+        bounds.insert(side, min_max);
+    }
+    // first gather all x-limits for different conditions and the arrow and side
     for (aes, mut geom, _) in aes_query.iter_mut() {
         if geom.in_axis {
             continue;
@@ -444,7 +445,8 @@ fn build_point_axes<Data: Component + Bounds<f32, Marker>, Marker: Component>(
                         Xaxis {
                             id: arrow.id.clone(),
                             arrow_size: size,
-                            xlimits: (min_val, max_val),
+                            // won't panic: if side is not right or left, this is unreachable
+                            xlimits: bounds[&geom.side],
                             side: geom.side.clone(),
                             node_id: arrow.node_id,
                             conditions: Vec::new(),

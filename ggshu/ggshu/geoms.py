@@ -180,7 +180,7 @@ class GeomMetabolite(GeomArrow):
         self.post_init()
 
 
-class GeomColumn(GeomArrow):
+class GeomColumn(Geom):
     """Geometric mapping from aesthetics to column plots at both sides of the arrows(reactions) in the metabolic map.
 
     Parameters
@@ -202,6 +202,16 @@ class GeomColumn(GeomArrow):
         prefix = "left_" if side == "left" else ""
         self.mapping = {key: f"{prefix}column_{key}" for key in ["y", "ymin", "ymax"]}
         self.post_init()
+
+    def check_type(self, data: pd.Series) -> pd.Series:
+        """Check and validate the datatype."""
+        if data.dtype == "O":
+            LOGGER.warning("Geom data coerced distribution data to means.")
+            data = data.apply(np.mean)
+        assert (
+            data.dtype.kind == "f" or data.dtype.kind == "i"
+        ), "Data should be numbers"
+        return data
 
 
 class GeomBoxPoint(Geom):

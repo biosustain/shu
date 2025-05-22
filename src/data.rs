@@ -326,7 +326,7 @@ fn load_data(
                     &mut data.left_column_y,
                     &mut data.left_column_ymin,
                     &mut data.left_column_ymax,
-                    GeomHist::right(HistPlot::Hist),
+                    GeomHist::left(HistPlot::Hist),
                 ),
             ]
             .into_iter()
