@@ -13,6 +13,8 @@ def aes(
     color: Optional[str] = None,
     size: Optional[str] = None,
     stack: Optional[str] = None,
+    ymin: Optional[str] = None,
+    ymax: Optional[str] = None,
 ) -> Aesthetics:
     """Map from dataframe variables to grammar graphics variables."""
     # instead of using **kwargs, we specify the exact accepted aes
@@ -23,6 +25,8 @@ def aes(
         "metabolite": metabolite,
         "condition": condition,
         "y": y,
+        "ymin": ymin,
+        "ymax": ymax,
         "color": color,
         "size": size,
         "stack": stack,

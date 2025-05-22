@@ -180,6 +180,30 @@ class GeomMetabolite(GeomArrow):
         self.post_init()
 
 
+class GeomColumn(GeomArrow):
+    """Geometric mapping from aesthetics to column plots at both sides of the arrows(reactions) in the metabolic map.
+
+    Parameters
+    ----------
+    aes: Optional[Aesthetics]
+        with accepted aesthetics being `{"reaction", "y", "ymin", "ymax"}`.
+        "y" is required but "ymin" and/or "ymax" are optional and may not be
+        provided for all cases where "y" is present.
+    """
+
+    def __init__(
+        self,
+        *,
+        df: Optional[pd.DataFrame] = None,
+        aes: Optional[Aesthetics] = None,
+        side: str = "right",
+    ):
+        super().__init__(df=df, aes=aes)
+        prefix = "left_" if side == "left" else ""
+        self.mapping = {key: f"{prefix}column_{key}" for key in ["y", "ymin", "ymax"]}
+        self.post_init()
+
+
 class GeomBoxPoint(Geom):
     """Geometric mapping from aesthetics to the coloured boxes in the metabolic map.
 
