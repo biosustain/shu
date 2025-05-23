@@ -1,0 +1,35 @@
+site_name: Shu
+site_description: High-dimensional metabolic maps
+site_author: Jorge Carrasco Muriel
+site_url: https://biosustain.github.io/shu/docs
+repo_url: https://github.com/biosustain/shu
+repo_name: biosustain/shu
+
+nav:
+  - Home: 'index.md'
+  - Plotting tutorial: 'plotting.md'
+  - Gallery: 'gallery.md'
+  - Developers' guide: 'developers.md'
+  - File formats: 'file_formats.md'
+
+theme:
+  name: 'material'
+  palette:
+    primary: black
+    accent: amber
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - admonition
+
+
+extra_css:
+  - assets/gallery.css
+extra_javascript:
+  - assets/gallery.js
+
+plugins: 
+  - search
+  - mkdocs-gallery
+

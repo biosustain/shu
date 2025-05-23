@@ -324,7 +324,7 @@ pub fn ui_settings(
         ui.add(
             Hyperlink::from_label_and_url(
                 "How to use?",
-                "https://biosustain.github.io/shu/docs/plotting.html",
+                "https://biosustain.github.io/shu/docs/plotting/",
             )
             .open_in_new_tab(true),
         );
