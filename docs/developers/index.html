@@ -1,0 +1,700 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="High-dimensional metabolic maps">
+      
+      
+        <meta name="author" content="Jorge Carrasco Muriel">
+      
+      
+        <link rel="canonical" href="https://biosustain.github.io/shu/docs/developers/">
+      
+      
+        <link rel="prev" href="../gallery/">
+      
+      
+        <link rel="next" href="../file_formats/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.14">
+    
+    
+      
+        <title>Developers' guide - Shu</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.342714a4.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/gallery.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#for-developers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Shu" class="md-header__button md-logo" aria-label="Shu" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Shu
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Developers' guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/biosustain/shu" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    biosustain/shu
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Shu" class="md-nav__button md-logo" aria-label="Shu" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Shu
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/biosustain/shu" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+  </div>
+  <div class="md-source__repository">
+    biosustain/shu
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Plotting tutorial
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Gallery
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Developers' guide
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Developers' guide
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#build-instructions-from-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build instructions from source
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#native-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Native deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wasm-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      WASM deployment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../file_formats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    File formats
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#build-instructions-from-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build instructions from source
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      Architecture
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deployment
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#native-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Native deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wasm-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      WASM deployment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contributing
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="for-developers">For developers</h1>
+<p>The following instructions are for developers who want to contribute to <strong>shu</strong> or deploy it.</p>
+<h2 id="build-instructions-from-source">Build instructions from source</h2>
+<p>To build <strong>shu</strong> from source, you need to have Rust and <code>cargo</code> installed.
+<strong>Shu</strong> uses the nightly toolchain: </p>
+<div class="highlight"><pre><span></span><code>rustup<span class="w"> </span>toolchain<span class="w"> </span>install<span class="w"> </span>nightly
+</code></pre></div>
+<p>and <code>ldd</code> to speed up linking times. See the <a href="https://bevyengine.org/learn/book/getting-started/setup/#enable-fast-compiles-optional">bevy setup documentation</a> to
+install it or simply remove the <code>.cargo</code> directory if that is not desired.</p>
+<p>Then, clone the repository and build the project:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/biosustain/shu.git
+<span class="nb">cd</span><span class="w"> </span>shu
+cargo<span class="w"> </span>build
+</code></pre></div>
+<h2 id="architecture">Architecture</h2>
+<p>The API documentation can be found at https://docs.rs/shu.</p>
+<p>Shu follows a Grammar of Graphics design like <a href="https://ggplot2.tidyverse.org/">ggplot</a> or <a href="https://plotnine.readthedocs.io/en/stable/index.html">plotnine</a>. See the
+<a href="../plotting/">plotting chapter</a> for the full analogy. The
+particular implementation is an Entity Component System in <a href="https://bevyengine.org/">bevy</a>:</p>
+<ul>
+<li>Each aesthetic is a <em>component</em> (<code>Gsize</code>, <code>Gcolor</code>, etc.) containing its data (see <a href="https://github.com/biosustain/shu/tree/master/src/aesthetics.rs"><code>aesthetics.rs</code></a>). Identifiers are stored in the <code>Aesthetic</code> <em>component</em>.</li>
+<li><em>Entities</em> with <code>Aesthetic</code>, other aes components and Geom component (<code>GeomArrow</code>, <code>GeomMetabolite</code>, etc. in <a href="https://github.com/biosustain/shu/tree/master/src/geom.rs"><code>geom.rs</code></a>) are processed and plotted by a <em>system</em> (in <a href="https://github.com/biosustain/shu/tree/master/src/aesthetics.rs"><code>aesthetics.rs</code></a>).</li>
+<li>The accepted aesthetics for a given geom are made explicit in the <em>queries</em> of the <em>systems</em>.</li>
+</ul>
+<p>Data handling lives in <a href="https://github.com/biosustain/shu/tree/master/src/data.rs"><code>data.rs</code></a> and <a href="https://github.com/biosustain/shu/tree/master/src/escher.rs"><code>escher.rs</code></a>.</p>
+<p>About the GUI, there are three separate pieces: the Settings window, the
+histogram interactions and legend. The settings window is handled by <a href="https://github.com/mvlabat/bevy_egui">bevy_egui</a>
+(<a href="https://github.com/biosustain/shu/tree/master/src/gui.rs"><code>gui.rs</code></a>). The histogram interactions are non-UI components spawned in
+<a href="https://github.com/biosustain/shu/tree/master/src/aesthetics.rs"><code>aesthetics.rs</code></a> and handled mostly in <a href="https://github.com/biosustain/shu/tree/master/src/gui.rs"><code>gui.rs</code></a>. Finally, the legend is in its
+own separate <a href="https://github.com/biosustain/shu/tree/master/src/legend">legend module</a> and consists on UI components in a flexbox in a
+way that it is by default collapse and only the relevant legend appears once
+its corresponding data is added to the map.</p>
+<h2 id="deployment">Deployment</h2>
+<p>Binaries for Linux, Mac, Windows and WASM are generated once release tags are pushed to the repository. For instance, a tag for version 26.2.0 would be pushed in the following way:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>tag<span class="w"> </span><span class="m">26</span>.2.0
+git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span><span class="m">26</span>.2.0
+</code></pre></div>
+<p>A github action will build and create the binaries.</p>
+<h3 id="native-deployment">Native deployment</h3>
+<p>To generate binaries locally:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/biosustain/shu.git
+<span class="nb">cd</span><span class="w"> </span>shu
+cargo<span class="w"> </span>build<span class="w"> </span>--release
+</code></pre></div>
+<p>A binary has been generated at <code>target/release/shu</code>. You can copy it to your path or run it directly from there. Alternatively, simply run</p>
+<div class="highlight"><pre><span></span><code>cargo<span class="w"> </span>install<span class="w"> </span>--path<span class="w"> </span>.
+</code></pre></div>
+<p>And <a href="https://doc.rust-lang.org/cargo/getting-started/installation.html">cargo</a> will handle the rest.</p>
+<h3 id="wasm-deployment">WASM deployment</h3>
+<p>If you want to deploy the WASM version locally or for internal use, you can build it yourself using <a href="https://rustwasm.github.io/wasm-bindgen/reference/cli.html">wasm-bindgen</a>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># clone the repository if you haven&#39;t already</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/biosustain/shu.git
+<span class="nb">cd</span><span class="w"> </span>shu
+<span class="c1"># build the wasm version</span>
+cargo<span class="w"> </span>build<span class="w"> </span>--profile<span class="w"> </span>wasm-release<span class="w"> </span>--target<span class="w"> </span>wasm32-unknown-unknown
+<span class="c1"># bundle it into the pkg directory</span>
+wasm-bindgen<span class="w"> </span>--out-dir<span class="w"> </span>pkg<span class="w"> </span>--target<span class="w"> </span>web<span class="w"> </span>./target/wasm32-unknown-unknown/wasm-release/shu.wasm
+</code></pre></div>
+<p>Afterwards, an <code>index.html</code> file can be created in the root directory that
+contains <code>pkg</code>. See the <a href="https://github.com/biostain/shu/tree/gh-pages">gh-pages branch</a> for an example of that. A directory
+containing the <code>inde.html</code>, <code>assets</code> and <code>pkg</code> directories can be deployed to a
+static page like <a href="https://pages.github.com/">Github pages</a> or <a href="https://docs.gitlab.com/ee/user/project/pages/">Gitlab pages</a>.</p>
+<h2 id="contributing">Contributing</h2>
+<p>Contributions are welcome!</p>
+<ol>
+<li>Look up similar <a href="https://github.com/biosustain/shu/issues">issues</a>.</li>
+<li><a href="https://github.com/biosustain/shu/issues/new">Write an issue</a>.</li>
+<li><a href="https://docs.github.com/en/enterprise/2.13/user/articles/fork-a-repo">Fork</a> the repository.</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="c1"># https</span>
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/biosustain/shu.git
+<span class="c1"># or ssh</span>
+git<span class="w"> </span>clone<span class="w"> </span>git@github.com:biosustain/shu.git
+<span class="c1"># add a remote with to your fork</span>
+git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>downstream<span class="w"> </span>git@github.com:username/shu.git
+</code></pre></div>
+<ol>
+<li>Branch from trunk.</li>
+</ol>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span><span class="s1">&#39;feat-incrediblefeature&#39;</span>
+</code></pre></div>
+<ol>
+<li>Write your code and push the commits to you repository (we use <a href="https://seesparkbox.com/foundry/semantic_commit_messages">semantic commits</a>).</li>
+</ol>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s1">&#39;feat: add incredible feature&#39;</span>
+git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>downstream<span class="w"> </span>feat-incrediblefeature
+</code></pre></div>
+<ol>
+<li>Submit a <a href="https://github.com/biosustain/shu/pulls">Pull Request</a> with your feature/bug fix.</li>
+<li>Get the Pull Request approved (CI must pass).  </li>
+</ol>
+<p>For the CI to pass, you need to run and pass <code>cargo fmt</code> and <code>cargo test</code>
+before comitting. <code>cargo clippy</code> is not enforced but desirable.</p>
+<p>Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall
+be dual licensed as Apache2.0/MIT, without any additional terms or conditions.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.13a4f30d.min.js"></script>
+      
+        <script src="../assets/gallery.js"></script>
+      
+    
+  </body>
+</html>

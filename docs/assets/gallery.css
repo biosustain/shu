@@ -1,0 +1,69 @@
+/* ==== GRID ========================================================= */
+.gallery{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:1rem;
+  margin-block:1.5rem;
+}
+.gallery-item{
+  position:relative;
+  cursor:pointer;
+  outline:3px solid transparent;
+  border-radius:6px;
+}
+.gallery-item img{
+  width:100%; aspect-ratio:1/1;
+  object-fit:cover;
+  border-radius:inherit;
+  transition:transform .2s linear, outline-color .2s linear;
+}
+.gallery-item:focus-visible img,
+.gallery-item:hover img{ transform:scale(1.04); }
+
+.gallery-item:focus-visible{ outline-color:var(--md-primary-fg-color,orange); }
+
+/* ==== OVERLAY ====================================================== */
+.overlay{
+  position:fixed; inset:0;
+  display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.85);
+  padding:2rem;
+  z-index:1000;
+}
+.gallery-item.active .overlay{ display:flex; }
+
+.overlay .full{
+  max-width:45vw; max-height:80vh;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+  margin-right:2rem;
+  border-radius:6px;
+}
+.overlay pre{
+  max-height:80vh; overflow:auto;
+  background:#eeeeee; color:#dcdcdc;
+  padding:1rem; border-radius:6px;
+}
+/* .overlay .highlight{ */
+  /* max-height:80vh; */
+  /* overflow:auto; */
+  /* border-radius:6px; */
+/* } */
+.overlay .code-panel{
+  max-height:80vh;
+  overflow:auto;
+  background:#f9f9f6;      /* gentle off-white */
+  border-radius:6px;
+  padding:1rem;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+
+.overlay .code-panel pre{
+  background:transparent;
+  margin:0;
+}
+
+.close{
+  position:absolute; top:1rem; right:1rem;
+  background:none; border:none;
+  font-size:2.4rem; color:#fff; cursor:pointer;
+}
