@@ -387,10 +387,10 @@ fn build_point_axes<Data: Component + Bounds<f32, Marker>, Marker: Component>(
     mut commands: Commands,
     mut query: Query<(&Transform, &ArrowTag, &Shape)>,
     mut aes_query: Query<(&Aesthetics, &mut GeomHist, &Data), (With<Gy>, Without<PopUp>)>,
+    mut bounds: Local<HashMap<Side, (f32, f32)>>,
 ) {
     let mut axes: HashMap<String, HashMap<Side, (Xaxis, Transform)>> = HashMap::new();
     // gather bounds for each side
-    let mut bounds = HashMap::<Side, (f32, f32)>::new();
     for side in [Side::Left, Side::Right] {
         let min_max = aes_query
             .iter()
@@ -601,22 +601,27 @@ fn plot_side_box(
         if geom.rendered {
             continue;
         }
-        let min_val = min_f32(&colors.0);
-        let max_val = max_f32(&colors.0);
-        let grad = build_grad(
-            ui_state.zero_white,
-            min_val,
-            max_val,
-            &ui_state.min_reaction_color,
-            &ui_state.max_reaction_color,
-        );
-
+        let mut maybe_grad = None;
         for (mut trans, axis) in query.iter_mut() {
             for index in aes
                 .identifiers
                 .iter()
                 .positions(|r| (r == &axis.id) & (geom.side == axis.side))
             {
+                let (min_val, max_val) = axis.xlimits;
+                let grad = match maybe_grad.as_ref() {
+                    Some(inner) => inner,
+                    None => {
+                        maybe_grad = Some(build_grad(
+                            ui_state.zero_white,
+                            min_val,
+                            max_val,
+                            &ui_state.min_reaction_color,
+                            &ui_state.max_reaction_color,
+                        ));
+                        maybe_grad.as_ref().unwrap()
+                    }
+                };
                 match geom.plot {
                     HistPlot::Hist | HistPlot::Kde => {
                         warn!(
@@ -625,7 +630,7 @@ fn plot_side_box(
                     }
                     _ => (),
                 };
-                let color = from_grad_clamped(&grad, colors.0[index], min_val, max_val);
+                let color = from_grad_clamped(grad, colors.0[index], min_val, max_val);
 
                 trans.translation.z += 10.;
                 let shape = if f32::abs(colors.0[index]) > 1e-7 {
