@@ -1,6 +1,6 @@
 [project]
 name = "ggshu"
-version = "0.1.0"
+version = "0.2.0"
 description = "Grammar of Graphics for shu."
 readme = "README.rst"
 authors = [{name="carrascomj", email="carrascomurielj@gmail.com"}]
