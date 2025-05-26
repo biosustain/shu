@@ -1,28 +1,40 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Shu</title>
   <style>
+  body, html {
+    width: 100%;
+    padding: 0vh;
+    margin: 0vh;
+  }
   .buttons {
     position: absolute;
     top: 2vh;
-    right: 1vh;
+    right: 2vh;
+    z-index: 3;
   }
   .filelabel {
     display: inline-block;
-    background: -webkit-linear-gradient(top, #f9f9f9, #e3e3e3);
-    border: 1px solid #999;
-    border-radius: 3px;
+    background: -webkit-linear-gradient(top, #4d4d4d, #1b1b1b);
+    border: 1px solid #555355;
+    border-radius: 7px;
     padding: 5px 8px;
     outline: none;
-    text-shadow: 1px 1px #fff;
-    font-weight: 700;
-    font-size: 10pt;
+    color: #D5D3D5;
+    font-weight: 600;
+    font-family: sans;
+    font-size: 13pt;
+    box-shadow: 6px 6px 12px 0 rgba(0,0,0,0.25), 0 6px 20px 0 rgba(0,0,0,0.24);
   }
   .filelabel:hover {
     border-color: black;
+    cursor: pointer;
   }
   .filelabel:active {
-    background: -webkit-linear-gradient(top, #e3e3e3, #f9f9f9);
+    background: -webkit-linear-gradient(top, #858385, #555455);
   }
   .fileb {
     display: none;
@@ -30,18 +42,26 @@
   .fileData {
     display: none;
   }
+  canvas {
+    width: 100%;
+    padding: 0vh;
+    margin: 0vh;
+  }
+  #bevy {
+      z-index: 2;
+  }
   </style>
 </head>
-<body style="margin: 0vh; height: 100vh">
+<body>
     <canvas id="bevy"></canvas>
-    <script type="module">
-        import init from "./pkg/shu.js";
-        init();
-    </script>
     <div class="buttons">
       <label class="filelabel" for="fileb">Map</label>
       <label class="filelabel" for="fileData">Data</label>
     </div>
+    <script type="module">
+        import init from "./pkg/shu.js";
+        init();
+    </script>
 </body>
 
 </html>
