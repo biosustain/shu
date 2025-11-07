@@ -7,8 +7,8 @@ authors = [{name="carrascomj", email="carrascomurielj@gmail.com"}]
 maintainers = [{name="carrascomj", email="carrascomurielj@gmail.com"}]
 requires-python = ">=3.10"
 dependencies = [
-    "pandas==1.5.2",
-    "numpy==1.24.0",
+    "pandas==2.*",
+    "numpy",
     "IPython==8.18.1",
     "requests>=2.32.3",
 ]
