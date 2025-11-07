@@ -2,7 +2,7 @@
 name = "ggshu"
 version = "0.2.0"
 description = "Grammar of Graphics for shu."
-readme = "README.rst"
+readme = "README.md"
 authors = [{name="carrascomj", email="carrascomurielj@gmail.com"}]
 maintainers = [{name="carrascomj", email="carrascomurielj@gmail.com"}]
 requires-python = ">=3.10"
