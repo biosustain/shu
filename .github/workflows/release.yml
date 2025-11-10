@@ -27,7 +27,7 @@ jobs:
           targets: wasm32-unknown-unknown
       - name: install wasm-bindgen-cli
         run: |
-          cargo install wasm-bindgen-cli
+          cargo install wasm-bindgen-cli --version 0.2.99
 
       - name: Build
         run: |
@@ -162,8 +162,6 @@ jobs:
         run: |
           export CFLAGS="-fno-stack-check"
           export MACOSX_DEPLOYMENT_TARGET="10.9"
-      - name: Install lld (included in llvm)
-        run: brew install llvm
       - name: Build
         run: |
           cargo build --release --target x86_64-apple-darwin
