@@ -162,7 +162,7 @@ pub struct Reaction {
     reversibility: bool,
     label_x: f32,
     label_y: f32,
-    gene_reaction_rule: String,
+    gene_reaction_rule: Option<String>,
     pub hist_position: Option<HashMap<Side, SerTransform>>,
     // genes: Vec<HashMap<String, String>>,
     metabolites: Vec<MetRef>,
@@ -557,4 +557,48 @@ pub fn load_map(
     }
     info_state.close();
     state.loaded = true;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn parse_escher_map_without_gprs() {
+        // the example data lacks some segments and metabolites for clarity
+        let reaction: Result<Reaction, serde_json::Error> = serde_json::de::from_str(
+            r#"{"name": "3-deoxy-D-arabino-heptulosonate 7-phosphate synthetase",
+        "bigg_id": "R_42",
+        "reversibility": false,
+        "label_x": 1731.404541015625,
+        "label_y": 1110.6234130859375,
+        "genes": [],
+        "metabolites": [
+          { "bigg_id": "M_m100", "coefficient": 1 },
+          { "bigg_id": "M_m107", "coefficient": -1 }
+        ],
+        "segments": {
+          "550": {
+            "from_node_id": "1577147", "to_node_id": "1577146", "b1": null, "b2": null
+          },
+          "551": {
+            "from_node_id": "1577147", "to_node_id": "1577148",
+            "b1": {
+              "x": 1716.404541015625, "y": 1162.6234130859375
+            },
+            "b2": {
+              "x": 1716.404541015625, "y": 1216.8734130859375
+            }
+          }
+        }
+        }"#,
+        );
+        if let Err(e) = reaction.as_ref() {
+            println!("Test deserialization failed at: `{}`", e);
+        }
+        assert!(reaction.is_ok());
+        let reactions = reaction.unwrap();
+        assert!(reactions.gene_reaction_rule.is_none());
+    }
 }
