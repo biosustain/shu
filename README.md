@@ -2,9 +2,10 @@
 
 <img align="right" width="172" height="228" src="./assets/logo.svg">
 
-[![my badge](https://badgen.net/badge/docs/latest/blue?icon=book)](https://biosustain.github.io/shu/docs/index.html)
+
+[![docs](https://img.shields.io/badge/docs-deployed-black?link=https%3A%2F%2Fbiosustain.github.io%2Fshu%2Fdocs%2F)](https://biosustain.github.io/shu/docs)
 [![wasm](https://img.shields.io/github/deployments/biosustain/shu/github-pages)](https://biosustain.github.io/shu)
-[![wasm](https://img.shields.io/crates/v/shu.svg)](https://crates.io/crates/shu)
+[![crates](https://img.shields.io/crates/v/shu.svg)](https://crates.io/crates/shu)
 
 ## What?
 
@@ -15,7 +16,7 @@ For a **quick start**, we provide a web application at https://biosustain.github
 are example maps and data available at https://github.com/biosustain/shu_case_studies, that
 can be load with the buttons at the top-right.
 
-For a more comprehensive guide, visit the [documentation](https://biosustain.github.io/shu/docs/plotting.html).
+For a more comprehensive guide, visit the [documentation](https://biosustain.github.io/shu/docs/plotting).
 
 > Paper to cite: https://doi.org/10.1093/bioinformatics/btae140
 
